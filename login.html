@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agrivision - Login</title>
+  <link rel="icon" type="image/png" href="assets/images/titleicon.png">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <section class="login-hero">
+    <div class="page-overlay"></div>
+
+    <div class="login-wrapper">
+      <div class="login-brand">
+        <img src="assets/images/agrivision.png" alt="Agrivision Logo">
+      </div>
+
+      <div class="login-card">
+        <h1>Sign In</h1>
+        <p class="login-subtitle">Welcome back! Access your Agrivision dashboard and insights.</p>
+
+        <form id="loginForm" class="login-form" action="#" method="POST">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" type="email" name="email" required placeholder="Your work email">
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="input-with-icon">
+              <input id="password" type="password" name="password" required placeholder="Your password">
+              <button type="button" class="password-toggle" aria-label="Show password">Show</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="checkbox-label">
+              <input type="checkbox" name="remember">
+              Remember me
+            </label>
+            <a href="#" class="login-forgot">Forgot your password?</a>
+          </div>
+
+          <button id="submitButton" type="submit" class="btn-submit" disabled>Sign In</button>
+        </form>
+
+        <div class="security-note">
+          <span class="badge">Secure</span>
+          <span>Protected by Google reCAPTCHA</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>&copy; 2025 PT. Visi Agrikultur Indonesia. All rights reserved.</p>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

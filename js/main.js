@@ -33,3 +33,38 @@ window.addEventListener('scroll', () => {
     navbar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
   }
 });
+
+// --- LOGIN PAGE INTERACTIONS ---
+const passwordToggle = document.querySelector('.password-toggle');
+const passwordInput = document.getElementById('password');
+const emailInput = document.getElementById('email');
+const submitButton = document.getElementById('submitButton');
+const loginForm = document.getElementById('loginForm');
+
+if (passwordToggle && passwordInput) {
+  passwordToggle.addEventListener('click', () => {
+    const isPassword = passwordInput.type === 'password';
+    passwordInput.type = isPassword ? 'text' : 'password';
+    passwordToggle.textContent = isPassword ? 'Hide' : 'Show';
+  });
+}
+
+const toggleSubmitState = () => {
+  if (!submitButton) return;
+  const isValid = emailInput?.value.trim() && passwordInput?.value.trim();
+  submitButton.disabled = !isValid;
+};
+
+if (emailInput && passwordInput) {
+  emailInput.addEventListener('input', toggleSubmitState);
+  passwordInput.addEventListener('input', toggleSubmitState);
+}
+
+if (loginForm) {
+  loginForm.addEventListener('submit', (event) => {
+    if (!emailInput.value || !passwordInput.value) {
+      event.preventDefault();
+      toggleSubmitState();
+    }
+  });
+}
