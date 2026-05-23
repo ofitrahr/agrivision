@@ -1,0 +1,406 @@
+/* ============================================
+   AGRIVISION - select-project.css
+   Select Project page styles
+   ============================================ */
+
+:root {
+  --forest-green: #0f3f32;
+  --forest-green-dark: #0b2f25;
+  --light-bg: #f4f7f8;
+  --card-border: #dbe8e6;
+  --text-dark: #063241;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #f8fbf7 0%, #e9f2ee 100%);
+  color: #111;
+}
+
+/* ---- HEADER ---- */
+.select-header {
+  background: linear-gradient(90deg, #0e3f30, #124e39);
+  color: white;
+  padding: 18px 32px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.header-logo img { height: 38px; }
+
+.header-title {
+  text-align: center;
+  font-weight: 700;
+  font-size: 28px;
+  margin: 0;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.95);
+  font-family: var(--font-display);
+}
+
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 18px;
+  border-radius: 6px;
+  background: white;
+  color: var(--forest-green);
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-logout:hover {
+  background: #f0f0f0;
+  transform: translateY(-1px);
+}
+
+/* ---- PAGE LAYOUT ---- */
+.page-container {
+  max-width: 1500px;
+  margin: 44px auto;
+  padding: 0 24px;
+}
+
+.page-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.75fr;
+  gap: 20px;
+}
+
+/* ---- CARDS ---- */
+.card {
+  background: white;
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  padding: 32px;
+  box-shadow: 0 6px 18px rgba(15,63,50,0.08);
+}
+
+.card-left { min-height: 480px; }
+
+.card-title {
+  margin-top: 0;
+  text-align: center;
+  color: var(--text-dark);
+  font-size: 22px;
+  font-weight: 800;
+  font-family: var(--font-display);
+}
+
+.card-subtitle {
+  text-align: center;
+  color: #5f736d;
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 430px;
+  margin: 10px auto 20px;
+}
+
+/* ---- CHIPS ---- */
+.farm-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #e8f4ee;
+  color: #12513c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chip-status { background: #d6ecd8; }
+
+/* ---- FARM LOGO ---- */
+.farm-logo-container {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0 22px;
+  padding: 18px;
+  background: rgba(68,92,77,0.06);
+  border-radius: 18px;
+}
+
+.farm-logo {
+  height: 120px;
+  width: auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  transition: transform 0.3s ease;
+}
+
+.farm-logo:hover { transform: scale(1.04); }
+
+/* ---- FARM TABLE ---- */
+.farm-details {
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.farm-table {
+  border: 1px solid #d7e3dd;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.farm-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eef3f2;
+}
+
+.farm-row:last-child { border-bottom: none; }
+
+.farm-label {
+  font-weight: 700;
+  color: var(--text-dark);
+  font-size: 12px;
+}
+
+.farm-value {
+  color: #444;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.farm-summary {
+  color: #4c665f;
+  font-size: 13px;
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+.farm-empty {
+  text-align: center;
+  color: #8b9c95;
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+/* ---- STATUS BADGE ---- */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.status-active  { background: #c8e6c9; color: #2e7d32; }
+.status-disabled { background: #e0e0e0; color: #616161; }
+
+/* ---- MAP ---- */
+.map-container {
+  height: 460px;
+  width: 100%;
+  border-radius: 14px;
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(7,35,28,0.08);
+  box-shadow: 0 8px 24px rgba(11,47,33,0.08);
+}
+
+/* MapLibre overrides */
+.maplibregl-popup-content {
+  border-radius: 8px !important;
+  padding: 10px 14px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--text-dark) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+.maplibregl-ctrl-group {
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+}
+
+/* ---- CUSTOM MARKERS ---- */
+.maplibre-marker {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  background: white;
+  border: 3px solid #14634e;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0.8;
+}
+
+.maplibre-marker:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.maplibre-marker.marker-active {
+  opacity: 1;
+  width: 48px;
+  height: 48px;
+  font-size: 26px;
+  border-color: #0a4a39;
+  animation: markerPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes markerPulse {
+  0%   { box-shadow: 0 0 0 6px rgba(20,99,78,0.15), 0 4px 12px rgba(0,0,0,0.25); }
+  50%  { box-shadow: 0 0 0 12px rgba(20,99,78,0.08), 0 4px 12px rgba(0,0,0,0.25); }
+  100% { box-shadow: 0 0 0 6px rgba(20,99,78,0.15), 0 4px 12px rgba(0,0,0,0.25); }
+}
+
+/* ---- PROJECTS LIST ---- */
+.projects-section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--card-border);
+}
+
+.projects-title {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.projects-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.project-item {
+  padding: 12px 16px;
+  border: 1px solid #e8f0ed;
+  border-radius: 10px;
+  background: #f8fcfb;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.project-item:hover {
+  border-color: #c8ddd8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(15,63,50,0.08);
+}
+
+.project-item.active {
+  border-color: #14634e;
+  background: linear-gradient(135deg, #e8f7f3, #d6f1e8);
+  box-shadow: 0 2px 8px rgba(20,99,78,0.15);
+}
+
+.project-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.project-item-name {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text-dark);
+  flex: 1;
+}
+
+.project-item-status {
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+.project-item-status.active   { background: #c8e6c9; color: #2e7d32; }
+.project-item-status.disabled { background: #e0e0e0; color: #616161; }
+
+.project-item-info {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: #5f736d;
+}
+
+/* ---- DASHBOARD BUTTON ---- */
+.btn-select-project {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px 18px;
+  font-size: 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #14634e, #0b3f31);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgba(15,63,50,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-family: var(--font-body);
+}
+
+.btn-select-project:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(15,63,50,0.3);
+}
+
+.btn-select-project:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ---- SPINNER ---- */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid rgba(255,255,255,0.3);
+  border-top: 2.5px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 880px) {
+  .page-grid { grid-template-columns: 1fr; }
+  .map-container { height: 320px; }
+}
+
+@media (max-width: 680px) {
+  .select-header { padding: 16px 20px; }
+  .header-title { font-size: 20px; }
+  .page-container { padding: 0 16px; margin: 24px auto; }
+  .card { padding: 20px; }
+}

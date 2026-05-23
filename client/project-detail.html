@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agrivision - Intelligence Project Detail</title>
+  <link rel="icon" type="image/png" href="../assets/images/titleicon.png">
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/project-detail.css">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="dash-header">
+    <div class="dash-header-left">
+      <img src="../assets/images/agrivision.png" alt="Agrivision Logo">
+      <span class="dash-title">Intelligence Project Detail — Kadatuan</span>
+    </div>
+    <div class="dash-header-right">
+      <button onclick="window.location.href='select-project.html'" class="btn-dash-outline">Project List</button>
+      <button onclick="window.location.href='../login.html'" class="btn-dash-solid">Log Out</button>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <main class="dash-main">
+
+    <!-- LEFT PANEL -->
+    <aside class="dash-panel-left">
+      <div class="panel-section">
+        <div class="panel-label">Distribusi Data Piksel</div>
+        <p id="varDesc" class="panel-desc">Pilih layer parameter untuk melihat distribusi nilai.</p>
+        <div class="chart-wrapper">
+          <canvas id="histogramChart"></canvas>
+        </div>
+        <div id="histHint" class="hist-hint">Klik area pada peta untuk detail nilai</div>
+      </div>
+
+      <div class="panel-divider"></div>
+
+      <div class="panel-section">
+        <div class="panel-label">Statistik Ringkasan</div>
+        <div class="stats-box">
+          <div class="stat-item"><span class="stat-label">Mean</span><span id="statMean" class="stat-val">—</span></div>
+          <div class="stat-item"><span class="stat-label">Min</span><span id="statMin" class="stat-val">—</span></div>
+          <div class="stat-item"><span class="stat-label">Max</span><span id="statMax" class="stat-val">—</span></div>
+          <div class="stat-item"><span class="stat-label">Total</span><span id="statTotal" class="stat-val">—</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER: MAP -->
+    <section class="dash-map-section">
+
+      <!-- LOADING OVERLAY -->
+      <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+        <div class="loading-box">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Memuat data...</div>
+        </div>
+      </div>
+
+      <div id="map" class="dash-map"></div>
+
+      <!-- MAP TOOLBAR -->
+      <div class="map-toolbar">
+        <div class="toolbar-group">
+          <label class="toolbar-label">LAYER PARAMETER</label>
+          <select id="paramSelect" class="toolbar-select">
+            <option value="NDVI">Kesehatan Tanaman (NDVI)</option>
+            <option value="Yield">Estimasi Produksi (Yield)</option>
+            <option value="SOC" selected>Stok Karbon (SOC)</option>
+            <option value="Biomass">Biomassa Karbon</option>
+            <option value="SoilNPK">Nutrisi Tanah (NPK)</option>
+          </select>
+        </div>
+        <div class="toolbar-group">
+          <label class="toolbar-label">PERIODE</label>
+          <input type="range" id="timeSlider" class="toolbar-slider" min="0" max="4" step="1" value="4">
+          <div id="timeLabel" class="toolbar-time-label">Jan - Mar 2026</div>
+        </div>
+        <div class="toolbar-group">
+          <label class="toolbar-label">LAYER KONTROL</label>
+          <div class="layer-toggle">
+            <label class="toggle-switch">
+              <input type="checkbox" id="boundaryToggle" checked onchange="toggleBoundary(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">Batas Lahan</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEGEND -->
+      <div class="map-legend" id="mapLegend"></div>
+
+    </section>
+
+    <!-- RIGHT PANEL -->
+    <aside class="dash-panel-right">
+      <div class="panel-section">
+        <div class="panel-label">Tren Lintas Waktu</div>
+        <div class="chart-wrapper-tall">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+
+      <div class="panel-divider"></div>
+
+      <div id="carbonBox" class="carbon-box panel-section" style="display:none;">
+        <div class="panel-label">Estimasi Nilai Ekonomi</div>
+        <div class="carbon-val" id="carbonVal">—</div>
+        <div class="carbon-co2" id="carbonCO2">—</div>
+        <label class="carbon-label">Harga Karbon (Rp/Ton CO2e)</label>
+        <input type="text" id="carbonPrice" class="carbon-input" value="200.000" oninput="calcCarbon()">
+        <p class="carbon-note">* Claim Est. = Ton C × 3.67 × Harga</p>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip" id="kpiStrip"></div>
+
+  <script>
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  const PERIODS = [
+    { id: 'Q1_2025', label: 'Jan - Mar 2025' },
+    { id: 'Q2_2025', label: 'Apr - Jun 2025' },
+    { id: 'Q3_2025', label: 'Jul - Sep 2025' },
+    { id: 'Q4_2025', label: 'Okt - Des 2025' },
+    { id: 'Q1_2026', label: 'Jan - Mar 2026' },
+  ];
+
+  const PARAMS = {
+    NDVI: {
+      label: 'Kesehatan Tanaman', unit: 'NDVI',
+      desc: 'Indeks kehijauan daun (0-1). Menunjukkan tingkat fotosintesis dan kesehatan tanaman.',
+      min: 0.3, max: 0.95,
+      palette: ['#8c510a','#d8b365','#f6e8c3','#c7eae5','#5ab4ac','#01665e']
+    },
+    Yield: {
+      label: 'Estimasi Produksi', unit: 'Kg',
+      desc: 'Estimasi berat buah kopi (Kg) per piksel 10x10m.',
+      min: 0.5, max: 6.0,
+      palette: ['#ffffcc','#ffeda0','#feb24c','#f03b20','#bd0026','#800026']
+    },
+    SOC: {
+      label: 'Stok Karbon Tanah', unit: 'Kg C',
+      desc: 'Kandungan Karbon Organik Tanah (Kg C) per piksel 10x10m.',
+      min: 280, max: 560,
+      palette: ['#f7fbff','#c6dbef','#6baed6','#2171b5','#084594']
+    },
+    Biomass: {
+      label: 'Biomassa Karbon', unit: 'Kg/ha',
+      desc: 'Estimasi biomassa karbon di atas permukaan tanah (Kg/ha).',
+      min: 50, max: 300,
+      palette: ['#ffffe5','#f7fcb9','#addd8e','#41ab5d','#005a32']
+    },
+    SoilNPK: {
+      label: 'Nutrisi Tanah (NPK)', unit: 'mg/kg',
+      desc: 'Indeks nutrisi tanah (N+P+K). Menunjukkan ketersediaan unsur hara.',
+      min: 20, max: 120,
+      palette: ['#fff7fb','#ece2f0','#a6bddb','#1c9099','#016450']
+    }
+  };
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  let currentParam = 'SOC';
+  let currentPeriodIdx = 4;
+  let geoData = {};
+  let histChart = null;
+  let trendChart = null;
+  let pixelPopup = null;
+
+  // ============================================================
+  // MAP INIT
+  // ============================================================
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: {
+      version: 8,
+      sources: {
+        satellite: {
+          type: 'raster',
+          tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+          tileSize: 256,
+          attribution: '© Esri World Imagery'
+        }
+      },
+      layers: [{ id: 'satellite', type: 'raster', source: 'satellite' }]
+    },
+    center: [107.571133, -7.106029],
+    zoom: 15
+  });
+
+  map.addControl(new maplibregl.NavigationControl(), 'top-left');
+
+  // ============================================================
+  // FARM BOUNDARY
+  // ============================================================
+  function loadFarmBoundary() {
+    fetch('../assets/data/farm_boundary.geojson')
+      .then(r => r.json())
+      .then(data => {
+        map.addSource('boundary-source', { type: 'geojson', data });
+
+        map.addLayer({
+          id: 'boundary-fill',
+          type: 'fill',
+          source: 'boundary-source',
+          paint: { 'fill-color': '#7ED957', 'fill-opacity': 0.05 }
+        });
+
+        map.addLayer({
+          id: 'boundary-line',
+          type: 'line',
+          source: 'boundary-source',
+          paint: {
+            'line-color': '#7ED957',
+            'line-width': 2.5,
+            'line-dasharray': [3, 2]
+          }
+        });
+
+        map.addLayer({
+          id: 'boundary-label',
+          type: 'symbol',
+          source: 'boundary-source',
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-size': 11,
+            'text-anchor': 'top',
+            'text-offset': [0, 0.5]
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': '#0e3f30',
+            'text-halo-width': 1.5
+          }
+        });
+      })
+      .catch(e => console.warn('Boundary not found:', e));
+  }
+
+  function toggleBoundary(visible) {
+    const visibility = visible ? 'visible' : 'none';
+    ['boundary-fill', 'boundary-line', 'boundary-label'].forEach(id => {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility);
+    });
+  }
+
+  // ============================================================
+  // LOAD GEOJSON (cache)
+  // ============================================================
+  async function loadGeoJSON(param) {
+    if (geoData[param]) return geoData[param];
+    const res = await fetch(`../assets/data/${param}.geojson`);
+    const data = await res.json();
+    geoData[param] = data;
+    return data;
+  }
+
+  // ============================================================
+  // PIXEL POPUP - SEMUA PARAMETER
+  // ============================================================
+  async function showPixelPopup(lngLat, row, col, periodId) {
+    const paramKeys = Object.keys(PARAMS);
+    await Promise.all(paramKeys.map(p => loadGeoJSON(p)));
+
+    const rows = paramKeys.map(key => {
+      const feature = geoData[key].features.find(
+        f => f.properties.row === row && f.properties.col === col
+      );
+      const val = feature ? feature.properties[periodId] : null;
+      const p = PARAMS[key];
+      return `
+        <div class="popup-row ${key === currentParam ? 'popup-row-active' : ''}">
+          <span class="popup-param">${p.label}</span>
+          <span class="popup-val">${val !== null ? parseFloat(val).toFixed(3) : '—'} <span class="popup-unit">${p.unit}</span></span>
+        </div>
+      `;
+    });
+
+    const html = `
+      <div class="pixel-popup">
+        <div class="popup-title">📍 Piksel (${row}, ${col})</div>
+        <div class="popup-period">${PERIODS[currentPeriodIdx].label}</div>
+        <div class="popup-table">${rows.join('')}</div>
+      </div>
+    `;
+
+    if (pixelPopup) pixelPopup.remove();
+    pixelPopup = new maplibregl.Popup({ closeButton: true, maxWidth: '260px' })
+      .setLngLat(lngLat)
+      .setHTML(html)
+      .addTo(map);
+  }
+
+  // ============================================================
+  // UPDATE MAP
+  // ============================================================
+  async function updateMap() {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.style.display = 'flex';
+
+    try {
+      const data = await loadGeoJSON(currentParam);
+      const periodId = PERIODS[currentPeriodIdx].id;
+      const param = PARAMS[currentParam];
+
+      if (map.getLayer('param-layer')) map.removeLayer('param-layer');
+      if (map.getSource('param-source')) map.removeSource('param-source');
+
+      const colorStops = [];
+      const steps = param.palette.length;
+      for (let i = 0; i < steps; i++) {
+        const val = param.min + (i / (steps - 1)) * (param.max - param.min);
+        colorStops.push(val, param.palette[i]);
+      }
+
+      map.addSource('param-source', { type: 'geojson', data });
+      map.addLayer({
+        id: 'param-layer',
+        type: 'fill',
+        source: 'param-source',
+        paint: {
+          'fill-color': ['interpolate', ['linear'], ['get', periodId], ...colorStops],
+          'fill-opacity': 0.82,
+          'fill-outline-color': 'rgba(255,255,255,0.15)'
+        }
+      });
+
+      // Boundary selalu di atas
+      if (map.getLayer('boundary-fill'))  map.moveLayer('boundary-fill');
+      if (map.getLayer('boundary-line'))  map.moveLayer('boundary-line');
+      if (map.getLayer('boundary-label')) map.moveLayer('boundary-label');
+
+      // Klik piksel
+      map.on('click', 'param-layer', (e) => {
+        const props = e.features[0].properties;
+        const periodId = PERIODS[currentPeriodIdx].id;
+        const val = props[periodId];
+        document.getElementById('histHint').innerHTML =
+          `Nilai piksel: <strong>${parseFloat(val).toFixed(3)} ${param.unit}</strong>`;
+        showPixelPopup(e.lngLat, props.row, props.col, periodId);
+      });
+
+      // Cursor pointer saat hover piksel
+      map.on('mouseenter', 'param-layer', () => map.getCanvas().style.cursor = 'crosshair');
+      map.on('mouseleave', 'param-layer', () => map.getCanvas().style.cursor = '');
+
+      updateLegend();
+      updateStats(data, periodId);
+      buildHistogram(data, periodId);
+      buildTrendChart(data);
+      updateKPI(data, periodId);
+      document.getElementById('varDesc').innerText = param.desc;
+      document.getElementById('carbonBox').style.display = currentParam === 'SOC' ? 'block' : 'none';
+      if (currentParam === 'SOC') calcCarbon(data, periodId);
+
+    } finally {
+      overlay.style.display = 'none';
+    }
+  }
+
+  // ============================================================
+  // LEGEND
+  // ============================================================
+  function updateLegend() {
+    const param = PARAMS[currentParam];
+    const steps = param.palette.length;
+    let html = `<div class="legend-title">${param.label} (${param.unit})</div>`;
+    for (let i = 0; i < steps; i++) {
+      const val = param.min + (i / (steps - 1)) * (param.max - param.min);
+      html += `<div class="legend-item">
+        <span class="legend-swatch" style="background:${param.palette[i]}"></span>
+        <span>${val.toFixed(1)}</span>
+      </div>`;
+    }
+    document.getElementById('mapLegend').innerHTML = html;
+  }
+
+  // ============================================================
+  // STATISTIK
+  // ============================================================
+  function updateStats(data, periodId) {
+    const vals  = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
+    const mean  = vals.reduce((a,b) => a+b, 0) / vals.length;
+    const min   = Math.min(...vals);
+    const max   = Math.max(...vals);
+    const total = vals.reduce((a,b) => a+b, 0);
+    const unit  = PARAMS[currentParam].unit;
+    document.getElementById('statMean').innerText  = `${mean.toFixed(2)} ${unit}`;
+    document.getElementById('statMin').innerText   = `${min.toFixed(2)} ${unit}`;
+    document.getElementById('statMax').innerText   = `${max.toFixed(2)} ${unit}`;
+    document.getElementById('statTotal').innerText = `${total.toFixed(1)} ${unit}`;
+  }
+
+  // ============================================================
+  // HISTOGRAM
+  // ============================================================
+  function buildHistogram(data, periodId) {
+    const param  = PARAMS[currentParam];
+    const vals   = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
+    const bins   = 10;
+    const w      = (param.max - param.min) / bins;
+    const counts = new Array(bins).fill(0);
+    const labels = [];
+    for (let i = 0; i < bins; i++) labels.push((param.min + i * w).toFixed(1));
+    vals.forEach(v => {
+      let i = Math.min(bins - 1, Math.floor((v - param.min) / w));
+      if (i >= 0) counts[i]++;
+    });
+    if (histChart) histChart.destroy();
+    histChart = new Chart(document.getElementById('histogramChart'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{ data: counts, backgroundColor: param.palette[Math.floor(param.palette.length / 2)], borderRadius: 4 }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { title: { display: true, text: `Nilai (${param.unit})`, font: { size: 10 } }, ticks: { font: { size: 9 } } },
+          y: { title: { display: true, text: 'Piksel', font: { size: 10 } }, ticks: { font: { size: 9 } } }
+        }
+      }
+    });
+  }
+
+  // ============================================================
+  // TREND CHART
+  // ============================================================
+  function buildTrendChart(data) {
+    const param = PARAMS[currentParam];
+    const periodMeans = PERIODS.map(p => {
+      const vals = data.features.map(f => f.properties[p.id]).filter(v => !isNaN(v));
+      return vals.reduce((a,b) => a+b, 0) / vals.length;
+    });
+    if (trendChart) trendChart.destroy();
+    trendChart = new Chart(document.getElementById('trendChart'), {
+      type: 'line',
+      data: {
+        labels: PERIODS.map(p => p.label),
+        datasets: [{
+          label: `${param.label} (${param.unit})`,
+          data: periodMeans,
+          borderColor: param.palette[param.palette.length - 1],
+          backgroundColor: param.palette[param.palette.length - 1] + '22',
+          fill: true, tension: 0.4,
+          pointBackgroundColor: param.palette[param.palette.length - 1],
+          pointRadius: 5
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toFixed(3)} ${param.unit}` } }
+        },
+        scales: {
+          x: { ticks: { font: { size: 9 }, maxRotation: 45 } },
+          y: { title: { display: true, text: param.unit, font: { size: 10 } }, ticks: { font: { size: 9 } } }
+        }
+      }
+    });
+  }
+
+  // ============================================================
+  // KPI STRIP
+  // ============================================================
+  function updateKPI(data, periodId) {
+    const param    = PARAMS[currentParam];
+    const vals     = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
+    const prevId   = PERIODS[Math.max(0, currentPeriodIdx - 1)].id;
+    const prevVals = data.features.map(f => f.properties[prevId]).filter(v => !isNaN(v));
+    const mean     = vals.reduce((a,b) => a+b, 0) / vals.length;
+    const prevMean = prevVals.reduce((a,b) => a+b, 0) / prevVals.length;
+    const delta    = mean - prevMean;
+    const total    = vals.reduce((a,b) => a+b, 0);
+    const max      = Math.max(...vals);
+    const deltaSign  = delta >= 0 ? '+' : '';
+    const deltaClass = delta >= 0 ? 'kpi-up' : 'kpi-down';
+
+    let kpis = [
+      { label: 'Rerata',                   val: `${mean.toFixed(2)} ${param.unit}` },
+      { label: 'Perubahan vs Periode Lalu', val: `${deltaSign}${delta.toFixed(3)} ${param.unit}`, cls: deltaClass },
+      { label: 'Total',                    val: `${total.toFixed(1)} ${param.unit}` },
+      { label: 'Nilai Tertinggi',           val: `${max.toFixed(2)} ${param.unit}` },
+    ];
+
+    if (currentParam === 'NDVI') {
+      kpis.push({ label: 'Piksel Sehat (>0.7)', val: `${vals.filter(v => v > 0.7).length} piksel` });
+    }
+    if (currentParam === 'SOC') {
+      kpis.push({ label: 'Stok Karbon Total', val: `${(total/1000).toFixed(2)} Ton C` });
+    }
+
+    document.getElementById('kpiStrip').innerHTML = kpis.map(k => `
+      <div class="kpi-card">
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-val ${k.cls || ''}">${k.val}</div>
+      </div>
+    `).join('');
+  }
+
+  // ============================================================
+  // CARBON ECONOMY
+  // ============================================================
+  function calcCarbon(data, periodId) {
+    if (!data)     data     = geoData['SOC'];
+    if (!periodId) periodId = PERIODS[currentPeriodIdx].id;
+    if (!data) return;
+    const vals    = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
+    const totalC  = vals.reduce((a,b) => a+b, 0) / 1000;
+    const co2e    = totalC * 3.67;
+    const price   = parseInt(document.getElementById('carbonPrice').value.replace(/\./g, '')) || 200000;
+    const totalRp = co2e * price;
+    document.getElementById('carbonVal').innerText = 'Rp ' + Math.round(totalRp).toLocaleString('id-ID');
+    document.getElementById('carbonCO2').innerText = `${co2e.toFixed(2)} Ton CO2e`;
+  }
+
+  document.getElementById('carbonPrice').addEventListener('keyup', function() {
+    let val = this.value.replace(/\D/g, '');
+    if (val) this.value = parseInt(val).toLocaleString('id-ID');
+    calcCarbon();
+  });
+
+  // ============================================================
+  // EVENT LISTENERS
+  // ============================================================
+  document.getElementById('paramSelect').addEventListener('change', e => {
+    currentParam = e.target.value;
+    updateMap();
+  });
+
+  document.getElementById('timeSlider').addEventListener('input', e => {
+    currentPeriodIdx = parseInt(e.target.value);
+    document.getElementById('timeLabel').innerText = PERIODS[currentPeriodIdx].label;
+    updateMap();
+  });
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  map.on('load', () => {
+    loadFarmBoundary();
+    updateMap();
+  });
+  </script>
+
+</body>
+</html>
