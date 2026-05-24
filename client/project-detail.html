@@ -15,10 +15,11 @@
 </head>
 <body>
 
-  <!-- HEADER -->
   <header class="dash-header">
     <div class="dash-header-left">
-      <img src="../assets/images/agrivision.png" alt="Agrivision Logo">
+      <a href="../index.html" style="display: flex; align-items: center;">
+        <img src="../assets/images/agrivision.png" alt="Agrivision Logo">
+      </a>
       <span class="dash-title">Intelligence Project Detail — Kadatuan</span>
     </div>
     <div class="dash-header-right">
@@ -27,7 +28,6 @@
     </div>
   </header>
 
-  <!-- BREADCRUMB -->
   <nav class="breadcrumb-bar">
     <a href="../index.html" class="breadcrumb-item">Home</a>
     <span class="breadcrumb-sep">›</span>
@@ -39,7 +39,18 @@
   <!-- PDF MODAL -->
   <div id="pdfModal" class="pdf-modal-overlay" style="display:none;">
     <div class="pdf-modal">
-      <div class="pdf-modal-title">📄 Generate Carbon Credit Report</div>
+      <div class="pdf-modal-title">📄 Generate CSA Report</div>
+      <div class="pdf-modal-group">
+        <label class="pdf-modal-label">Parameter</label>
+        <select id="pdfParam" class="pdf-modal-select">
+          <option value="SOC">Stok Karbon Tanah (SOC)</option>
+          <option value="NDVI">Kesehatan Tanaman (NDVI)</option>
+          <option value="Yield">Estimasi Produksi (Yield)</option>
+          <option value="Biomass">Biomassa Karbon</option>
+          <option value="SoilNPK">Nutrisi Tanah (NPK)</option>
+          <option value="ALL">📊 Semua Parameter (Comprehensive Report)</option>
+        </select>
+      </div>
       <div class="pdf-modal-group">
         <label class="pdf-modal-label">Periode Awal</label>
         <select id="pdfPeriodFrom" class="pdf-modal-select">
@@ -67,10 +78,13 @@
     </div>
   </div>
 
-  <!-- MAIN LAYOUT -->
+  <!-- Hidden canvas for PDF chart rendering -->
+  <div id="pdfCanvasContainer" style="position:absolute; left:-9999px; top:0;">
+    <canvas id="pdfChart" width="800" height="400"></canvas>
+  </div>
+
   <main class="dash-main">
 
-    <!-- LEFT PANEL -->
     <aside class="dash-panel-left">
       <div class="panel-section">
         <div class="panel-label">Distribusi Data Piksel</div>
@@ -83,7 +97,6 @@
 
       <div class="panel-divider"></div>
 
-      <!-- ANOMALY ALERT -->
       <div class="panel-section" id="anomalySection" style="display:none;">
         <div class="anomaly-header">
           <span class="anomaly-icon">⚠️</span>
@@ -107,32 +120,30 @@
           <div class="stat-item"><span class="stat-label">Mean</span><span id="statMean" class="stat-val">—</span></div>
           <div class="stat-item"><span class="stat-label">Min</span><span id="statMin" class="stat-val">—</span></div>
           <div class="stat-item"><span class="stat-label">Max</span><span id="statMax" class="stat-val">—</span></div>
-          <div class="stat-item"><span class="stat-label">Total</span><span id="statTotal" class="stat-val">—</span></div>
+          <div class="stat-item"><span class="stat-label">Std Dev</span><span id="statTotal" class="stat-val">—</span></div>
         </div>
         <button onclick="exportCSV()" class="btn-export-csv">
           ⬇ Export CSV
           <span id="exportLabel" class="export-label">SOC · Jan - Mar 2026</span>
         </button>
         <button onclick="openPDFModal()" class="btn-export-pdf">
-          📄 Carbon Credit Report
+          📄 CSA Report
           <span class="export-label">Generate PDF</span>
         </button>
       </div>
     </aside>
 
-    <!-- CENTER: MAP -->
     <section class="dash-map-section">
 
       <div id="loadingOverlay" class="loading-overlay" style="display:none;">
         <div class="loading-box">
           <div class="loading-spinner"></div>
-          <div class="loading-text">Memuat data...</div>
+          <div class="loading-text" id="loadingText">Memuat data...</div>
         </div>
       </div>
 
       <div id="map" class="dash-map"></div>
 
-      <!-- MAP TOOLBAR -->
       <div class="map-toolbar" id="mapToolbar">
 
         <div id="normalToolbar">
@@ -219,8 +230,7 @@
         </div>
         <div class="toolbar-group">
           <label class="toolbar-label">TRANSPARANSI LAYER</label>
-          <input type="range" id="opacitySlider" class="toolbar-slider" min="0" max="100" step="5" value="82"
-            oninput="updateOpacity(this.value)">
+          <input type="range" id="opacitySlider" class="toolbar-slider" min="0" max="100" step="5" value="82" oninput="updateOpacity(this.value)">
           <div class="toolbar-opacity-label">
             <span>Transparan</span>
             <span id="opacityValue">82%</span>
@@ -247,15 +257,11 @@
         </div>
       </div>
 
-      <!-- LEGEND -->
       <div class="map-legend" id="mapLegend"></div>
-
-      <!-- COMPARISON BADGE -->
       <div id="compBadge" class="comp-badge" style="display:none;"></div>
 
     </section>
 
-    <!-- RIGHT PANEL -->
     <aside class="dash-panel-right">
       <div id="normalRight">
         <div class="panel-section">
@@ -307,20 +313,28 @@
   ];
 
   const PARAMS = {
-    NDVI:    { label: 'Kesehatan Tanaman', unit: 'NDVI',   desc: 'Indeks kehijauan daun (0-1).', min: 0.3,  max: 0.95, palette: ['#8c510a','#d8b365','#f6e8c3','#c7eae5','#5ab4ac','#01665e'], anomalyThreshold: 0.4,  anomalyLabel: 'Tanaman tidak sehat (NDVI < 0.4)' },
-    Yield:   { label: 'Estimasi Produksi', unit: 'Kg',     desc: 'Estimasi berat buah kopi (Kg) per piksel 10x10m.', min: 0.5,  max: 6.0,  palette: ['#ffffcc','#ffeda0','#feb24c','#f03b20','#bd0026','#800026'], anomalyThreshold: 1.5,  anomalyLabel: 'Produksi sangat rendah (< 1.5 Kg)' },
-    SOC:     { label: 'Stok Karbon Tanah', unit: 'Kg C',   desc: 'Kandungan Karbon Organik Tanah (Kg C) per piksel 10x10m.', min: 280,  max: 560,  palette: ['#f7fbff','#c6dbef','#6baed6','#2171b5','#084594'], anomalyThreshold: 320,  anomalyLabel: 'Karbon tanah kritis (< 320 Kg C)' },
-    Biomass: { label: 'Biomassa Karbon',   unit: 'Kg/ha',  desc: 'Estimasi biomassa karbon di atas permukaan tanah (Kg/ha).', min: 50,   max: 300,  palette: ['#ffffe5','#f7fcb9','#addd8e','#41ab5d','#005a32'], anomalyThreshold: 80,   anomalyLabel: 'Biomassa sangat rendah (< 80 Kg/ha)' },
-    SoilNPK: { label: 'Nutrisi Tanah (NPK)', unit: 'mg/kg', desc: 'Indeks nutrisi tanah (N+P+K).', min: 20,   max: 120,  palette: ['#fff7fb','#ece2f0','#a6bddb','#1c9099','#016450'], anomalyThreshold: 30,   anomalyLabel: 'Nutrisi tanah kritis (< 30 mg/kg)' }
+    NDVI:    { label: 'Kesehatan Tanaman',   unit: 'index',      desc: 'Indeks kehijauan daun (0-1). Menunjukkan tingkat fotosintesis dan kesehatan tanaman.', min: 0.3,  max: 0.95, palette: ['#8c510a','#d8b365','#f6e8c3','#c7eae5','#5ab4ac','#01665e'], anomalyThreshold: 0.4,  anomalyLabel: 'Tanaman tidak sehat (NDVI < 0.4)' },
+    Yield:   { label: 'Estimasi Produksi',   unit: 'Ton/Ha',     desc: 'Estimasi produksi buah kopi (Ton/Ha).', min: 0.5,  max: 3.0,  palette: ['#ffffcc','#ffeda0','#feb24c','#f03b20','#bd0026','#800026'], anomalyThreshold: 0.8,  anomalyLabel: 'Produksi sangat rendah (< 0.8 Ton/Ha)' },
+    SOC:     { label: 'Stok Karbon Tanah',   unit: 'Ton C/Ha',   desc: 'Kandungan Karbon Organik Tanah (Ton C/Ha) pada kedalaman 20cm.', min: 28.0, max: 56.0, palette: ['#f7fbff','#c6dbef','#6baed6','#2171b5','#084594'], anomalyThreshold: 32.0, anomalyLabel: 'Karbon tanah kritis (< 32 Ton C/Ha)' },
+    Biomass: { label: 'Biomassa Karbon',     unit: 'Kg C/Ha',    desc: 'Estimasi biomassa karbon di atas permukaan tanah (Kg C/Ha).', min: 5000, max: 30000, palette: ['#ffffe5','#f7fcb9','#addd8e','#41ab5d','#005a32'], anomalyThreshold: 8000, anomalyLabel: 'Biomassa sangat rendah (< 8.000 Kg C/Ha)' },
+    SoilNPK: { label: 'Nutrisi Tanah (NPK)', unit: 'kg NPK/Ha',  desc: 'Total NPK tanah (kg/Ha) pada kedalaman 20cm dengan bulk density 1.3 g/cm³.', min: 52.0, max: 312.0, palette: ['#fff7fb','#ece2f0','#a6bddb','#1c9099','#016450'], anomalyThreshold: 78.0, anomalyLabel: 'Nutrisi tanah kritis (< 78 kg NPK/Ha)' }
   };
 
   const OWNERS = [
-    { name: 'Pak Rusmana', color: '#E74C3C' },
-    { name: 'Pak Ido',     color: '#E67E22' },
-    { name: 'Pak Pena',    color: '#27AE60' },
-    { name: 'Pak Undang',  color: '#2980B9' },
-    { name: 'Pak Ade',     color: '#8E44AD' },
+    { name: 'Pak Rusmana', color: '#E74C3C', pixels: 100 },
+    { name: 'Pak Ido',     color: '#E67E22', pixels: 100 },
+    { name: 'Pak Pena',    color: '#27AE60', pixels: 100 },
+    { name: 'Pak Undang',  color: '#2980B9', pixels: 50 },
+    { name: 'Pak Ade',     color: '#8E44AD', pixels: 50 },
   ];
+
+  const TOTAL_HA = 25; // Total luas lahan 25 Ha
+
+  // Helper: format Ha + piksel
+  function formatHaPixel(pixels) {
+    const ha = pixels / 100;
+    return `${ha.toFixed(2)} Ha (${pixels} piksel)`;
+  }
 
   // ============================================================
   // STATE
@@ -348,12 +362,7 @@
     style: {
       version: 8,
       sources: {
-        satellite: {
-          type: 'raster',
-          tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-          tileSize: 256,
-          attribution: '© Esri World Imagery'
-        }
+        satellite: { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, attribution: '© Esri World Imagery' }
       },
       layers: [{ id: 'satellite', type: 'raster', source: 'satellite' }]
     },
@@ -363,9 +372,6 @@
 
   map.addControl(new maplibregl.NavigationControl(), 'top-left');
 
-  // ============================================================
-  // BASEMAP
-  // ============================================================
   const BASEMAPS = {
     satellite: { tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'] },
     street:    { tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png','https://b.tile.openstreetmap.org/{z}/{x}/{y}.png','https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'] },
@@ -378,31 +384,21 @@
     map.getSource('satellite').setTiles(BASEMAPS[type].tiles);
   }
 
-  // ============================================================
-  // OPACITY
-  // ============================================================
   function updateOpacity(val) {
     currentOpacity = val / 100;
     document.getElementById('opacityValue').innerText = `${val}%`;
     if (map.getLayer('param-layer')) map.setPaintProperty('param-layer', 'fill-opacity', currentOpacity);
   }
 
-  // ============================================================
-  // DARK MODE
-  // ============================================================
   function toggleCompMode(enabled) {
     compMode = enabled;
-
-    // Dark mode
     document.body.classList.toggle('dark-mode', enabled);
-
     document.getElementById('normalToolbar').style.display  = enabled ? 'none'  : 'block';
     document.getElementById('compToolbar').style.display    = enabled ? 'block' : 'none';
     document.getElementById('normalRight').style.display    = enabled ? 'none'  : 'block';
     document.getElementById('compRight').style.display      = enabled ? 'block' : 'none';
     document.getElementById('anomalySection').style.display = enabled ? 'none'  : '';
     document.getElementById('compBadge').style.display      = enabled ? 'flex'  : 'none';
-
     if (enabled) {
       compParam      = document.getElementById('compParamSelect').value;
       compPeriodAIdx = parseInt(document.getElementById('compPeriodA').value);
@@ -420,23 +416,13 @@
     updateCompMap();
   }
 
-  // ============================================================
-  // FARM BOUNDARY
-  // ============================================================
   function loadFarmBoundary() {
-    fetch('../assets/data/farm_boundary.geojson')
-      .then(r => r.json())
-      .then(data => {
-        map.addSource('boundary-source', { type: 'geojson', data });
-        map.addLayer({ id: 'boundary-fill', type: 'fill', source: 'boundary-source', paint: { 'fill-color': '#7ED957', 'fill-opacity': 0.05 } });
-        map.addLayer({ id: 'boundary-line', type: 'line', source: 'boundary-source', paint: { 'line-color': '#7ED957', 'line-width': 2.5, 'line-dasharray': [3, 2] } });
-        map.addLayer({
-          id: 'boundary-label', type: 'symbol', source: 'boundary-source',
-          layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-anchor': 'top', 'text-offset': [0, 0.5] },
-          paint: { 'text-color': '#ffffff', 'text-halo-color': '#0e3f30', 'text-halo-width': 1.5 }
-        });
-      })
-      .catch(e => console.warn('Boundary not found:', e));
+    fetch('../assets/data/farm_boundary.geojson').then(r => r.json()).then(data => {
+      map.addSource('boundary-source', { type: 'geojson', data });
+      map.addLayer({ id: 'boundary-fill', type: 'fill', source: 'boundary-source', paint: { 'fill-color': '#7ED957', 'fill-opacity': 0.05 } });
+      map.addLayer({ id: 'boundary-line', type: 'line', source: 'boundary-source', paint: { 'line-color': '#7ED957', 'line-width': 2.5, 'line-dasharray': [3, 2] } });
+      map.addLayer({ id: 'boundary-label', type: 'symbol', source: 'boundary-source', layout: { 'text-field': ['get', 'name'], 'text-size': 11, 'text-anchor': 'top', 'text-offset': [0, 0.5] }, paint: { 'text-color': '#ffffff', 'text-halo-color': '#0e3f30', 'text-halo-width': 1.5 } });
+    }).catch(e => console.warn('Boundary not found:', e));
   }
 
   function toggleBoundary(visible) {
@@ -446,67 +432,20 @@
     });
   }
 
-  // ============================================================
-  // LAND OWNERSHIP
-  // ============================================================
   async function loadOwnership() {
-    // Load pixel lookup
     const res     = await fetch('../assets/data/pixel_owner_lookup.json');
     pixelOwnerLookup = await res.json();
-
-    // Load ownership GeoJSON
     const geoRes  = await fetch('../assets/data/land_ownership.geojson');
-    const geoData = await geoRes.json();
-
-    map.addSource('ownership-source', { type: 'geojson', data: geoData });
-
-    // Fill per owner dengan warna berbeda
-    map.addLayer({
-      id: 'ownership-fill',
-      type: 'fill',
-      source: 'ownership-source',
-      paint: {
-        'fill-color': ['get', 'color'],
-        'fill-opacity': 0.15
-      }
-    });
-
-    // Outline
-    map.addLayer({
-      id: 'ownership-line',
-      type: 'line',
-      source: 'ownership-source',
-      paint: {
-        'line-color': ['get', 'color'],
-        'line-width': 1.5,
-        'line-opacity': 0.8
-      }
-    });
-
-    // Label nama pemilik
-    map.addLayer({
-      id: 'ownership-label',
-      type: 'symbol',
-      source: 'ownership-source',
-      layout: {
-        'text-field': ['get', 'name'],
-        'text-size': 10,
-        'text-anchor': 'center',
-      },
-      paint: {
-        'text-color': '#ffffff',
-        'text-halo-color': '#000000',
-        'text-halo-width': 1.2
-      }
-    });
-
-    // Render legend
+    const geoJSON = await geoRes.json();
+    map.addSource('ownership-source', { type: 'geojson', data: geoJSON });
+    map.addLayer({ id: 'ownership-fill', type: 'fill', source: 'ownership-source', paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.15 } });
+    map.addLayer({ id: 'ownership-line', type: 'line', source: 'ownership-source', paint: { 'line-color': ['get', 'color'], 'line-width': 1.5, 'line-opacity': 0.8 } });
+    map.addLayer({ id: 'ownership-label', type: 'symbol', source: 'ownership-source', layout: { 'text-field': ['get', 'name'], 'text-size': 10, 'text-anchor': 'center' }, paint: { 'text-color': '#ffffff', 'text-halo-color': '#000000', 'text-halo-width': 1.2 } });
     renderOwnershipLegend();
   }
 
   function renderOwnershipLegend() {
-    const legend = document.getElementById('ownershipLegend');
-    legend.innerHTML = OWNERS.map(o => `
+    document.getElementById('ownershipLegend').innerHTML = OWNERS.map(o => `
       <div class="ownership-legend-item">
         <span class="ownership-swatch" style="background:${o.color};"></span>
         <span>${o.name}</span>
@@ -525,9 +464,6 @@
     return pixelOwnerLookup[`${row},${col}`] || 'Tidak diketahui';
   }
 
-  // ============================================================
-  // LOAD GEOJSON (cache)
-  // ============================================================
   async function loadGeoJSON(param) {
     if (geoData[param]) return geoData[param];
     const res  = await fetch(`../assets/data/${param}.geojson`);
@@ -537,14 +473,13 @@
   }
 
   // ============================================================
-  // PIXEL POPUP
+  // PIXEL POPUP - FIX: pakai koordinat lon/lat real
   // ============================================================
   async function showPixelPopup(lngLat, row, col, periodId) {
     const paramKeys = Object.keys(PARAMS);
     await Promise.all(paramKeys.map(p => loadGeoJSON(p)));
-
-    const ownerName = getPixelOwner(row, col);
-    const owner     = OWNERS.find(o => o.name === ownerName);
+    const ownerName  = getPixelOwner(row, col);
+    const owner      = OWNERS.find(o => o.name === ownerName);
     const ownerColor = owner ? owner.color : '#888';
 
     const rows = paramKeys.map(key => {
@@ -565,21 +500,17 @@
           <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${ownerColor};margin-right:6px;vertical-align:middle;"></span>
           Lahan ${ownerName}
         </div>
-        <div class="popup-coords">Piksel (${row}, ${col})</div>
+        <div class="popup-coords">📍 ${lngLat.lat.toFixed(6)}°, ${lngLat.lng.toFixed(6)}°</div>
         <div class="popup-period">${PERIODS[currentPeriodIdx].label}</div>
         <div class="popup-table">${rows.join('')}</div>
       </div>`;
-
     if (pixelPopup) pixelPopup.remove();
-    pixelPopup = new maplibregl.Popup({ closeButton: true, maxWidth: '260px' })
-      .setLngLat(lngLat).setHTML(html).addTo(map);
+    pixelPopup = new maplibregl.Popup({ closeButton: true, maxWidth: '260px' }).setLngLat(lngLat).setHTML(html).addTo(map);
   }
 
-  // ============================================================
-  // UPDATE MAP (normal)
-  // ============================================================
   async function updateMap() {
     const overlay = document.getElementById('loadingOverlay');
+    document.getElementById('loadingText').innerText = 'Memuat data...';
     overlay.style.display = 'flex';
     try {
       const data     = await loadGeoJSON(currentParam);
@@ -606,19 +537,14 @@
       });
 
       updateAnomalyLayer(data, periodId);
-
-      // Pastikan ownership & boundary di atas
-      ['ownership-fill','ownership-line','ownership-label',
-       'anomaly-layer','anomaly-outline',
-       'boundary-fill','boundary-line','boundary-label'].forEach(id => {
+      ['ownership-fill','ownership-line','ownership-label','anomaly-layer','anomaly-outline','boundary-fill','boundary-line','boundary-label'].forEach(id => {
         if (map.getLayer(id)) map.moveLayer(id);
       });
 
       map.on('click', 'param-layer', (e) => {
         const props    = e.features[0].properties;
         const periodId = PERIODS[currentPeriodIdx].id;
-        document.getElementById('histHint').innerHTML =
-          `Nilai piksel: <strong>${parseFloat(props[periodId]).toFixed(3)} ${param.unit}</strong> — ${getPixelOwner(props.row, props.col)}`;
+        document.getElementById('histHint').innerHTML = `Nilai piksel: <strong>${parseFloat(props[periodId]).toFixed(3)} ${param.unit}</strong> — ${getPixelOwner(props.row, props.col)}`;
         showPixelPopup(e.lngLat, props.row, props.col, periodId);
       });
 
@@ -640,38 +566,29 @@
     }
   }
 
-  // ============================================================
-  // UPDATE COMP MAP
-  // ============================================================
   async function updateCompMap() {
     const overlay = document.getElementById('loadingOverlay');
+    document.getElementById('loadingText').innerText = 'Memuat data...';
     overlay.style.display = 'flex';
     try {
       compParam      = document.getElementById('compParamSelect').value;
       compPeriodAIdx = parseInt(document.getElementById('compPeriodA').value);
       compPeriodBIdx = parseInt(document.getElementById('compPeriodB').value);
-
       const data    = await loadGeoJSON(compParam);
       const param   = PARAMS[compParam];
       const periodA = PERIODS[compPeriodAIdx].id;
       const periodB = PERIODS[compPeriodBIdx].id;
 
-      if (map.getLayer('param-layer'))    map.removeLayer('param-layer');
-      if (map.getSource('param-source'))  map.removeSource('param-source');
-      if (map.getLayer('anomaly-layer'))  map.removeLayer('anomaly-layer');
+      if (map.getLayer('param-layer')) map.removeLayer('param-layer');
+      if (map.getSource('param-source')) map.removeSource('param-source');
+      if (map.getLayer('anomaly-layer')) map.removeLayer('anomaly-layer');
       if (map.getLayer('anomaly-outline')) map.removeLayer('anomaly-outline');
       if (map.getSource('anomaly-source')) map.removeSource('anomaly-source');
 
       let colorExpression, legendData;
 
       if (compView === 'delta') {
-        const deltaFeatures = {
-          type: 'FeatureCollection',
-          features: data.features.map(f => ({
-            ...f,
-            properties: { ...f.properties, delta: parseFloat(f.properties[periodB]) - parseFloat(f.properties[periodA]) }
-          }))
-        };
+        const deltaFeatures = { type: 'FeatureCollection', features: data.features.map(f => ({ ...f, properties: { ...f.properties, delta: parseFloat(f.properties[periodB]) - parseFloat(f.properties[periodA]) } })) };
         const deltas = deltaFeatures.features.map(f => f.properties.delta);
         const maxAbs = Math.max(Math.abs(Math.min(...deltas)), Math.abs(Math.max(...deltas)));
         colorExpression = ['interpolate', ['linear'], ['get', 'delta'], -maxAbs, '#d73027', -maxAbs*0.5, '#fc8d59', 0, '#ffffbf', maxAbs*0.5, '#91bfdb', maxAbs, '#4575b4'];
@@ -691,30 +608,18 @@
           colorExpression.push(param.min + (i/(steps-1))*(param.max-param.min), param.palette[i]);
         }
         map.addSource('param-source', { type: 'geojson', data });
-        legendData = { title: `${param.label} (${param.unit})`, items: param.palette.map((c,i) => ({
-          color: c, label: (param.min + (i/(param.palette.length-1))*(param.max-param.min)).toFixed(1)
-        }))};
+        legendData = { title: `${param.label} (${param.unit})`, items: param.palette.map((c,i) => ({ color: c, label: (param.min + (i/(param.palette.length-1))*(param.max-param.min)).toFixed(1) })) };
       }
 
-      map.addLayer({
-        id: 'param-layer', type: 'fill', source: 'param-source',
-        paint: { 'fill-color': colorExpression, 'fill-opacity': currentOpacity, 'fill-outline-color': 'rgba(255,255,255,0.15)' }
-      });
-
-      ['ownership-fill','ownership-line','ownership-label',
-       'boundary-fill','boundary-line','boundary-label'].forEach(id => {
-        if (map.getLayer(id)) map.moveLayer(id);
-      });
-
+      map.addLayer({ id: 'param-layer', type: 'fill', source: 'param-source', paint: { 'fill-color': colorExpression, 'fill-opacity': currentOpacity, 'fill-outline-color': 'rgba(255,255,255,0.15)' } });
+      ['ownership-fill','ownership-line','ownership-label','boundary-fill','boundary-line','boundary-label'].forEach(id => { if (map.getLayer(id)) map.moveLayer(id); });
       updateCompLegend(legendData);
 
       const badge = document.getElementById('compBadge');
       const viewLabel = compView === 'delta' ? '∆ Delta (B−A)' : `Periode ${compView}: ${PERIODS[compView==='A'?compPeriodAIdx:compPeriodBIdx].label}`;
       badge.innerHTML = `<span class="comp-badge-param">${param.label}</span><span class="comp-badge-view">${viewLabel}</span>`;
-
       buildCompChart(data, compParam, periodA, periodB);
       buildCompSummary(data, compParam, periodA, periodB);
-
     } finally {
       overlay.style.display = 'none';
     }
@@ -729,7 +634,7 @@
   }
 
   function buildCompChart(data, param, periodA, periodB) {
-    const p     = PARAMS[param];
+    const p = PARAMS[param];
     const valsA = data.features.map(f => f.properties[periodA]).filter(v => !isNaN(v));
     const valsB = data.features.map(f => f.properties[periodB]).filter(v => !isNaN(v));
     const meanA = valsA.reduce((a,b)=>a+b,0)/valsA.length;
@@ -746,10 +651,7 @@
       },
       options: {
         maintainAspectRatio: false,
-        plugins: {
-          legend: { display: true, labels: { font: { size: 9 }, boxWidth: 10 } },
-          tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toFixed(3)} ${p.unit}` } }
-        },
+        plugins: { legend: { display: true, labels: { font: { size: 9 }, boxWidth: 10 } }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toFixed(3)} ${p.unit}` } } },
         scales: {
           x: { ticks: { font: { size: 9 } } },
           y: { title: { display: true, text: p.unit, font: { size: 10 } }, ticks: { font: { size: 9 } } }
@@ -759,42 +661,36 @@
   }
 
   function buildCompSummary(data, param, periodA, periodB) {
-    const p      = PARAMS[param];
-    const valsA  = data.features.map(f => f.properties[periodA]).filter(v => !isNaN(v));
-    const valsB  = data.features.map(f => f.properties[periodB]).filter(v => !isNaN(v));
-    const meanA  = valsA.reduce((a,b)=>a+b,0)/valsA.length;
-    const meanB  = valsB.reduce((a,b)=>a+b,0)/valsB.length;
+    const p = PARAMS[param];
+    const valsA = data.features.map(f => f.properties[periodA]).filter(v => !isNaN(v));
+    const valsB = data.features.map(f => f.properties[periodB]).filter(v => !isNaN(v));
+    const meanA = valsA.reduce((a,b)=>a+b,0)/valsA.length;
+    const meanB = valsB.reduce((a,b)=>a+b,0)/valsB.length;
     const totalA = valsA.reduce((a,b)=>a+b,0);
     const totalB = valsB.reduce((a,b)=>a+b,0);
-    const delta      = meanB - meanA;
+    const delta = meanB - meanA;
     const deltaTotal = totalB - totalA;
-    const deltaSign  = delta >= 0 ? '+' : '';
+    const deltaSign = delta >= 0 ? '+' : '';
     const deltaClass = delta >= 0 ? 'comp-up' : 'comp-down';
-    const improved  = data.features.filter(f => parseFloat(f.properties[periodB]) > parseFloat(f.properties[periodA])).length;
-    const worsened  = data.features.filter(f => parseFloat(f.properties[periodB]) < parseFloat(f.properties[periodA])).length;
+    const improved = data.features.filter(f => parseFloat(f.properties[periodB]) > parseFloat(f.properties[periodA])).length;
+    const worsened = data.features.filter(f => parseFloat(f.properties[periodB]) < parseFloat(f.properties[periodA])).length;
     const unchanged = data.features.length - improved - worsened;
 
     document.getElementById('compSummary').innerHTML = `
       <div class="comp-summary-item"><span class="comp-summary-label">Perubahan Rerata</span><span class="comp-summary-val ${deltaClass}">${deltaSign}${delta.toFixed(3)} ${p.unit}</span></div>
-      <div class="comp-summary-item"><span class="comp-summary-label">Perubahan Total</span><span class="comp-summary-val ${deltaTotal>=0?'comp-up':'comp-down'}">${deltaTotal>=0?'+':''}${deltaTotal.toFixed(1)} ${p.unit}</span></div>
-      <div class="comp-summary-item"><span class="comp-summary-label">Total Periode A</span><span class="comp-summary-val">${totalA.toFixed(1)} ${p.unit}</span></div>
-      <div class="comp-summary-item"><span class="comp-summary-label">Total Periode B</span><span class="comp-summary-val">${totalB.toFixed(1)} ${p.unit}</span></div>
-      <div class="comp-summary-item"><span class="comp-summary-label">Piksel Membaik</span><span class="comp-summary-val comp-up">↑ ${improved} piksel</span></div>
-      <div class="comp-summary-item"><span class="comp-summary-label">Piksel Memburuk</span><span class="comp-summary-val comp-down">↓ ${worsened} piksel</span></div>
-      <div class="comp-summary-item"><span class="comp-summary-label">Tidak Berubah</span><span class="comp-summary-val">→ ${unchanged} piksel</span></div>
+      <div class="comp-summary-item"><span class="comp-summary-label">Area Membaik</span><span class="comp-summary-val comp-up">↑ ${formatHaPixel(improved)}</span></div>
+      <div class="comp-summary-item"><span class="comp-summary-label">Area Memburuk</span><span class="comp-summary-val comp-down">↓ ${formatHaPixel(worsened)}</span></div>
+      <div class="comp-summary-item"><span class="comp-summary-label">Tidak Berubah</span><span class="comp-summary-val">→ ${formatHaPixel(unchanged)}</span></div>
       <div class="comp-summary-item"><span class="comp-summary-label">Periode A</span><span class="comp-summary-val">${PERIODS[compPeriodAIdx].label}</span></div>
       <div class="comp-summary-item"><span class="comp-summary-label">Periode B</span><span class="comp-summary-val">${PERIODS[compPeriodBIdx].label}</span></div>
     `;
   }
 
-  // ============================================================
-  // ANOMALY
-  // ============================================================
   function updateAnomalyLayer(data, periodId) {
-    const param     = PARAMS[currentParam];
+    const param = PARAMS[currentParam];
     const threshold = param.anomalyThreshold;
     const anomalyFeatures = data.features.filter(f => !isNaN(f.properties[periodId]) && parseFloat(f.properties[periodId]) < threshold);
-    const anomalyGeoJSON  = { type: 'FeatureCollection', features: anomalyFeatures };
+    const anomalyGeoJSON = { type: 'FeatureCollection', features: anomalyFeatures };
 
     if (map.getSource('anomaly-source')) {
       map.getSource('anomaly-source').setData(anomalyGeoJSON);
@@ -803,9 +699,7 @@
       map.addLayer({ id: 'anomaly-layer', type: 'fill', source: 'anomaly-source', paint: { 'fill-color': '#e74c3c', 'fill-opacity': 0.6, 'fill-outline-color': '#c0392b' } });
       map.addLayer({ id: 'anomaly-outline', type: 'line', source: 'anomaly-source', paint: { 'line-color': '#ff0000', 'line-width': 1.5, 'line-opacity': 0.8 } });
     }
-
-    ['anomaly-layer','anomaly-outline','ownership-fill','ownership-line','ownership-label',
-     'boundary-fill','boundary-line','boundary-label'].forEach(id => {
+    ['anomaly-layer','anomaly-outline','ownership-fill','ownership-line','ownership-label','boundary-fill','boundary-line','boundary-label'].forEach(id => {
       if (map.getLayer(id)) map.moveLayer(id);
     });
 
@@ -814,12 +708,11 @@
     const percent = ((count/total)*100).toFixed(1);
     const section = document.getElementById('anomalySection');
     const box     = document.getElementById('anomalyBox');
-
     section.style.display = 'block';
     box.innerHTML = count > 0 ? `
       <div class="anomaly-stat">
-        <span class="anomaly-count">${count}</span>
-        <span class="anomaly-total">/ ${total} piksel</span>
+        <span class="anomaly-count">${(count/100).toFixed(2)} Ha</span>
+        <span class="anomaly-total">/ ${(total/100).toFixed(0)} Ha</span>
         <span class="anomaly-percent">(${percent}%)</span>
       </div>
       <div class="anomaly-desc">${param.anomalyLabel}</div>
@@ -836,9 +729,6 @@
     });
   }
 
-  // ============================================================
-  // LEGEND
-  // ============================================================
   function updateLegend() {
     const param = PARAMS[currentParam];
     const steps = param.palette.length;
@@ -851,27 +741,22 @@
     document.getElementById('mapLegend').innerHTML = html;
   }
 
-  // ============================================================
-  // STATISTIK
-  // ============================================================
   function updateStats(data, periodId) {
-    const vals  = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
-    const mean  = vals.reduce((a,b)=>a+b,0)/vals.length;
-    const unit  = PARAMS[currentParam].unit;
-    document.getElementById('statMean').innerText  = `${mean.toFixed(2)} ${unit}`;
-    document.getElementById('statMin').innerText   = `${Math.min(...vals).toFixed(2)} ${unit}`;
-    document.getElementById('statMax').innerText   = `${Math.max(...vals).toFixed(2)} ${unit}`;
-    document.getElementById('statTotal').innerText = `${vals.reduce((a,b)=>a+b,0).toFixed(1)} ${unit}`;
+    const vals = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
+    const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
+    const std  = Math.sqrt(vals.map(v => (v-mean)**2).reduce((a,b)=>a+b,0)/vals.length);
+    const unit = PARAMS[currentParam].unit;
+    document.getElementById('statMean').innerText  = `${mean.toFixed(3)} ${unit}`;
+    document.getElementById('statMin').innerText   = `${Math.min(...vals).toFixed(3)} ${unit}`;
+    document.getElementById('statMax').innerText   = `${Math.max(...vals).toFixed(3)} ${unit}`;
+    document.getElementById('statTotal').innerText = `${std.toFixed(3)}`;
   }
 
-  // ============================================================
-  // HISTOGRAM
-  // ============================================================
   function buildHistogram(data, periodId) {
-    const param  = PARAMS[currentParam];
-    const vals   = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
-    const bins   = 10;
-    const w      = (param.max - param.min) / bins;
+    const param = PARAMS[currentParam];
+    const vals  = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
+    const bins  = 10;
+    const w     = (param.max - param.min) / bins;
     const counts = new Array(bins).fill(0);
     const labels = [];
     const colors = [];
@@ -892,16 +777,13 @@
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { title: { display: true, text: `Nilai (${param.unit})`, font: { size: 10 } }, ticks: { font: { size: 9 } } },
-          y: { title: { display: true, text: 'Piksel', font: { size: 10 } }, ticks: { font: { size: 9 } } }
+          x: { title: { display: true, text: `${param.unit}`, font: { size: 10 } }, ticks: { font: { size: 9 }, maxRotation: 45 } },
+          y: { title: { display: true, text: 'Jumlah Piksel', font: { size: 10 } }, ticks: { font: { size: 9 } } }
         }
       }
     });
   }
 
-  // ============================================================
-  // TREND CHART
-  // ============================================================
   function buildTrendChart(data) {
     const param = PARAMS[currentParam];
     const periodMeans = PERIODS.map(p => {
@@ -920,58 +802,50 @@
           backgroundColor: param.palette[param.palette.length-1]+'22',
           fill: true, tension: 0.4,
           pointBackgroundColor: param.palette[param.palette.length-1],
-          pointRadius: 5
+          pointRadius: 5,
+          pointHoverRadius: 7
         }]
       },
       options: {
         maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toFixed(3)} ${param.unit}` } }
-        },
+        animation: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.y.toFixed(3)} ${param.unit}` } } },
         scales: {
-          x: { ticks: { font: { size: 9 }, maxRotation: 45 } },
-          y: { title: { display: true, text: param.unit, font: { size: 10 } }, ticks: { font: { size: 9 } } }
+          x: { ticks: { font: { size: 9, family: 'Arial' }, maxRotation: 30, autoSkip: false } },
+          y: { title: { display: true, text: param.unit, font: { size: 10, family: 'Arial' } }, ticks: { font: { size: 9, family: 'Arial' } } }
         }
       }
     });
   }
 
-  // ============================================================
-  // KPI STRIP
-  // ============================================================
   function updateKPI(data, periodId) {
-    const param    = PARAMS[currentParam];
-    const vals     = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
-    const prevId   = PERIODS[Math.max(0, currentPeriodIdx-1)].id;
+    const param = PARAMS[currentParam];
+    const vals = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
+    const prevId = PERIODS[Math.max(0, currentPeriodIdx-1)].id;
     const prevVals = data.features.map(f => f.properties[prevId]).filter(v => !isNaN(v));
-    const mean     = vals.reduce((a,b)=>a+b,0)/vals.length;
+    const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
     const prevMean = prevVals.reduce((a,b)=>a+b,0)/prevVals.length;
-    const delta    = mean - prevMean;
-    const total    = vals.reduce((a,b)=>a+b,0);
+    const delta = mean - prevMean;
     const anomalyCount = vals.filter(v => v < param.anomalyThreshold).length;
-    const anomalyPct   = ((anomalyCount/vals.length)*100).toFixed(1);
-    const deltaSign    = delta >= 0 ? '+' : '';
-    const deltaClass   = delta >= 0 ? 'kpi-up' : 'kpi-down';
+    const anomalyPct = ((anomalyCount/vals.length)*100).toFixed(1);
+    const deltaSign = delta >= 0 ? '+' : '';
+    const deltaClass = delta >= 0 ? 'kpi-up' : 'kpi-down';
 
     let kpis = [
-      { label: 'Rerata',                   val: `${mean.toFixed(2)} ${param.unit}` },
+      { label: `Rerata (${param.unit})`, val: `${mean.toFixed(3)}` },
       { label: 'Perubahan vs Periode Lalu', val: `${deltaSign}${delta.toFixed(3)} ${param.unit}`, cls: deltaClass },
-      { label: 'Total',                    val: `${total.toFixed(1)} ${param.unit}` },
-      { label: 'Nilai Tertinggi',           val: `${Math.max(...vals).toFixed(2)} ${param.unit}` },
-      { label: '⚠️ Piksel Anomali',         val: `${anomalyCount} (${anomalyPct}%)`, cls: anomalyCount>0?'kpi-down':'kpi-up' },
+      { label: `Min`, val: `${Math.min(...vals).toFixed(3)} ${param.unit}` },
+      { label: `Max`, val: `${Math.max(...vals).toFixed(3)} ${param.unit}` },
+      { label: '⚠️ Area Anomali', val: `${(anomalyCount/100).toFixed(2)} Ha (${anomalyPct}%)`, cls: anomalyCount>0?'kpi-down':'kpi-up' },
     ];
-    if (currentParam === 'NDVI') kpis.push({ label: 'Piksel Sehat (>0.7)', val: `${vals.filter(v=>v>0.7).length} piksel` });
-    if (currentParam === 'SOC')  kpis.push({ label: 'Stok Karbon Total', val: `${(total/1000).toFixed(2)} Ton C` });
+    if (currentParam === 'NDVI') kpis.push({ label: 'Area Sehat (NDVI>0.7)', val: `${(vals.filter(v=>v>0.7).length/100).toFixed(2)} Ha` });
+    if (currentParam === 'SOC') kpis.push({ label: 'Total SOC (25 Ha)', val: `${(mean * 25).toFixed(1)} Ton C` });
 
     document.getElementById('kpiStrip').innerHTML = kpis.map(k => `
       <div class="kpi-card"><div class="kpi-label">${k.label}</div><div class="kpi-val ${k.cls||''}">${k.val}</div></div>
     `).join('');
   }
 
-  // ============================================================
-  // EXPORT CSV
-  // ============================================================
   function updateExportLabel() {
     const label = document.getElementById('exportLabel');
     if (label) label.innerText = `${currentParam} · ${PERIODS[currentPeriodIdx].label}`;
@@ -980,18 +854,19 @@
   function exportCSV() {
     const data = geoData[currentParam];
     if (!data) { alert('Data belum dimuat.'); return; }
-    const param       = PARAMS[currentParam];
-    const periodId    = PERIODS[currentPeriodIdx].id;
+    const param = PARAMS[currentParam];
+    const periodId = PERIODS[currentPeriodIdx].id;
     const periodLabel = PERIODS[currentPeriodIdx].label;
-    const headers     = ['Row','Col','Pemilik',`${param.label} (${param.unit})`,'Anomali','Periode'];
-    const rows        = data.features.map(f => {
-      const p     = f.properties;
-      const val   = parseFloat(p[periodId]);
+    const headers = ['Row','Col','Lat','Lng','Pemilik',`${param.label} (${param.unit})`,'Anomali','Periode'];
+    const rows = data.features.map(f => {
+      const p = f.properties;
+      const val = parseFloat(p[periodId]);
       const owner = getPixelOwner(p.row, p.col);
-      return [p.row, p.col, owner, val.toFixed(3), val<param.anomalyThreshold?'Ya':'Tidak', periodLabel].join(',');
+      const coords = f.geometry.coordinates[0][0];
+      return [p.row, p.col, coords[1].toFixed(6), coords[0].toFixed(6), owner, val.toFixed(4), val<param.anomalyThreshold?'Ya':'Tidak', periodLabel].join(',');
     });
     const blob = new Blob([[headers.join(','),...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `AgriVision_${currentParam}_${periodId}.csv`;
@@ -999,19 +874,17 @@
     URL.revokeObjectURL(url);
   }
 
-  // ============================================================
-  // CARBON ECONOMY
-  // ============================================================
   function calcCarbon(data, periodId) {
-    if (!data)     data     = geoData['SOC'];
+    if (!data) data = geoData['SOC'];
     if (!periodId) periodId = PERIODS[currentPeriodIdx].id;
     if (!data) return;
-    const vals    = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
-    const totalC  = vals.reduce((a,b)=>a+b,0)/1000;
-    const co2e    = totalC * 3.67;
-    const price   = parseInt(document.getElementById('carbonPrice').value.replace(/\./g,''))||200000;
+    const vals = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
+    const meanSOC = vals.reduce((a,b)=>a+b,0)/vals.length;
+    const totalC = meanSOC * TOTAL_HA;
+    const co2e = totalC * 3.67;
+    const price = parseInt(document.getElementById('carbonPrice').value.replace(/\./g,''))||200000;
     document.getElementById('carbonVal').innerText = 'Rp ' + Math.round(co2e*price).toLocaleString('id-ID');
-    document.getElementById('carbonCO2').innerText = `${co2e.toFixed(2)} Ton CO2e`;
+    document.getElementById('carbonCO2').innerText = `${co2e.toFixed(2)} Ton CO2e (${totalC.toFixed(2)} Ton C)`;
   }
 
   document.getElementById('carbonPrice').addEventListener('keyup', function() {
@@ -1020,9 +893,6 @@
     calcCarbon();
   });
 
-  // ============================================================
-  // PDF MODAL
-  // ============================================================
   function openPDFModal() {
     document.getElementById('pdfModal').style.display = 'flex';
   }
@@ -1031,245 +901,6 @@
     document.getElementById('pdfModal').style.display = 'none';
   }
 
-  // ============================================================
-  // CARBON CREDIT REPORT PDF
-  // ============================================================
-  async function generatePDF() {
-    const fromIdx = parseInt(document.getElementById('pdfPeriodFrom').value);
-    const toIdx   = parseInt(document.getElementById('pdfPeriodTo').value);
-
-    if (fromIdx > toIdx) {
-      alert('Periode awal tidak boleh lebih besar dari periode akhir!');
-      return;
-    }
-
-    closePDFModal();
-
-    const btn = document.querySelector('.btn-export-pdf');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="loading-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;margin-right:6px;vertical-align:middle;"></span> Generating...';
-
-    try {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-      const socData        = await loadGeoJSON('SOC');
-      const selectedPeriods = PERIODS.slice(fromIdx, toIdx + 1);
-      const W              = 210;
-      const margin         = 18;
-      const colW           = W - margin * 2;
-      let   y              = 0;
-
-      // ---- HEADER ----
-      doc.setFillColor(14, 63, 48);
-      doc.rect(0, 0, W, 38, 'F');
-      doc.setTextColor(255,255,255);
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(20);
-      doc.text('AgriVision', margin, 16);
-      doc.setFontSize(10);
-      doc.setFont('helvetica','normal');
-      doc.text('Carbon Credit Monitoring Report', margin, 24);
-      doc.text(`Generated: ${new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' })}`, margin, 31);
-      doc.setFontSize(9);
-      doc.text('PT. Visi Agrikultur Indonesia', W-margin, 16, { align: 'right' });
-      doc.text('connect@agrivisiontech.com', W-margin, 24, { align: 'right' });
-
-      y = 48;
-
-      // ---- FARM INFO ----
-      doc.setTextColor(14,63,48);
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(13);
-      doc.text('Farm Information', margin, y);
-      y += 6;
-      doc.setDrawColor(14,63,48);
-      doc.setLineWidth(0.5);
-      doc.line(margin, y, W-margin, y);
-      y += 6;
-
-      const farmInfo = [
-        ['Farm Name',      'Kebon Kopi Organik Kadatuan, Puntang'],
-        ['Location',       'Puntang, Bandung Barat, Jawa Barat'],
-        ['Farm Size',      '25 Ha'],
-        ['Crop Type',      'Arabica Coffee'],
-        ['Farming System', 'Organic Agroforestry'],
-        ['Report Period',  `${selectedPeriods[0].label} – ${selectedPeriods[selectedPeriods.length-1].label}`],
-        ['Land Owners',    OWNERS.map(o => o.name).join(', ')],
-      ];
-
-      doc.setFontSize(10);
-      farmInfo.forEach(([label, value]) => {
-        doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
-        doc.text(label, margin, y);
-        doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
-        const lines = doc.splitTextToSize(value, colW - 55);
-        doc.text(lines, margin+55, y);
-        y += lines.length > 1 ? lines.length * 5 + 2 : 7;
-      });
-
-      y += 4;
-
-      // ---- SOC TABLE ----
-      doc.setTextColor(14,63,48);
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(13);
-      doc.text('Soil Organic Carbon (SOC) Statistics', margin, y);
-      y += 6;
-      doc.setDrawColor(14,63,48);
-      doc.line(margin, y, W-margin, y);
-      y += 6;
-
-      const colWidths = [45, 28, 28, 28, 30, 30];
-      const headers   = ['Periode','Mean (Kg C)','Min (Kg C)','Max (Kg C)','Total (Kg C)','CO2e (Ton)'];
-
-      doc.setFillColor(14,63,48);
-      doc.rect(margin, y-4, colW, 8, 'F');
-      doc.setTextColor(255,255,255);
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(8.5);
-      let x = margin;
-      headers.forEach((h, i) => { doc.text(h, x+2, y+1); x += colWidths[i]; });
-      y += 8;
-
-      selectedPeriods.forEach((period, idx) => {
-        const vals  = socData.features.map(f => f.properties[period.id]).filter(v => !isNaN(v));
-        const mean  = vals.reduce((a,b)=>a+b,0)/vals.length;
-        const total = vals.reduce((a,b)=>a+b,0);
-        const co2e  = (total/1000)*3.67;
-
-        if (idx%2===0) { doc.setFillColor(240,247,244); doc.rect(margin, y-4, colW, 7, 'F'); }
-        doc.setTextColor(30,30,30);
-        doc.setFont('helvetica','normal');
-        doc.setFontSize(8.5);
-        const rowData = [period.label, mean.toFixed(1), Math.min(...vals).toFixed(1), Math.max(...vals).toFixed(1), total.toFixed(0), co2e.toFixed(2)];
-        x = margin;
-        rowData.forEach((val, i) => { doc.text(String(val), x+2, y); x += colWidths[i]; });
-        y += 7;
-      });
-
-      y += 6;
-
-      // ---- CARBON ECONOMY ----
-      doc.setFillColor(232,247,243);
-      doc.setDrawColor(14,63,48);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(margin, y, colW, 36, 3, 3, 'FD');
-      doc.setTextColor(14,63,48);
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(12);
-      doc.text('Carbon Economy Estimation', margin+4, y+8);
-
-      const latestPeriod = selectedPeriods[selectedPeriods.length-1];
-      const latestVals   = socData.features.map(f => f.properties[latestPeriod.id]).filter(v => !isNaN(v));
-      const latestTotal  = latestVals.reduce((a,b)=>a+b,0);
-      const latestCO2e   = (latestTotal/1000)*3.67;
-      const priceInput   = parseInt(document.getElementById('carbonPrice').value.replace(/\./g,''))||200000;
-      const totalRp      = Math.round(latestCO2e*priceInput);
-
-      const ecoData = [
-        ['Total Stok Karbon (Latest)', `${(latestTotal/1000).toFixed(2)} Ton C`],
-        ['Estimasi CO2e',              `${latestCO2e.toFixed(2)} Ton CO2e`],
-        ['Harga Karbon',               `Rp ${priceInput.toLocaleString('id-ID')} / Ton CO2e`],
-        ['Estimasi Nilai Klaim',       `Rp ${totalRp.toLocaleString('id-ID')}`],
-      ];
-
-      doc.setFontSize(9);
-      ecoData.forEach(([label, value], i) => {
-        doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
-        doc.text(label, margin+4, y+16+i*6);
-        doc.setFont('helvetica','bold'); doc.setTextColor(14,63,48);
-        doc.text(value, W-margin-4, y+16+i*6, { align: 'right' });
-      });
-
-      y += 44;
-
-      // ---- TREND CHART ----
-      const trendCanvas = document.getElementById('trendChart');
-      if (trendCanvas && !compMode) {
-        doc.setTextColor(14,63,48);
-        doc.setFont('helvetica','bold');
-        doc.setFontSize(13);
-        doc.text('SOC Trend Chart', margin, y);
-        y += 6;
-        doc.setDrawColor(14,63,48);
-        doc.line(margin, y, W-margin, y);
-        y += 4;
-        doc.addImage(trendCanvas.toDataURL('image/png'), 'PNG', margin, y, colW, 50);
-        y += 56;
-      }
-
-      // ---- LAND OWNERSHIP TABLE ----
-      if (y + 40 > 270) { doc.addPage(); y = 20; }
-
-      doc.setTextColor(14,63,48);
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(13);
-      doc.text('Land Ownership Summary', margin, y);
-      y += 6;
-      doc.setDrawColor(14,63,48);
-      doc.line(margin, y, W-margin, y);
-      y += 6;
-
-      doc.setFillColor(14,63,48);
-      doc.rect(margin, y-4, colW, 8, 'F');
-      doc.setTextColor(255,255,255);
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(8.5);
-      doc.text('Nama Pemilik', margin+2, y+1);
-      doc.text('Lokasi', margin+52, y+1);
-      doc.text('Luas (piksel)', margin+120, y+1);
-      y += 8;
-
-      const ownerZones = [
-        ['Pak Rusmana', 'Utara',        'row 15-19 (100 piksel)'],
-        ['Pak Ido',     'Utara-Tengah', 'row 10-14 (100 piksel)'],
-        ['Pak Pena',    'Tengah',       'row 5-9 (100 piksel)'],
-        ['Pak Undang',  'Selatan Timur','row 0-4, col 10-19 (50 piksel)'],
-        ['Pak Ade',     'Selatan Barat','row 0-4, col 0-9 (50 piksel)'],
-      ];
-
-      ownerZones.forEach(([name, loc, area], idx) => {
-        if (idx%2===0) { doc.setFillColor(240,247,244); doc.rect(margin, y-4, colW, 7, 'F'); }
-        doc.setTextColor(30,30,30);
-        doc.setFont('helvetica','normal');
-        doc.setFontSize(8.5);
-        doc.text(name, margin+2, y);
-        doc.text(loc,  margin+52, y);
-        doc.text(area, margin+120, y);
-        y += 7;
-      });
-
-      y += 6;
-
-      // ---- DISCLAIMER ----
-      doc.setFillColor(245,245,245);
-      doc.rect(margin, y, colW, 20, 'F');
-      doc.setTextColor(120,120,120);
-      doc.setFont('helvetica','italic');
-      doc.setFontSize(7.5);
-      const disclaimer = 'This report is generated by AgriVision platform based on remote sensing data and predictive models. Values are estimates and should be validated with field measurements before carbon credit claims. AgriVision is not responsible for decisions made solely based on this report.';
-      doc.text(doc.splitTextToSize(disclaimer, colW-6), margin+3, y+6);
-
-      // ---- FOOTER ----
-      doc.setFillColor(14,63,48);
-      doc.rect(0, 287, W, 10, 'F');
-      doc.setTextColor(255,255,255);
-      doc.setFont('helvetica','normal');
-      doc.setFontSize(8);
-      doc.text('AgriVision · Climate-Smart Agriculture Platform · agrivisiontech.com', W/2, 293, { align: 'center' });
-
-      doc.save(`AgriVision_CarbonReport_Kadatuan_${PERIODS[fromIdx].id}_${PERIODS[toIdx].id}.pdf`);
-
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '📄 Carbon Credit Report<span class="export-label">Generate PDF</span>';
-    }
-  }
-
-  // ============================================================
-  // EVENT LISTENERS
-  // ============================================================
   document.getElementById('paramSelect').addEventListener('change', e => {
     currentParam = e.target.value;
     updateExportLabel();
@@ -1287,10 +918,856 @@
   document.getElementById('compPeriodA').addEventListener('change', () => { if (compMode) updateCompMap(); });
   document.getElementById('compPeriodB').addEventListener('change', () => { if (compMode) updateCompMap(); });
 
-  // Tambahkan CSS untuk popup-coords
   const style = document.createElement('style');
-  style.textContent = `.popup-coords { font-size: 10px; color: #888; margin-bottom: 2px; }`;
+  style.textContent = `.popup-coords { font-size: 10px; color: #888; margin-bottom: 2px; font-family: monospace; }`;
   document.head.appendChild(style);
+
+  // ============================================================
+  // HELPER: Compute stats per period for given param
+  // ============================================================
+  function computeStats(data, periodId, threshold) {
+    const vals    = data.features.map(f => f.properties[periodId]).filter(v => !isNaN(v));
+    const mean    = vals.reduce((a,b)=>a+b,0)/vals.length;
+    const min     = Math.min(...vals);
+    const max     = Math.max(...vals);
+    const std     = Math.sqrt(vals.map(v => (v-mean)**2).reduce((a,b)=>a+b,0)/vals.length);
+    const anomaly = vals.filter(v => v < threshold).length;
+    return { mean, min, max, std, anomaly, count: vals.length, vals };
+  }
+
+  // ============================================================
+  // HELPER: Render chart to hidden canvas → return base64 PNG
+  // ============================================================
+  let pdfChartInstance = null;
+  
+  async function renderChartToImage(config) {
+    const canvas = document.getElementById('pdfChart');
+    const ctx    = canvas.getContext('2d');
+    
+    // Destroy existing chart instance if it exists
+    if (pdfChartInstance) {
+      pdfChartInstance.destroy();
+      pdfChartInstance = null;
+    }
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    return new Promise((resolve) => {
+      // Small delay to ensure previous chart is fully destroyed
+      setTimeout(() => {
+        try {
+          pdfChartInstance = new Chart(canvas, {
+            ...config,
+            options: {
+              ...config.options,
+              responsive: false,
+              maintainAspectRatio: false,
+              animation: {
+                duration: 0,
+                onComplete: () => {
+                  const img = canvas.toDataURL('image/png');
+                  if (pdfChartInstance) {
+                    pdfChartInstance.destroy();
+                    pdfChartInstance = null;
+                  }
+                  resolve(img);
+                }
+              }
+            }
+          });
+        } catch (err) {
+          console.error('Chart creation error:', err);
+          resolve(null);
+        }
+      }, 50);
+    });
+  }
+
+  // ============================================================
+  // GENERATE INTERPRETATION (agronomic insights)
+  // ============================================================
+  function generateInterpretation(paramKey, selectedPeriods, allStats) {
+    const p          = PARAMS[paramKey];
+    const first      = allStats[0];
+    const last       = allStats[allStats.length-1];
+    const trend      = last.mean - first.mean;
+    const trendPct   = first.mean > 0 ? ((trend / first.mean) * 100).toFixed(1) : '0.0';
+    const trendWord  = trend > 0 ? 'meningkat' : trend < 0 ? 'menurun' : 'stabil';
+    const trendSign  = trend > 0 ? '+' : '';
+    const lastAnomaly = last.anomaly;
+    const anomalyHa   = (lastAnomaly / 100).toFixed(2);
+    const anomalyPct  = ((lastAnomaly / last.count) * 100).toFixed(1);
+
+    let analysis = '';
+    let rekomendasi = [];
+    let kategori = '';
+
+    if (paramKey === 'SOC') {
+      const totalC = last.mean * TOTAL_HA;
+      const co2e   = totalC * 3.67;
+
+      // Kategori berdasarkan range Verra VM0042
+      if (last.mean >= 50) kategori = 'Sangat Tinggi (>50 Ton C/Ha)';
+      else if (last.mean >= 40) kategori = 'Tinggi (40-50 Ton C/Ha)';
+      else if (last.mean >= 30) kategori = 'Sedang (30-40 Ton C/Ha)';
+      else kategori = 'Rendah (<30 Ton C/Ha)';
+
+      analysis = `Stok karbon tanah ${trendWord} sebesar ${trendSign}${trend.toFixed(2)} Ton C/Ha (${trendSign}${trendPct}%) selama ${selectedPeriods.length} periode pelaporan. Nilai SOC saat ini (${last.mean.toFixed(2)} Ton C/Ha) tergolong kategori ${kategori} berdasarkan referensi Verra VM0042. Estimasi total stok karbon pada periode terakhir adalah ${totalC.toFixed(2)} Ton C atau setara ${co2e.toFixed(2)} Ton CO2e untuk lahan seluas ${TOTAL_HA} Ha.`;
+
+      if (trend > 0) {
+        rekomendasi.push('Pertahankan praktik agroforestry dan pertanian regeneratif yang sudah memberikan hasil positif');
+        rekomendasi.push('Dokumentasikan praktik MRV (Monitoring, Reporting, Verification) untuk persiapan klaim karbon');
+      } else {
+        rekomendasi.push('Evaluasi praktik pengolahan tanah yang mungkin menyebabkan penurunan SOC');
+        rekomendasi.push('Tingkatkan input bahan organik (kompos, mulsa, cover crop)');
+      }
+      if (lastAnomaly > 0) {
+        rekomendasi.push(`Prioritaskan intervensi pada ${anomalyHa} Ha area anomali (SOC < 32 Ton C/Ha)`);
+      }
+      rekomendasi.push('Lakukan validasi ground-truth dengan sampling tanah pada minimal 5% area lahan');
+
+    } else if (paramKey === 'NDVI') {
+      if (last.mean >= 0.7) kategori = 'Sehat (NDVI ≥ 0.7)';
+      else if (last.mean >= 0.5) kategori = 'Sedang (NDVI 0.5-0.7)';
+      else kategori = 'Stres Vegetasi (NDVI < 0.5)';
+
+      analysis = `Rerata NDVI ${trendWord} dari ${first.mean.toFixed(3)} menjadi ${last.mean.toFixed(3)} (${trendSign}${trendPct}%). Kondisi vegetasi saat ini termasuk kategori ${kategori}. NDVI mengukur intensitas fotosintesis dan menjadi indikator awal stres tanaman sebelum gejala visual muncul.`;
+
+      if (last.mean >= 0.7) {
+        rekomendasi.push('Kondisi tanaman sangat baik, lanjutkan praktik pemeliharaan rutin');
+      } else if (last.mean >= 0.5) {
+        rekomendasi.push('Tingkatkan pemupukan dan irigasi pada area dengan NDVI rendah');
+        rekomendasi.push('Cek kemungkinan serangan hama/penyakit pada area dengan NDVI < 0.6');
+      } else {
+        rekomendasi.push('Lakukan audit cepat: kondisi air, hara, dan hama secara menyeluruh');
+        rekomendasi.push('Pertimbangkan rehabilitasi atau replanting area stres berat');
+      }
+      if (lastAnomaly > 0) {
+        rekomendasi.push(`Survei lapangan pada ${anomalyHa} Ha area kritis (${anomalyPct}% dari total lahan)`);
+      }
+
+    } else if (paramKey === 'Yield') {
+      const totalYield = last.mean * TOTAL_HA;
+
+      if (last.mean >= 2.5) kategori = 'Sangat Produktif (≥2.5 Ton/Ha)';
+      else if (last.mean >= 1.5) kategori = 'Produktif (1.5-2.5 Ton/Ha)';
+      else kategori = 'Kurang Produktif (<1.5 Ton/Ha)';
+
+      analysis = `Estimasi produksi rata-rata ${trendWord} dari ${first.mean.toFixed(3)} menjadi ${last.mean.toFixed(3)} Ton/Ha (${trendSign}${trendPct}%). Total estimasi produksi periode terakhir adalah ${totalYield.toFixed(1)} Ton untuk lahan ${TOTAL_HA} Ha, tergolong ${kategori}. Untuk kopi arabika organik di Indonesia, produksi 1.5-3 Ton/Ha sudah tergolong baik.`;
+
+      if (trend > 0) {
+        rekomendasi.push('Tren produksi positif, pertahankan praktik agronomi yang sudah berjalan');
+      } else {
+        rekomendasi.push('Investigasi penyebab penurunan produksi (cuaca, hama, nutrisi, atau pemangkasan)');
+      }
+      if (lastAnomaly > 0) {
+        rekomendasi.push(`${anomalyHa} Ha area dengan produksi sangat rendah perlu intervensi prioritas`);
+      }
+      rekomendasi.push('Sinkronkan data ini dengan catatan panen aktual untuk kalibrasi model');
+
+    } else if (paramKey === 'Biomass') {
+      if (last.mean >= 20000) kategori = 'Sangat Tinggi (≥20.000 Kg C/Ha)';
+      else if (last.mean >= 10000) kategori = 'Tinggi (10.000-20.000 Kg C/Ha)';
+      else kategori = 'Sedang/Rendah (<10.000 Kg C/Ha)';
+
+      analysis = `Biomassa karbon rata-rata ${trendWord} dari ${first.mean.toFixed(0)} menjadi ${last.mean.toFixed(0)} Kg C/Ha (${trendSign}${trendPct}%). Total biomassa karbon di atas tanah saat ini diestimasi ${(last.mean * TOTAL_HA / 1000).toFixed(2)} Ton C untuk ${TOTAL_HA} Ha. Tergolong kategori ${kategori}, mencerminkan sistem agroforestry yang ${trend > 0 ? 'berkembang baik' : 'perlu evaluasi'}.`;
+
+      if (trend > 0) {
+        rekomendasi.push('Peningkatan biomassa konsisten dengan pertumbuhan tanaman pelindung agroforestry');
+        rekomendasi.push('Kombinasi SOC + Biomass dapat dijadikan portofolio karbon yang menarik untuk klaim');
+      } else {
+        rekomendasi.push('Evaluasi praktik pemangkasan, kemungkinan over-pruning');
+        rekomendasi.push('Cek kesehatan tanaman naungan (shade trees) di sistem agroforestry');
+      }
+
+    } else if (paramKey === 'SoilNPK') {
+      if (last.mean >= 200) kategori = 'Subur (>200 kg NPK/Ha)';
+      else if (last.mean >= 100) kategori = 'Sedang (100-200 kg NPK/Ha)';
+      else kategori = 'Rendah (<100 kg NPK/Ha)';
+
+      analysis = `Kandungan NPK tanah rata-rata ${trendWord} dari ${first.mean.toFixed(1)} menjadi ${last.mean.toFixed(1)} kg NPK/Ha (${trendSign}${trendPct}%). Tingkat kesuburan tanah tergolong ${kategori}. Nilai ini dihitung dari konsentrasi total N+P+K pada kedalaman 20cm dengan bulk density 1.3 g/cm³.`;
+
+      if (last.mean >= 200) {
+        rekomendasi.push('Tingkat hara sangat baik, fokus pada keseimbangan rasio NPK individual');
+      } else if (last.mean >= 100) {
+        rekomendasi.push('Tingkatkan input kompos dan pupuk organik untuk meningkatkan ketersediaan hara');
+        rekomendasi.push('Pertimbangkan cover crop legume untuk memperbaiki N secara biologis');
+      } else {
+        rekomendasi.push('Intervensi pemupukan prioritas tinggi diperlukan');
+        rekomendasi.push('Lakukan analisis tanah lengkap (pH, KTK, hara mikro) untuk diagnosis akurat');
+      }
+      if (lastAnomaly > 0) {
+        rekomendasi.push(`${anomalyHa} Ha area dengan NPK kritis butuh aplikasi pupuk segera`);
+      }
+    }
+
+    return { analysis, rekomendasi, kategori };
+  }
+
+  // ============================================================
+  // GENERATE PDF - COMPREHENSIVE REPORT
+  // ============================================================
+  async function generatePDF() {
+    const fromIdx     = parseInt(document.getElementById('pdfPeriodFrom').value);
+    const toIdx       = parseInt(document.getElementById('pdfPeriodTo').value);
+    const paramChoice = document.getElementById('pdfParam').value;
+
+    if (fromIdx > toIdx) { alert('Periode awal tidak boleh lebih besar dari periode akhir!'); return; }
+
+    closePDFModal();
+    const btn = document.querySelector('.btn-export-pdf');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;margin-right:6px;vertical-align:middle;"></span> Generating...';
+
+    // Show loading overlay
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.style.display = 'flex';
+    document.getElementById('loadingText').innerText = 'Menyiapkan laporan...';
+
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const selectedPeriods = PERIODS.slice(fromIdx, toIdx + 1);
+      const paramsToReport  = paramChoice === 'ALL' ? Object.keys(PARAMS) : [paramChoice];
+      const W = 210, H = 297, margin = 18, colW = W - margin * 2;
+      let y = 0;
+
+      // Pre-load semua data + ownership
+      await Promise.all(paramsToReport.map(p => loadGeoJSON(p)));
+      if (!pixelOwnerLookup || Object.keys(pixelOwnerLookup).length === 0) {
+        const res = await fetch('../assets/data/pixel_owner_lookup.json');
+        pixelOwnerLookup = await res.json();
+      }
+
+      // ===== HELPER: New page if needed =====
+      function ensureSpace(needed) {
+        if (y + needed > H - 18) {
+          addFooter();
+          doc.addPage();
+          y = 20;
+        }
+      }
+
+      function addFooter() {
+        doc.setFillColor(14,63,48);
+        doc.rect(0, H-10, W, 10, 'F');
+        doc.setTextColor(255,255,255);
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(8);
+        doc.text('AgriVision · Climate-Smart Agriculture Platform · agrivisiontech.com', W/2, H-4, {align:'center'});
+      }
+
+      // ============================================================
+      // COVER PAGE
+      // ============================================================
+      doc.setFillColor(14,63,48);
+      doc.rect(0, 0, W, H, 'F');
+
+      // Decorative elements
+      doc.setFillColor(126, 217, 87, 0.1);
+      doc.circle(W*0.85, H*0.15, 35, 'F');
+      doc.setFillColor(255,255,255,0.05);
+      doc.circle(W*0.15, H*0.85, 50, 'F');
+
+      // Title block
+      doc.setTextColor(255,255,255);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(36);
+      doc.text('AgriVision', margin, 80);
+      doc.setFontSize(14);
+      doc.setFont('helvetica','normal');
+      doc.text('Agricultural Intelligence Report', margin, 92);
+
+      // Divider
+      doc.setDrawColor(126, 217, 87);
+      doc.setLineWidth(1);
+      doc.line(margin, 100, margin + 60, 100);
+
+      // Farm name
+      doc.setFontSize(22);
+      doc.setFont('helvetica','bold');
+      doc.text('Kebon Kopi Organik', margin, 120);
+      doc.text('Kadatuan, Puntang', margin, 130);
+
+      // Metadata box
+      doc.setFillColor(255,255,255,0.1);
+      doc.roundedRect(margin, 150, colW, 60, 3, 3, 'F');
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica','bold');
+      doc.text('REPORT DETAILS', margin+6, 160);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(10);
+      const reportType = paramChoice === 'ALL' ? 'Comprehensive Multi-Parameter Report' : `${PARAMS[paramChoice].label} Report`;
+      doc.text(`Type:    ${reportType}`, margin+6, 170);
+      doc.text(`Period:  ${selectedPeriods[0].label} – ${selectedPeriods[selectedPeriods.length-1].label}`, margin+6, 178);
+      doc.text(`Location: Puntang, Bandung Barat, Jawa Barat`, margin+6, 186);
+      doc.text(`Area:    ${TOTAL_HA} Ha`, margin+6, 194);
+      doc.text(`Generated: ${new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})}`, margin+6, 202);
+
+      // Footer cover
+      doc.setTextColor(180, 220, 200);
+      doc.setFontSize(9);
+      doc.text('PT. Visi Agrikultur Indonesia', margin, H-30);
+      doc.text('connect@agrivisiontech.com · agrivisiontech.com', margin, H-22);
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica','italic');
+      doc.text('CONFIDENTIAL — For client use only', margin, H-12);
+
+      // ============================================================
+      // EXECUTIVE SUMMARY PAGE
+      // ============================================================
+      doc.addPage();
+      y = 25;
+
+      doc.setTextColor(14,63,48);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(18);
+      doc.text('Executive Summary', margin, y);
+      y += 8;
+      doc.setDrawColor(14,63,48);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, W-margin, y);
+      y += 8;
+
+      // Farm overview
+      doc.setFontSize(11);
+      doc.setFont('helvetica','bold');
+      doc.text('Farm Overview', margin, y);
+      y += 6;
+
+      doc.setFontSize(9.5);
+      doc.setFont('helvetica','normal');
+      doc.setTextColor(50,50,50);
+      const overview = `Kebon Kopi Organik Kadatuan adalah lahan kebun kopi arabika seluas ${TOTAL_HA} Ha yang terletak di Puntang, Bandung Barat. Lahan ini menerapkan sistem agroforestry organik dan dimiliki secara kolektif oleh 5 petani: ${OWNERS.map(o => o.name).join(', ')}. Pemantauan dilakukan secara periodik per triwulan menggunakan data satelit Sentinel-2 dengan model machine learning AgriVision.`;
+      const overviewLines = doc.splitTextToSize(overview, colW);
+      doc.text(overviewLines, margin, y);
+      y += overviewLines.length * 5 + 5;
+
+      // Key findings box
+      doc.setFillColor(232,247,243);
+      doc.setDrawColor(14,63,48);
+      doc.setLineWidth(0.3);
+
+      const findings = [];
+      for (const paramKey of paramsToReport) {
+        const p = PARAMS[paramKey];
+        const data = geoData[paramKey];
+        const firstStats = computeStats(data, selectedPeriods[0].id, p.anomalyThreshold);
+        const lastStats  = computeStats(data, selectedPeriods[selectedPeriods.length-1].id, p.anomalyThreshold);
+        const trend = lastStats.mean - firstStats.mean;
+        const trendPct = firstStats.mean > 0 ? ((trend / firstStats.mean) * 100).toFixed(1) : '0';
+        const symbol = trend > 0 ? '↑' : trend < 0 ? '↓' : '→';
+        findings.push(`${symbol} ${p.label}: ${trend>0?'+':''}${trend.toFixed(2)} ${p.unit} (${trend>0?'+':''}${trendPct}%) — Rerata akhir: ${lastStats.mean.toFixed(2)} ${p.unit}`);
+      }
+
+      // Split findings text to fit width
+      const wrappedFindings = findings.map(f => doc.splitTextToSize(f, colW - 10)).flat();
+      const findingsHeight = wrappedFindings.length * 5 + 16;
+      
+      doc.roundedRect(margin, y, colW, findingsHeight, 2, 2, 'FD');
+      doc.setTextColor(14,63,48);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(11);
+      doc.text('[KEY FINDINGS] Temuan Utama', margin+5, y+8);
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica','normal');
+      doc.setTextColor(40,40,40);
+      doc.text(wrappedFindings, margin+5, y+15);
+      y += findingsHeight + 8;
+
+      // Land Ownership Summary
+      ensureSpace(60);
+      doc.setTextColor(14,63,48);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(11);
+      doc.text('Land Ownership Distribution', margin, y);
+      y += 6;
+      doc.line(margin, y, W-margin, y);
+      y += 6;
+
+      const ownCols = [40, 35, 50, 40];
+      const ownHeaders = ['Nama Pemilik','Lokasi','Luas Area','Persentase'];
+      doc.setFillColor(14,63,48);
+      doc.rect(margin, y-4, colW, 8, 'F');
+      doc.setTextColor(255,255,255);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(8.5);
+      let x = margin;
+      ownHeaders.forEach((h, i) => { doc.text(h, x+2, y+1); x += ownCols[i]; });
+      y += 8;
+
+      const ownerZones = [
+        ['Pak Rusmana', 'Utara',         100, 'row 15-19'],
+        ['Pak Ido',     'Utara-Tengah',  100, 'row 10-14'],
+        ['Pak Pena',    'Tengah',        100, 'row 5-9'],
+        ['Pak Undang',  'Selatan Timur', 50,  'row 0-4, col 10-19'],
+        ['Pak Ade',     'Selatan Barat', 50,  'row 0-4, col 0-9'],
+      ];
+      const totalPixels = ownerZones.reduce((a, z) => a + z[2], 0);
+
+      ownerZones.forEach(([name, loc, pixels, area], idx) => {
+        if (idx%2===0) { doc.setFillColor(240,247,244); doc.rect(margin, y-4, colW, 7, 'F'); }
+        doc.setTextColor(30,30,30);
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(8.5);
+        const pct = (pixels / totalPixels * 100).toFixed(1);
+        x = margin;
+        doc.text(name, x+2, y); x += ownCols[0];
+        doc.text(loc, x+2, y); x += ownCols[1];
+        doc.text(formatHaPixel(pixels), x+2, y); x += ownCols[2];
+        doc.text(`${pct}%`, x+2, y);
+        y += 7;
+      });
+
+      addFooter();
+
+      // ============================================================
+      // PER-PARAMETER DEEP DIVE SECTIONS
+      // ============================================================
+      for (let pIdx = 0; pIdx < paramsToReport.length; pIdx++) {
+        const paramKey = paramsToReport[pIdx];
+        const p        = PARAMS[paramKey];
+        const data     = geoData[paramKey];
+
+        document.getElementById('loadingText').innerText = `Membuat analisis ${p.label}... (${pIdx+1}/${paramsToReport.length})`;
+
+        doc.addPage();
+        y = 20;
+
+        // Section header
+        doc.setFillColor(14,63,48);
+        doc.rect(0, y-5, W, 15, 'F');
+        doc.setTextColor(255,255,255);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(16);
+        doc.text(`${pIdx+1}. ${p.label}`, margin, y+5);
+        doc.setFontSize(10);
+        doc.setFont('helvetica','normal');
+        doc.text(p.unit, W-margin, y+5, {align:'right'});
+        y += 18;
+
+        // Description
+        doc.setTextColor(80,80,80);
+        doc.setFont('helvetica','italic');
+        doc.setFontSize(9);
+        const descLines = doc.splitTextToSize(p.desc, colW);
+        doc.text(descLines, margin, y);
+        y += descLines.length * 5 + 4;
+
+        // ===== STATISTICS TABLE =====
+        doc.setTextColor(14,63,48);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(11);
+        doc.text('[STATISTIK] Statistik per Periode', margin, y);
+        y += 6;
+
+        const statCols    = [38, 24, 24, 24, 24, 28, 22];
+        const statHeaders = ['Periode','Mean','Min','Max','Std Dev','Area Anomali','%'];
+        doc.setFillColor(41,128,185);
+        doc.rect(margin, y-4, colW, 8, 'F');
+        doc.setTextColor(255,255,255);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(8);
+        x = margin;
+        statHeaders.forEach((h, i) => { doc.text(h, x+2, y+1); x += statCols[i]; });
+        y += 8;
+
+        const allStats = [];
+        selectedPeriods.forEach((period, idx) => {
+          const stats = computeStats(data, period.id, p.anomalyThreshold);
+          allStats.push(stats);
+
+          if (idx%2===0) { doc.setFillColor(235,248,255); doc.rect(margin, y-4, colW, 7, 'F'); }
+          doc.setTextColor(30,30,30);
+          doc.setFont('helvetica','normal');
+          doc.setFontSize(8);
+          const anomalyHa = (stats.anomaly / 100).toFixed(2);
+          const anomalyPct = ((stats.anomaly / stats.count) * 100).toFixed(1);
+          const rowData = [period.label, stats.mean.toFixed(2), stats.min.toFixed(2), stats.max.toFixed(2), stats.std.toFixed(2), `${anomalyHa} Ha`, `${anomalyPct}%`];
+          x = margin;
+          rowData.forEach((val, i) => { doc.text(String(val), x+2, y); x += statCols[i]; });
+          y += 7;
+        });
+
+        y += 6;
+
+        // ===== INTERPRETATION BOX =====
+        const interpretation = generateInterpretation(paramKey, selectedPeriods, allStats);
+
+        doc.setFillColor(248,252,248);
+        doc.setDrawColor(14,63,48);
+        doc.setLineWidth(0.3);
+
+        const analysisLines = doc.splitTextToSize(interpretation.analysis, colW - 12);
+        const rekLines = interpretation.rekomendasi.map(r => doc.splitTextToSize('• ' + r, colW - 16)).flat();
+        const headerLineH = 6;
+        const titleLineH = 5;
+        const analysisH = analysisLines.length * 5.5;
+        const rekTitleH = 5;
+        const rekH = rekLines.length * 5.5;
+        const boxH = headerLineH + titleLineH + analysisH + 4 + rekTitleH + rekH + 10;
+
+        ensureSpace(boxH + 5);
+
+        doc.roundedRect(margin, y, colW, boxH, 2, 2, 'FD');
+        doc.setTextColor(14,63,48);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(10);
+        doc.text('[ANALISIS] Analisis Deskriptif', margin+5, y+7);
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(9);
+        doc.setTextColor(40,40,40);
+        doc.text(analysisLines, margin+5, y+13);
+
+        let rekY = y + 13 + analysisH + 4;
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(10);
+        doc.setTextColor(14,63,48);
+        doc.text('[REKOMENDASI] Rekomendasi:', margin+5, rekY);
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(9);
+        doc.setTextColor(40,40,40);
+        doc.text(rekLines, margin+5, rekY + 6);
+
+        y += boxH + 8;
+
+        // ===== CHART 1: TREND CHART =====
+        ensureSpace(80);
+        doc.setTextColor(14,63,48);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(11);
+        doc.text('[TREND] Tren Lintas Waktu', margin, y);
+        y += 6;
+
+        const trendImg = await renderChartToImage({
+          type: 'line',
+          data: {
+            labels: selectedPeriods.map(pd => pd.label),
+            datasets: [{
+              label: `${p.label} (${p.unit})`,
+              data: allStats.map(s => s.mean),
+              borderColor: p.palette[p.palette.length-1],
+              backgroundColor: p.palette[p.palette.length-1] + '33',
+              fill: true,
+              tension: 0.4,
+              pointBackgroundColor: p.palette[p.palette.length-1],
+              pointRadius: 6,
+              borderWidth: 3
+            }]
+          },
+          options: {
+            plugins: { legend: { display: true, labels: { font: { size: 12, family: 'Arial' } } } },
+            scales: {
+              x: { ticks: { font: { size: 11, family: 'Arial' } } },
+              y: { title: { display: true, text: p.unit, font: { size: 12, family: 'Arial' } }, ticks: { font: { size: 11, family: 'Arial' } } }
+            }
+          }
+        });
+        if (trendImg) {
+          doc.addImage(trendImg, 'PNG', margin, y, colW, 60);
+          y += 65;
+        }
+
+        // ===== CHART 2: HISTOGRAM (latest period) =====
+        ensureSpace(80);
+        doc.setTextColor(14,63,48);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(11);
+        doc.text(`[DISTRIBUSI] Distribusi Nilai (${selectedPeriods[selectedPeriods.length-1].label})`, margin, y);
+        y += 6;
+
+        const lastVals = allStats[allStats.length-1].vals;
+        const bins = 10;
+        const binW = (p.max - p.min) / bins;
+        const histCounts = new Array(bins).fill(0);
+        const histLabels = [];
+        const histColors = [];
+        for (let i = 0; i < bins; i++) {
+          const binVal = p.min + i * binW;
+          histLabels.push(binVal.toFixed(1));
+          histColors.push(binVal < p.anomalyThreshold ? '#e74c3c' : p.palette[Math.floor(p.palette.length/2)]);
+        }
+        lastVals.forEach(v => {
+          let i = Math.min(bins-1, Math.floor((v - p.min) / binW));
+          if (i >= 0) histCounts[i]++;
+        });
+        const histHaCounts = histCounts.map(c => +(c/100).toFixed(2));
+
+        const histImg = await renderChartToImage({
+          type: 'bar',
+          data: {
+            labels: histLabels,
+            datasets: [{ label: 'Luas Area (Ha)', data: histHaCounts, backgroundColor: histColors, borderRadius: 4 }]
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { title: { display: true, text: p.unit, font: { size: 12, family: 'Arial' } }, ticks: { font: { size: 11, family: 'Arial' } } },
+              y: { title: { display: true, text: 'Luas Area (Ha)', font: { size: 12, family: 'Arial' } }, ticks: { font: { size: 11, family: 'Arial' } } }
+            }
+          }
+        });
+        if (histImg) {
+          doc.addImage(histImg, 'PNG', margin, y, colW, 60);
+          y += 65;
+        }
+
+        // ===== CHART 3: PER OWNER BREAKDOWN =====
+        ensureSpace(80);
+        doc.setTextColor(14,63,48);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(11);
+        doc.text('[OWNER] Breakdown per Pemilik Lahan', margin, y);
+        y += 6;
+
+        // Hitung rata-rata per owner di periode terakhir
+        const latestPeriodId = selectedPeriods[selectedPeriods.length-1].id;
+        const ownerStats = OWNERS.map(o => {
+          const ownerFeatures = data.features.filter(f => getPixelOwner(f.properties.row, f.properties.col) === o.name);
+          const vals = ownerFeatures.map(f => f.properties[latestPeriodId]).filter(v => !isNaN(v));
+          const mean = vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+          return { name: o.name, color: o.color, mean, count: vals.length };
+        });
+
+        const ownerImg = await renderChartToImage({
+          type: 'bar',
+          data: {
+            labels: ownerStats.map(o => o.name),
+            datasets: [{
+              label: `${p.label} (${p.unit})`,
+              data: ownerStats.map(o => o.mean),
+              backgroundColor: ownerStats.map(o => o.color),
+              borderRadius: 4
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { title: { display: true, text: p.unit, font: { size: 12, family: 'Arial' } }, ticks: { font: { size: 11, family: 'Arial' } } },
+              y: { ticks: { font: { size: 11, family: 'Arial' } } }
+            }
+          }
+        });
+        if (ownerImg) {
+          doc.addImage(ownerImg, 'PNG', margin, y, colW, 60);
+          y += 65;
+        }
+
+        // Owner breakdown table
+        ensureSpace(50);
+        const ownerTblCols = [50, 40, 40, 40];
+        const ownerTblHeaders = ['Pemilik','Luas Lahan','Mean','Anomali'];
+        doc.setFillColor(14,63,48);
+        doc.rect(margin, y-4, colW, 8, 'F');
+        doc.setTextColor(255,255,255);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(8.5);
+        x = margin;
+        ownerTblHeaders.forEach((h, i) => { doc.text(h, x+2, y+1); x += ownerTblCols[i]; });
+        y += 8;
+
+        ownerStats.forEach((o, idx) => {
+          const ownerFeatures = data.features.filter(f => getPixelOwner(f.properties.row, f.properties.col) === o.name);
+          const anomCount = ownerFeatures.filter(f => parseFloat(f.properties[latestPeriodId]) < p.anomalyThreshold).length;
+
+          if (idx%2===0) { doc.setFillColor(240,247,244); doc.rect(margin, y-4, colW, 7, 'F'); }
+          doc.setTextColor(30,30,30);
+          doc.setFont('helvetica','normal');
+          doc.setFontSize(8.5);
+          x = margin;
+          doc.text(o.name, x+2, y); x += ownerTblCols[0];
+          doc.text(formatHaPixel(o.count), x+2, y); x += ownerTblCols[1];
+          doc.text(`${o.mean.toFixed(2)} ${p.unit}`, x+2, y); x += ownerTblCols[2];
+          doc.text(formatHaPixel(anomCount), x+2, y);
+          y += 7;
+        });
+
+        y += 6;
+
+        // ===== CHART 4: IMPROVEMENT/WORSENING =====
+        if (selectedPeriods.length >= 2) {
+          ensureSpace(80);
+          doc.setTextColor(14,63,48);
+          doc.setFont('helvetica','bold');
+          doc.setFontSize(11);
+          doc.text('[PERUBAHAN] Perubahan Antar Periode', margin, y);
+          y += 6;
+
+          const firstId = selectedPeriods[0].id;
+          const lastId  = selectedPeriods[selectedPeriods.length-1].id;
+          const improved  = data.features.filter(f => parseFloat(f.properties[lastId]) > parseFloat(f.properties[firstId])).length;
+          const worsened  = data.features.filter(f => parseFloat(f.properties[lastId]) < parseFloat(f.properties[firstId])).length;
+          const unchanged = data.features.length - improved - worsened;
+
+          const changeImg = await renderChartToImage({
+            type: 'bar',
+            data: {
+              labels: ['Membaik', 'Tidak Berubah', 'Memburuk'],
+              datasets: [{
+                label: 'Luas Area (Ha)',
+                data: [improved/100, unchanged/100, worsened/100],
+                backgroundColor: ['#27AE60', '#95A5A6', '#E74C3C'],
+                borderRadius: 6
+              }]
+            },
+            options: {
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { ticks: { font: { size: 12, family: 'Arial' } } },
+                y: { title: { display: true, text: 'Luas Area (Ha)', font: { size: 12, family: 'Arial' } }, ticks: { font: { size: 11, family: 'Arial' } } }
+              }
+            }
+          });
+          if (changeImg) {
+            doc.addImage(changeImg, 'PNG', margin, y, colW, 60);
+            y += 65;
+          }
+
+          // Summary box
+          ensureSpace(28);
+          doc.setFillColor(232,247,243);
+          doc.setDrawColor(14,63,48);
+          doc.roundedRect(margin, y, colW, 22, 2, 2, 'FD');
+          doc.setTextColor(14,63,48);
+          doc.setFont('helvetica','bold');
+          doc.setFontSize(9);
+          doc.text(`Perbandingan ${selectedPeriods[0].label} → ${selectedPeriods[selectedPeriods.length-1].label}:`, margin+4, y+7);
+          doc.setFont('helvetica','normal');
+          doc.setFontSize(9);
+          doc.text(`• Area Membaik:    ${formatHaPixel(improved)}`, margin+4, y+13);
+          doc.text(`• Tidak Berubah:   ${formatHaPixel(unchanged)}`, margin+4, y+18);
+          doc.text(`• Area Memburuk:   ${formatHaPixel(worsened)}`, W-margin-65, y+13);
+
+          y += 28;
+        }
+
+        // ===== SPECIAL: Carbon Economy for SOC =====
+        if (paramKey === 'SOC') {
+          ensureSpace(45);
+          const lastVals2 = allStats[allStats.length-1];
+          const totalC    = lastVals2.mean * TOTAL_HA;
+          const co2e      = totalC * 3.67;
+          const price     = parseInt(document.getElementById('carbonPrice').value.replace(/\./g,''))||200000;
+          const totalRp   = Math.round(co2e * price);
+
+          doc.setFillColor(232,247,243);
+          doc.setDrawColor(14,63,48);
+          doc.setLineWidth(0.5);
+          doc.roundedRect(margin, y, colW, 38, 3, 3, 'FD');
+          doc.setTextColor(14,63,48);
+          doc.setFont('helvetica','bold');
+          doc.setFontSize(12);
+          doc.text('[EKONOMI] Estimasi Nilai Ekonomi Karbon', margin+5, y+9);
+
+          const ecoData = [
+            [`Total Stok Karbon (${TOTAL_HA} Ha)`, `${totalC.toFixed(2)} Ton C`],
+            ['Estimasi CO2e',                     `${co2e.toFixed(2)} Ton CO2e`],
+            ['Harga Karbon',                      `Rp ${price.toLocaleString('id-ID')} / Ton CO2e`],
+            ['Estimasi Nilai Klaim',              `Rp ${totalRp.toLocaleString('id-ID')}`],
+          ];
+          doc.setFontSize(9);
+          ecoData.forEach(([label, value], i) => {
+            doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80);
+            doc.text(label, margin+5, y+16+i*5);
+            doc.setFont('helvetica','bold'); doc.setTextColor(14,63,48);
+            doc.text(value, W-margin-5, y+16+i*5, {align:'right'});
+          });
+          y += 42;
+        }
+
+        addFooter();
+      }
+
+      // ============================================================
+      // FINAL PAGE: METHODOLOGY & DISCLAIMER
+      // ============================================================
+      doc.addPage();
+      y = 25;
+
+      doc.setTextColor(14,63,48);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(16);
+      doc.text('Methodology & Notes', margin, y);
+      y += 8;
+      doc.setDrawColor(14,63,48);
+      doc.line(margin, y, W-margin, y);
+      y += 8;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica','bold');
+      doc.text('Data Sources & Processing', margin, y);
+      y += 6;
+      doc.setFontSize(9);
+      doc.setFont('helvetica','normal');
+      doc.setTextColor(50,50,50);
+
+      const methodologyText = `Laporan ini dihasilkan dari analisis citra satelit Sentinel-2 dengan resolusi spasial 10 meter. Setiap piksel merepresentasikan area 10×10 meter (100 m²), sehingga 1 hektar terdiri dari 100 piksel.\n\nNilai parameter diprediksi menggunakan model machine learning yang dikembangkan AgriVision dengan target akurasi ≥90% berdasarkan validasi ground-truth. Data dikumpulkan dan diproses secara per triwulan.\n\nKonversi satuan dari nilai per piksel menjadi per hektar dilakukan dengan ketentuan:\n• SOC, Biomass: nilai piksel × 100 piksel/Ha (dengan konversi unit)\n• Yield: nilai piksel × 100 piksel/Ha (dengan konversi unit)\n• SoilNPK: nilai mg/kg × 2.6 (bulk density 1.3 g/cm³, kedalaman 20 cm)\n• NDVI: tidak dikonversi (sudah dalam bentuk index)\n\nSemua nilai yang dilaporkan adalah estimasi berdasarkan model. Validasi lapangan disarankan untuk klaim karbon resmi.`;
+
+      const methodLines = doc.splitTextToSize(methodologyText, colW);
+      doc.text(methodLines, margin, y);
+      y += methodLines.length * 5 + 8;
+
+      // Disclaimer
+      ensureSpace(50);
+      doc.setFillColor(255, 250, 240);
+      doc.setDrawColor(230, 126, 34);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(margin, y, colW, 38, 3, 3, 'FD');
+
+      doc.setTextColor(180, 80, 0);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(10);
+      doc.text('[DISCLAIMER] Pernyataan Tanggung Jawab', margin+5, y+8);
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica','normal');
+      doc.setTextColor(100, 60, 0);
+      const disclaimerText = `Laporan ini dihasilkan oleh platform AgriVision berdasarkan data penginderaan jauh dan model prediktif. Semua nilai merupakan estimasi dan sebaiknya divalidasi dengan pengukuran lapangan sebelum digunakan untuk klaim kredit karbon resmi (Verra VM0042, Gold Standard, atau standar lain). AgriVision tidak bertanggung jawab atas keputusan yang dibuat hanya berdasarkan laporan ini tanpa verifikasi lapangan yang memadai.`;
+      doc.text(doc.splitTextToSize(disclaimerText, colW - 10), margin+5, y+14);
+
+      y += 45;
+
+      // Contact
+      doc.setTextColor(14,63,48);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(10);
+      doc.text('Contact', margin, y);
+      y += 6;
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(9);
+      doc.text('PT. Visi Agrikultur Indonesia', margin, y); y += 5;
+      doc.text('Email:   connect@agrivisiontech.com', margin, y); y += 5;
+      doc.text('Website: agrivisiontech.com', margin, y);
+
+      addFooter();
+
+      // Add page numbers
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        if (i > 1) {
+          doc.setTextColor(255,255,255);
+          doc.setFont('helvetica','normal');
+          doc.setFontSize(8);
+          doc.text(`Page ${i} of ${pageCount}`, W-margin, H-4, {align:'right'});
+        }
+      }
+
+      const paramLabel = paramChoice === 'ALL' ? 'AllParams' : paramChoice;
+      doc.save(`AgriVision_Report_Kadatuan_${paramLabel}_${PERIODS[fromIdx].id}_${PERIODS[toIdx].id}.pdf`);
+
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      alert('Error generating PDF: ' + err.message);
+    } finally {
+      overlay.style.display = 'none';
+      btn.disabled = false;
+      btn.innerHTML = '📄 CSA Report<span class="export-label">Generate PDF</span>';
+    }
+  }
 
   // ============================================================
   // INIT
