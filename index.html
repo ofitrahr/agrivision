@@ -14,102 +14,205 @@
   <!-- NAVBAR -->
   <nav class="navbar" id="navbar">
     <div class="nav-logo">
-      <a href="index.html" style="display: flex; align-items: center;">
+      <a href="index.html" style="display:flex;align-items:center;">
         <img src="assets/images/agrivision.png" alt="Agrivision Logo">
       </a>
     </div>
-    <div class="nav-menu">
+    <div class="nav-menu" id="navMenu">
       <a href="index.html" class="nav-link active">Home</a>
-      <a href="#solutions" class="nav-link">Our Solutions</a>
-      <a href="#activities" class="nav-link">Activities</a>
       <a href="#about" class="nav-link">About Us</a>
+      <a href="#solutions" class="nav-link">Solutions</a>
+      <a href="#activities" class="nav-link">Activities</a>
+      <a href="#connect" class="nav-link">Contact</a>
     </div>
     <div class="nav-right">
       <a href="login.html" class="btn-login">Log In</a>
+      <a href="#connect" class="btn-request-demo">Request Demo</a>
+      <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileMenu()">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </nav>
 
-  <!-- HERO -->
+  <!-- 1. HERO -->
   <header class="hero" id="home">
     <div class="hero-overlay"></div>
     <div class="hero-content">
       <h1 class="hero-title">Climate-Smart and Regenerative Agriculture Solution</h1>
       <p class="hero-subtitle">Transforming Agriculture for Food Security and Carbon Neutrality</p>
-      <a href="client/select-project.html" class="btn-demo">See Our Product Demo</a>
+      <div class="hero-actions">
+        <a href="client/select-project.html" class="btn-demo">See Product Demo</a>
+        <a href="#connect" class="btn-demo-outline">Request a Consultation</a>
+      </div>
     </div>
   </header>
 
-  <!-- WHO WE ARE -->
-  <section class="section who-we-are" id="solutions">
-    <div class="who-grid">
-      <div class="who-text">
-        <h2 class="section-title">Who Are We?</h2>
-        <p class="who-desc">
-          By harnessing satellite data and AI-power, we help businesses to invest confidently in regenerative agriculture that is not only able to improve crops productivity and farmer's livelihood but also increase carbon sequestration capacity and traceability.
-        </p>
+  <!-- STATS COUNTER -->
+  <section class="stats-section">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-number" data-target="2500">0</div>
+        <div class="stat-suffix">Ha+</div>
+        <div class="stat-label">Land Monitored</div>
       </div>
-      <div class="solutions-grid">
-        <div class="solution-card">
-          <img src="assets/icons/leaf.png" alt="Regenerative Farming">
-          <h3>Regenerative Farming</h3>
-          <p>Restoring soil health and biodiversity through sustainable farming ethics</p>
-        </div>
-        <div class="solution-card">
-          <img src="assets/icons/carbon-footprint.png" alt="Carbon Sequestration">
-          <h3>Carbon Sequestration Efforts</h3>
-          <p>Designing the farming system so that it can capture atmospheric carbon emission</p>
-        </div>
-        <div class="solution-card">
-          <img src="assets/icons/wheat.png" alt="Crop Yield">
-          <h3>Crop Yield Enhancement</h3>
-          <p>Enhancing crop output through efficient and resilient methods</p>
-        </div>
-        <div class="solution-card">
-          <img src="assets/icons/farmer.png" alt="Farmer Livelihoods">
-          <h3>Improvement of Farmer Livelihoods</h3>
-          <p>Empowering farmers with income stability and better opportunities</p>
-        </div>
-        <div class="solution-card">
-          <img src="assets/icons/orbit.png" alt="Precision Agriculture">
-          <h3>Precision Agriculture using AI & Remote Sensing</h3>
-          <p>Leveraging data and technology for smarter, targeted farming</p>
-        </div>
-        <div class="solution-card">
-          <img src="assets/icons/survey.png" alt="Multi-Stakeholder">
-          <h3>Multi-Stakeholder Collaboration</h3>
-          <p>Building strong partnerships across the agricultural value chain</p>
+      <div class="stat-item">
+        <div class="stat-number" data-target="12">0</div>
+        <div class="stat-suffix">Ton C/Ha</div>
+        <div class="stat-label">Avg Carbon Sequestered</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" data-target="90">0</div>
+        <div class="stat-suffix">%+</div>
+        <div class="stat-label">Model Accuracy</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" data-target="5">0</div>
+        <div class="stat-suffix">Parameters</div>
+        <div class="stat-label">Monitored per Farm</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. WHO WE ARE -->
+  <section class="section who-we-are" id="about">
+    <div class="section-header-centered">
+      <span class="section-label">WHO WE ARE</span>
+      <h2 class="section-title text-center">Bridging Technology &amp;<br>Regenerative Farming</h2>
+      <p class="section-intro">By harnessing satellite data and AI power, we help businesses invest confidently in regenerative agriculture — improving crop productivity, farmer livelihoods, carbon sequestration capacity, and full supply-chain traceability.</p>
+    </div>
+    <div class="solutions-grid">
+      <div class="solution-card">
+        <img src="assets/icons/leaf.png" alt="Regenerative Farming">
+        <h3>Regenerative Farming</h3>
+        <p>Restoring soil health and biodiversity through sustainable farming ethics</p>
+      </div>
+      <div class="solution-card">
+        <img src="assets/icons/carbon-footprint.png" alt="Carbon Sequestration">
+        <h3>Carbon Sequestration Efforts</h3>
+        <p>Designing the farming system so that it can capture atmospheric carbon emission</p>
+      </div>
+      <div class="solution-card">
+        <img src="assets/icons/wheat.png" alt="Crop Yield">
+        <h3>Crop Yield Enhancement</h3>
+        <p>Enhancing crop output through efficient and resilient methods</p>
+      </div>
+      <div class="solution-card">
+        <img src="assets/icons/farmer.png" alt="Farmer Livelihoods">
+        <h3>Improvement of Farmer Livelihoods</h3>
+        <p>Empowering farmers with income stability and better opportunities</p>
+      </div>
+      <div class="solution-card">
+        <img src="assets/icons/orbit.png" alt="Precision Agriculture">
+        <h3>Precision Agriculture using AI &amp; Remote Sensing</h3>
+        <p>Leveraging data and technology for smarter, targeted farming</p>
+      </div>
+      <div class="solution-card">
+        <img src="assets/icons/survey.png" alt="Multi-Stakeholder">
+        <h3>Multi-Stakeholder Collaboration</h3>
+        <p>Building strong partnerships across the agricultural value chain</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. INTELLIGENCE DASHBOARD / SOLUTIONS -->
+  <section class="section product-preview" id="solutions">
+    <div class="preview-grid">
+      <div class="preview-text">
+        <span class="section-label">OUR PRODUCT</span>
+        <h2 class="section-title">Intelligence Dashboard</h2>
+        <p class="preview-desc">
+          Monitor your farmland in real-time. Track 5 key parameters — NDVI, SOC, Yield, Biomass, and NPK — across all your plots, all in one place.
+        </p>
+        <ul class="preview-features">
+          <li>✅ Interactive map with pixel-level detail</li>
+          <li>✅ Anomaly detection &amp; alert system</li>
+          <li>✅ Period-over-period comparison</li>
+          <li>✅ Automated carbon credit reports</li>
+          <li>✅ Per land-owner breakdown</li>
+        </ul>
+        <a href="client/select-project.html" class="btn-preview-demo">Try the Demo →</a>
+      </div>
+      <div class="preview-image">
+        <div class="preview-mockup">
+          <div class="mockup-bar">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="mockup-content">
+            <div class="mockup-map"></div>
+            <div class="mockup-stats">
+              <div class="mockup-stat-bar" style="width:85%"></div>
+              <div class="mockup-stat-bar" style="width:65%"></div>
+              <div class="mockup-stat-bar" style="width:90%"></div>
+              <div class="mockup-stat-bar" style="width:70%"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- OUR TEAM -->
-  <section class="section our-team" id="about">
+  <!-- 4. HOW IT WORKS -->
+  <section class="section how-it-works" id="how-it-works">
+    <span class="section-label text-center" style="display:block;">THE PROCESS</span>
+    <h2 class="section-title text-center">How It Works</h2>
+    <p class="section-subtitle text-center">From satellite to insight in 4 simple steps</p>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">01</div>
+        <div class="step-icon">🛰️</div>
+        <h3>Satellite Data Collection</h3>
+        <p>We continuously collect Sentinel-2 satellite imagery over your farmland every quarter.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">02</div>
+        <div class="step-icon">🤖</div>
+        <h3>AI Analysis</h3>
+        <p>Our machine learning models process the imagery to measure 5 key agricultural parameters.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">03</div>
+        <div class="step-icon">📊</div>
+        <h3>Intelligence Dashboard</h3>
+        <p>Results are visualized in an interactive dashboard — maps, charts, trends, and anomaly alerts.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">04</div>
+        <div class="step-icon">📄</div>
+        <h3>Carbon Credit Report</h3>
+        <p>Generate verified carbon reports ready for submission to Verra, Gold Standard, and other registries.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. OUR TEAM -->
+  <section class="section our-team" id="team">
+    <span class="section-label text-center" style="display:block;">THE PEOPLE</span>
     <h2 class="section-title text-center">Our Team</h2>
     <div class="team-grid">
       <div class="team-card">
         <img src="assets/images/Sofya Restu2.jpg" alt="Sofya Restu Seftyani" class="team-photo">
         <h3>Sofya Restu Seftyani, M.Sc.</h3>
-        <p class="team-role">Founder & CEO</p>
+        <p class="team-role">Founder &amp; CEO</p>
         <p class="team-desc">7 years experience in agribusiness and integrated farming system</p>
       </div>
       <div class="team-card">
         <img src="assets/images/Fitrah Ramadhan3.jpg" alt="Fitrah Ramadhan" class="team-photo">
         <h3>Fitrah Ramadhan, M.Sc.</h3>
-        <p class="team-role">Co-Founder & CTO</p>
+        <p class="team-role">Co-Founder &amp; CTO</p>
         <p class="team-desc">Expert in AI, remote sensing, and agricultural decision-support systems</p>
       </div>
       <div class="team-card">
         <img src="assets/images/Nur Amalia3.jpg" alt="Nur Amelia" class="team-photo">
         <h3>Nur Amelia, S.Ds.</h3>
-        <p class="team-role">Co-Founder & CBDO</p>
+        <p class="team-role">Co-Founder &amp; CBDO</p>
         <p class="team-desc">Specialist in sustainability and circular economy project for corporate</p>
       </div>
     </div>
   </section>
 
-  <!-- CURRENT ACTIVITIES -->
+  <!-- 6. CURRENT ACTIVITIES -->
   <section class="section activities-section" id="activities">
+    <span class="section-label text-center" style="display:block;">LATEST UPDATES</span>
     <h2 class="section-title text-center">Current Activities</h2>
     <div class="slider-wrapper">
       <div class="slider-track" id="activitySlider">
@@ -140,7 +243,7 @@
     </div>
   </section>
 
-  <!-- OUR PARTNERS -->
+  <!-- 7. OUR PARTNERS -->
   <section class="section partners-section">
     <h2 class="section-title text-center">Our Partners</h2>
     <div class="partners-wrapper">
@@ -162,8 +265,8 @@
     </div>
   </section>
 
-  <!-- LET'S CONNECT -->
-  <section class="section connect-section">
+  <!-- 8. LET'S CONNECT -->
+  <section class="section connect-section" id="connect">
     <div class="connect-grid">
       <div class="connect-left">
         <h2 class="connect-title">Let's Connect!</h2>
@@ -213,7 +316,42 @@
   </section>
 
   <footer class="footer">
-    <p>&copy; 2025 PT. Visi Agrikultur Indonesia. All rights reserved.</p>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="assets/images/agrivision.png" alt="Agrivision" class="footer-logo">
+        <p class="footer-tagline">Climate-Smart Agriculture<br>powered by AI &amp; Remote Sensing</p>
+        <div class="footer-socials">
+          <a href="https://www.linkedin.com/company/agrivisiontechnology/" target="_blank">LinkedIn</a>
+          <a href="https://wa.me/6290546670" target="_blank">WhatsApp</a>
+          <a href="mailto:connect@agrivisiontech.com">Email</a>
+        </div>
+      </div>
+      <div class="footer-links">
+        <h4>Platform</h4>
+        <a href="client/select-project.html">Product Demo</a>
+        <a href="#about">About Us</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#connect">Contact</a>
+      </div>
+      <div class="footer-links">
+        <h4>Resources</h4>
+        <a href="#">Help Center</a>
+        <a href="#">Methodology</a>
+        <a href="#">Parameters Guide</a>
+        <a href="#">FAQ</a>
+      </div>
+      <div class="footer-links">
+        <h4>Company</h4>
+        <a href="#about">About</a>
+        <a href="#connect">Get in Touch</a>
+        <a href="login.html">Client Login</a>
+        <a href="#">Privacy Policy</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2025 PT. Visi Agrikultur Indonesia. All rights reserved.</p>
+      <p>agrivisiontech.com</p>
+    </div>
   </footer>
 
   <script src="js/main.js"></script>

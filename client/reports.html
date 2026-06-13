@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agrivision — Reports</title>
+  <link rel="icon" type="image/png" href="../assets/images/titleicon.png">
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/app.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ---- Summary Stats ---- */
+    .report-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .report-stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px 20px;
+      border: 1px solid #e8f0ed;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .report-stat-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .report-stat-info {
+      min-width: 0;
+    }
+
+    .report-stat-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #999;
+      margin-bottom: 3px;
+    }
+
+    .report-stat-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0e3f30;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ---- Filter Bar ---- */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filter-search {
+      flex: 1;
+      min-width: 200px;
+      padding: 9px 14px;
+      border: 1px solid #dde8e4;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: #333;
+      background: white;
+      transition: border-color 0.2s ease;
+      outline: none;
+    }
+
+    .filter-search::placeholder { color: #bbb; }
+
+    .filter-search:focus {
+      border-color: #0e3f30;
+    }
+
+    .filter-select {
+      padding: 9px 32px 9px 12px;
+      border: 1px solid #dde8e4;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: #444;
+      background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E") no-repeat right 12px center;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .filter-select:focus {
+      border-color: #0e3f30;
+    }
+
+    /* ---- Table Extras ---- */
+    .report-name-primary {
+      font-weight: 700;
+      color: #0e3f30;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .report-name-sub {
+      font-size: 11px;
+      color: #aaa;
+    }
+
+    .report-size {
+      font-size: 12px;
+      color: #aaa;
+      font-weight: 500;
+    }
+
+    .param-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
+    .param-soc      { background: #e8f5e9; color: #2e7d32; }
+    .param-ndvi     { background: #e3f2fd; color: #1565c0; }
+    .param-yield    { background: #fff8e1; color: #f57f17; }
+    .param-biomass  { background: #fce4ec; color: #880e4f; }
+    .param-npk      { background: #e8eaf6; color: #283593; }
+
+    .action-group {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .btn-download {
+      padding: 6px 12px;
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+      border-radius: 7px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--font-body);
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-decoration: none;
+    }
+
+    .btn-download:hover {
+      background: #c8e6c9;
+      border-color: #a5d6a7;
+    }
+
+    /* ---- Empty State ---- */
+    .table-empty {
+      display: none;
+      text-align: center;
+      padding: 56px 20px;
+    }
+
+    .table-empty.visible {
+      display: block;
+    }
+
+    .table-empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .table-empty-text { font-size: 14px; color: #999; }
+
+    /* ---- Striped rows ---- */
+    .app-table tbody tr:nth-child(even) td {
+      background: #fafcfb;
+    }
+
+    .app-table tbody tr:nth-child(even):hover td {
+      background: #f9fafb;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="app-sidebar">
+    <div class="sidebar-logo">
+      <img src="../assets/images/agrivision.png" alt="Agrivision Logo">
+    </div>
+    <nav class="sidebar-nav">
+      <span class="sidebar-section-label">Main</span>
+      <a href="dashboard.html" class="sidebar-link">
+        <span class="sidebar-icon">🏠</span> Dashboard
+      </a>
+      <a href="select-project.html" class="sidebar-link">
+        <span class="sidebar-icon">🌿</span> My Farms
+      </a>
+      <a href="notifications.html" class="sidebar-link">
+        <span class="sidebar-icon">🔔</span> Notifications
+        <span class="sidebar-badge">3</span>
+      </a>
+      <div class="sidebar-divider"></div>
+      <span class="sidebar-section-label">Analytics</span>
+      <a href="carbon-portfolio.html" class="sidebar-link">
+        <span class="sidebar-icon">🌍</span> Carbon Portfolio
+      </a>
+      <a href="reports.html" class="sidebar-link active">
+        <span class="sidebar-icon">📄</span> Reports
+      </a>
+      <div class="sidebar-divider"></div>
+      <span class="sidebar-section-label">Account</span>
+      <a href="profile.html" class="sidebar-link">
+        <span class="sidebar-icon">👤</span> Profile
+      </a>
+      <a href="settings.html" class="sidebar-link">
+        <span class="sidebar-icon">⚙️</span> Settings
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">FR</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">Fitrah Ramadhan</div>
+          <div class="sidebar-user-role">CTO · Admin</div>
+        </div>
+      </div>
+      <a href="../login.html" class="sidebar-link" style="color: rgba(255,100,100,0.8);">
+        <span class="sidebar-icon">🚪</span> Log Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="app-main">
+
+    <!-- TOPBAR -->
+    <header class="app-topbar">
+      <span class="topbar-title">Reports</span>
+      <div class="topbar-right">
+        <a href="notifications.html" class="topbar-icon-btn">
+          🔔
+          <span class="topbar-notif-dot"></span>
+        </a>
+        <a href="profile.html" class="topbar-icon-btn">👤</a>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <div class="app-content">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-header-top">
+          <div>
+            <div class="page-title">Reports</div>
+            <div class="page-subtitle">Riwayat semua laporan yang pernah digenerate dari seluruh lahan kamu.</div>
+          </div>
+          <a href="project-detail.html" class="btn-primary">+ Generate New Report</a>
+        </div>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="report-stat-grid">
+        <div class="report-stat-card">
+          <div class="report-stat-icon" style="background:#e8f5e9;">📄</div>
+          <div class="report-stat-info">
+            <div class="report-stat-label">Total Reports</div>
+            <div class="report-stat-value">8</div>
+          </div>
+        </div>
+        <div class="report-stat-card">
+          <div class="report-stat-icon" style="background:#fff8e1;">🗓️</div>
+          <div class="report-stat-info">
+            <div class="report-stat-label">Last Generated</div>
+            <div class="report-stat-value">Jun 2026</div>
+          </div>
+        </div>
+        <div class="report-stat-card">
+          <div class="report-stat-icon" style="background:#e0f2f1;">🌿</div>
+          <div class="report-stat-info">
+            <div class="report-stat-label">Most Reported Farm</div>
+            <div class="report-stat-value" style="font-size:14px;">Kadatuan, Puntang</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <input
+          type="text"
+          class="filter-search"
+          id="searchInput"
+          placeholder="Cari nama laporan..."
+          oninput="applyFilters()"
+        >
+        <select class="filter-select" id="farmFilter" onchange="applyFilters()">
+          <option value="">All Farms</option>
+          <option value="puntang">Kadatuan, Puntang</option>
+          <option value="cikembang">Kadatuan, Cikembang</option>
+        </select>
+        <select class="filter-select" id="paramFilter" onchange="applyFilters()">
+          <option value="">All Parameters</option>
+          <option value="soc">SOC</option>
+          <option value="ndvi">NDVI</option>
+          <option value="yield">Yield</option>
+          <option value="biomass">Biomass</option>
+          <option value="npk">NPK</option>
+        </select>
+        <select class="filter-select" id="yearFilter" onchange="applyFilters()">
+          <option value="">All Years</option>
+          <option value="2026">2026</option>
+          <option value="2025">2025</option>
+        </select>
+      </div>
+
+      <!-- Reports Table -->
+      <div class="app-card" style="padding:0; overflow:hidden;">
+        <table class="app-table" id="reportsTable">
+          <thead>
+            <tr>
+              <th>Report Name</th>
+              <th>Farm</th>
+              <th>Parameter</th>
+              <th>Period</th>
+              <th>Generated</th>
+              <th>Size</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="reportsBody">
+
+            <tr data-name="carbon credit report" data-farm="puntang" data-param="soc" data-year="2026">
+              <td>
+                <div class="report-name-primary">Carbon Credit Report</div>
+                <div class="report-name-sub">Verified carbon stock — Verra VCS methodology</div>
+              </td>
+              <td>Kadatuan, Puntang</td>
+              <td><span class="param-badge param-soc">SOC</span></td>
+              <td>Q1 2025 – Q1 2026</td>
+              <td>Jun 2026</td>
+              <td><span class="report-size">2.4 MB</span></td>
+              <td>
+                <div class="action-group">
+                  <button class="btn-download" onclick="simulateDownload('Carbon Credit Report')">↓ Download</button>
+                  <a href="project-detail.html" class="btn-secondary" style="font-size:11px; padding:6px 12px;">View</a>
+                </div>
+              </td>
+            </tr>
+
+            <tr data-name="ndvi annual summary" data-farm="puntang" data-param="ndvi" data-year="2026">
+              <td>
+                <div class="report-name-primary">NDVI Annual Summary</div>
+                <div class="report-name-sub">Vegetation health trend over full year</div>
+              </td>
+              <td>Kadatuan, Puntang</td>
+              <td><span class="param-badge param-ndvi">NDVI</span></td>
+              <td>Q1 2025 – Q4 2025</td>
+              <td>Feb 2026</td>
+              <td><span class="report-size">3.2 MB</span></td>
+              <td>
+                <div class="action-group">
+                  <button class="btn-download" onclick="simulateDownload('NDVI Annual Summary')">↓ Download</button>
+                  <a href="project-detail.html" class="btn-secondary" style="font-size:11px; padding:6px 12px;">View</a>
+                </div>
+              </td>
+            </tr>
+
+            <tr data-name="carbon portfolio report" data-farm="puntang" data-param="soc" data-year="2026">
+              <td>
+                <div class="report-name-primary">Carbon Portfolio Report</div>
+                <div class="report-name-sub">Multi-year carbon sequestration summary</div>
+              </td>
+              <td>Kadatuan, Puntang</td>
+              <td><span class="param-badge param-soc">SOC</span></td>
+              <td>Q1 2024 – Q4 2025</td>
+              <td>Jan 2026</td>
+              <td><span class="report-size">4.1 MB</span></td>
+              <td>
+                <div class="action-group">
+                  <button class="btn-download" onclick="simulateDownload('Carbon Portfolio Report')">↓ Download</button>
+                  <a href="project-detail.html" class="btn-secondary" style="font-size:11px; padding:6px 12px;">View</a>
+                </div>
+              </td>
+            </tr>
+
+            <tr data-name="npk soil report" data-farm="puntang" data-param="npk" data-year="2025">
+              <td>
+                <div class="report-name-primary">NPK Soil Report</div>
+                <div class="report-name-sub">Nitrogen, Phosphorus &amp; Potassium analysis</div>
+              </td>
+              <td>Kadatuan, Puntang</td>
+              <td><span class="param-badge param-npk">NPK</span></td>
+              <td>Q4 2025</td>
+              <td>Dec 2025</td>
+              <td><span class="report-size">0.8 MB</span></td>
+              <td>
+                <div class="action-group">
+                  <button class="btn-download" onclick="simulateDownload('NPK Soil Report')">↓ Download</button>
+                  <a href="project-detail.html" class="btn-secondary" style="font-size:11px; padding:6px 12px;">View</a>
+                </div>
+              </td>
+            </tr>
+
+            <tr data-name="biomass monitoring report" data-farm="puntang" data-param="biomass" data-year="2025">
+              <td>
+                <div class="report-name-primary">Biomass Monitoring Report</div>
+                <div class="report-name-sub">Above-ground biomass estimation via remote sensing</div>
+              </td>
+              <td>Kadatuan, Puntang</td>
+              <td><span class="param-badge param-biomass">Biomass</span></td>
+              <td>Q3 2025</td>
+              <td>Sep 2025</td>
+              <td><span class="report-size">1.3 MB</span></td>
+              <td>
+                <div class="action-group">
+                  <button class="btn-download" onclick="simulateDownload('Biomass Monitoring Report')">↓ Download</button>
+                  <a href="project-detail.html" class="btn-secondary" style="font-size:11px; padding:6px 12px;">View</a>
+                </div>
+              </td>
+            </tr>
+
+            <tr data-name="soc quarterly report" data-farm="puntang" data-param="soc" data-year="2025">
+              <td>
+                <div class="report-name-primary">SOC Quarterly Report</div>
+                <div class="report-name-sub">Soil organic carbon stock — quarterly snapshot</div>
+              </td>
+              <td>Kadatuan, Puntang</td>
+              <td><span class="param-badge param-soc">SOC</span></td>
+              <td>Q2 2025</td>
+              <td>Jun 2025</td>
+              <td><span class="report-size">1.7 MB</span></td>
+              <td>
+                <div class="action-group">
+                  <button class="btn-download" onclick="simulateDownload('SOC Quarterly Report')">↓ Download</button>
+                  <a href="project-detail.html" class="btn-secondary" style="font-size:11px; padding:6px 12px;">View</a>
+                </div>
+              </td>
+            </tr>
+
+            <tr data-name="ndvi analysis report" data-farm="puntang" data-param="ndvi" data-year="2025">
+              <td>
+                <div class="report-name-primary">NDVI Analysis Report</div>
+                <div class="report-name-sub">Vegetation index spatial distribution &amp; anomaly map</div>
+              </td>
+              <td>Kadatuan, Puntang</td>
+              <td><span class="param-badge param-ndvi">NDVI</span></td>
+              <td>Q1 2025</td>
+              <td>Mar 2025</td>
+              <td><span class="report-size">1.1 MB</span></td>
+              <td>
+                <div class="action-group">
+                  <button class="btn-download" onclick="simulateDownload('NDVI Analysis Report')">↓ Download</button>
+                  <a href="project-detail.html" class="btn-secondary" style="font-size:11px; padding:6px 12px;">View</a>
+                </div>
+              </td>
+            </tr>
+
+            <tr data-name="yield estimation report" data-farm="puntang" data-param="yield" data-year="2025">
+              <td>
+                <div class="report-name-primary">Yield Estimation Report</div>
+                <div class="report-name-sub">Crop productivity forecast based on spectral indices</div>
+              </td>
+              <td>Kadatuan, Puntang</td>
+              <td><span class="param-badge param-yield">Yield</span></td>
+              <td>Q1 2025</td>
+              <td>Mar 2025</td>
+              <td><span class="report-size">0.9 MB</span></td>
+              <td>
+                <div class="action-group">
+                  <button class="btn-download" onclick="simulateDownload('Yield Estimation Report')">↓ Download</button>
+                  <a href="project-detail.html" class="btn-secondary" style="font-size:11px; padding:6px 12px;">View</a>
+                </div>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+
+        <!-- Empty State (inside card) -->
+        <div class="table-empty" id="tableEmpty">
+          <div class="table-empty-icon">📭</div>
+          <div class="table-empty-text">Tidak ada laporan yang cocok dengan filter kamu.</div>
+        </div>
+      </div>
+
+    </div>
+    <!-- end app-content -->
+
+  </div>
+  <!-- end app-main -->
+
+</div>
+<!-- end app-layout -->
+
+<script>
+  function applyFilters() {
+    const search = document.getElementById('searchInput').value.toLowerCase().trim();
+    const farm   = document.getElementById('farmFilter').value;
+    const param  = document.getElementById('paramFilter').value;
+    const year   = document.getElementById('yearFilter').value;
+
+    const rows = document.querySelectorAll('#reportsBody tr');
+    let visible = 0;
+
+    rows.forEach(row => {
+      const matchSearch = !search || row.dataset.name.includes(search);
+      const matchFarm   = !farm   || row.dataset.farm  === farm;
+      const matchParam  = !param  || row.dataset.param === param;
+      const matchYear   = !year   || row.dataset.year  === year;
+
+      const show = matchSearch && matchFarm && matchParam && matchYear;
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+
+    document.getElementById('tableEmpty').classList.toggle('visible', visible === 0);
+  }
+
+  function simulateDownload(name) {
+    const btn = event.currentTarget;
+    const original = btn.innerHTML;
+    btn.innerHTML = '⏳ Downloading...';
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.innerHTML = '✓ Downloaded';
+      btn.style.background = '#c8e6c9';
+      setTimeout(() => {
+        btn.innerHTML = original;
+        btn.style.background = '';
+        btn.disabled = false;
+      }, 1800);
+    }, 1200);
+  }
+</script>
+
+</body>
+</html>

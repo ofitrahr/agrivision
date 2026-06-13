@@ -28,10 +28,64 @@ window.addEventListener('scroll', () => {
   const navbar = document.getElementById('navbar');
   if (!navbar) return;
   if (window.scrollY > 50) {
-    navbar.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)';
+    navbar.classList.add('scrolled');
   } else {
-    navbar.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+    navbar.classList.remove('scrolled');
   }
+});
+
+// ---- MOBILE MENU TOGGLE ----
+function toggleMobileMenu() {
+  const menu = document.getElementById('navMenu');
+  if (menu) menu.classList.toggle('open');
+}
+
+// ---- STATS COUNTER ANIMATION ----
+function animateCounters() {
+  const counters = document.querySelectorAll('.stat-number');
+  counters.forEach(counter => {
+    const target = parseInt(counter.getAttribute('data-target'));
+    const duration = 2000;
+    const step = target / (duration / 16);
+    let current = 0;
+    const timer = setInterval(() => {
+      current += step;
+      if (current >= target) {
+        counter.innerText = target.toLocaleString();
+        clearInterval(timer);
+      } else {
+        counter.innerText = Math.floor(current).toLocaleString();
+      }
+    }, 16);
+  });
+}
+
+// Trigger counter animation when stats section is visible
+const statsObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      animateCounters();
+      statsObserver.disconnect();
+    }
+  });
+}, { threshold: 0.3 });
+
+const statsSection = document.querySelector('.stats-section');
+if (statsSection) statsObserver.observe(statsSection);
+
+// ---- SMOOTH SCROLL ----
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function(e) {
+    const href = this.getAttribute('href');
+    if (href === '#') return;
+    const target = document.querySelector(href);
+    if (target) {
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Close mobile menu if open
+      document.getElementById('navMenu')?.classList.remove('open');
+    }
+  });
 });
 
 // --- LOGIN PAGE INTERACTIONS ---

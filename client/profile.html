@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agrivision — Profile</title>
+  <link rel="icon" type="image/png" href="../assets/images/titleicon.png">
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/app.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ---- Profile 2-col layout ---- */
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* ---- Profile Card (left) ---- */
+    .profile-card {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid #e8f0ed;
+      padding: 28px 22px;
+      text-align: center;
+    }
+
+    .profile-avatar-lg {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #0e3f30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 800;
+      color: #7ED957;
+      margin: 0 auto 16px;
+      border: 3px solid #e0f4ec;
+      letter-spacing: 1px;
+    }
+
+    .profile-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: #0e3f30;
+      margin-bottom: 7px;
+    }
+
+    .profile-role-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      background: #e8f5e9;
+      color: #2e7d32;
+      padding: 4px 13px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .profile-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-bottom: 20px;
+    }
+
+    .profile-meta-row {
+      font-size: 12px;
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+
+    .profile-meta-icon {
+      font-size: 13px;
+    }
+
+    .profile-divider {
+      height: 1px;
+      background: #f0f4f2;
+      margin: 18px 0;
+    }
+
+    .profile-stats {
+      text-align: left;
+      margin-bottom: 20px;
+    }
+
+    .profile-stat {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 0;
+      border-bottom: 1px solid #f5f8f6;
+    }
+
+    .profile-stat:last-child { border-bottom: none; }
+
+    .profile-stat-label {
+      font-size: 12px;
+      color: #999;
+      font-weight: 500;
+    }
+
+    .profile-stat-value {
+      font-size: 14px;
+      font-weight: 800;
+      color: #0e3f30;
+    }
+
+    /* ---- Personal Info Card ---- */
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .card-title-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0e3f30;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .card-header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* ---- Form Grid ---- */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 28px;
+    }
+
+    .form-field {
+      margin-bottom: 20px;
+    }
+
+    .form-field label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #bbb;
+      margin-bottom: 4px;
+      transition: color 0.2s ease;
+    }
+
+    .form-field.editing label { color: #888; }
+
+    .form-input {
+      width: 100%;
+      padding: 8px 0;
+      border: none;
+      border-bottom: 1.5px solid transparent;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      color: #0e3f30;
+      background: transparent;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .form-input[readonly] {
+      cursor: default;
+    }
+
+    .form-input.editable {
+      padding: 9px 12px;
+      border: 1.5px solid #b8d8ce;
+      border-radius: 8px;
+      background: #f6faf8;
+      cursor: text;
+    }
+
+    .form-input.editable:focus {
+      border-color: #0e3f30;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(14,63,48,0.06);
+    }
+
+    /* ---- Security Card ---- */
+    .security-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0;
+      border-bottom: 1px solid #f0f4f2;
+      gap: 12px;
+    }
+
+    .security-row:last-child { border-bottom: none; }
+
+    .security-info { flex: 1; min-width: 0; }
+
+    .security-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0e3f30;
+      margin-bottom: 3px;
+    }
+
+    .security-sub {
+      font-size: 11px;
+      color: #aaa;
+    }
+
+    .security-status-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    .security-status-dot.active  { background: #198754; }
+    .security-status-dot.inactive { background: #bbb; }
+
+    /* ---- Save feedback ---- */
+    .save-feedback {
+      display: none;
+      font-size: 12px;
+      color: #198754;
+      font-weight: 600;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .save-feedback.visible { display: flex; }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 960px) {
+      .profile-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="app-sidebar">
+    <div class="sidebar-logo">
+      <img src="../assets/images/agrivision.png" alt="Agrivision Logo">
+    </div>
+    <nav class="sidebar-nav">
+      <span class="sidebar-section-label">Main</span>
+      <a href="dashboard.html" class="sidebar-link">
+        <span class="sidebar-icon">🏠</span> Dashboard
+      </a>
+      <a href="select-project.html" class="sidebar-link">
+        <span class="sidebar-icon">🌿</span> My Farms
+      </a>
+      <a href="notifications.html" class="sidebar-link">
+        <span class="sidebar-icon">🔔</span> Notifications
+        <span class="sidebar-badge">3</span>
+      </a>
+      <div class="sidebar-divider"></div>
+      <span class="sidebar-section-label">Analytics</span>
+      <a href="carbon-portfolio.html" class="sidebar-link">
+        <span class="sidebar-icon">🌍</span> Carbon Portfolio
+      </a>
+      <a href="reports.html" class="sidebar-link">
+        <span class="sidebar-icon">📄</span> Reports
+      </a>
+      <div class="sidebar-divider"></div>
+      <span class="sidebar-section-label">Account</span>
+      <a href="profile.html" class="sidebar-link active">
+        <span class="sidebar-icon">👤</span> Profile
+      </a>
+      <a href="settings.html" class="sidebar-link">
+        <span class="sidebar-icon">⚙️</span> Settings
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">FR</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">Fitrah Ramadhan</div>
+          <div class="sidebar-user-role">CTO · Admin</div>
+        </div>
+      </div>
+      <a href="../login.html" class="sidebar-link" style="color: rgba(255,100,100,0.8);">
+        <span class="sidebar-icon">🚪</span> Log Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="app-main">
+
+    <!-- TOPBAR -->
+    <header class="app-topbar">
+      <span class="topbar-title">Profile</span>
+      <div class="topbar-right">
+        <a href="notifications.html" class="topbar-icon-btn">
+          🔔
+          <span class="topbar-notif-dot"></span>
+        </a>
+        <a href="profile.html" class="topbar-icon-btn" style="border-color:#0e3f30; background:#f0f7f4;">👤</a>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <div class="app-content">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-title">Profile</div>
+        <div class="page-subtitle">Kelola informasi akun dan preferensi kamu.</div>
+      </div>
+
+      <!-- 2-Column Grid -->
+      <div class="profile-grid">
+
+        <!-- ========== LEFT: Profile Card ========== -->
+        <div class="profile-card">
+
+          <div class="profile-avatar-lg">FR</div>
+          <div class="profile-name">Fitrah Ramadhan</div>
+          <span class="profile-role-badge">CTO · Admin</span>
+
+          <div class="profile-meta">
+            <div class="profile-meta-row">
+              <span class="profile-meta-icon">✉️</span>
+              fitrah@agrivisiontech.com
+            </div>
+            <div class="profile-meta-row">
+              <span class="profile-meta-icon">📅</span>
+              Member since January 2024
+            </div>
+          </div>
+
+          <div class="profile-divider"></div>
+
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <span class="profile-stat-label">Total Farms</span>
+              <span class="profile-stat-value">2</span>
+            </div>
+            <div class="profile-stat">
+              <span class="profile-stat-label">Active Since</span>
+              <span class="profile-stat-value">2024</span>
+            </div>
+            <div class="profile-stat">
+              <span class="profile-stat-label">Reports Generated</span>
+              <span class="profile-stat-value">8</span>
+            </div>
+          </div>
+
+          <div class="profile-divider"></div>
+
+          <button
+            class="btn-secondary"
+            style="width:100%; justify-content:center; opacity:0.45; cursor:not-allowed;"
+            disabled
+            title="Coming Soon"
+          >
+            📷 Change Photo &nbsp;·&nbsp; Coming Soon
+          </button>
+
+        </div>
+        <!-- end left -->
+
+        <!-- ========== RIGHT: Cards Stack ========== -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+
+          <!-- Card 1: Personal Information -->
+          <div class="app-card">
+            <div class="card-header">
+              <span class="card-title-text">Personal Information</span>
+              <div class="card-header-actions">
+                <span class="save-feedback" id="saveFeedback">✓ Saved</span>
+                <button id="editBtn" class="btn-secondary" onclick="enterEditMode()">✏️ Edit</button>
+                <div id="editActions" style="display:none; gap:8px; align-items:center;">
+                  <button class="btn-secondary" onclick="cancelEdit()">Cancel</button>
+                  <button class="btn-primary" onclick="saveProfile()">Save Changes</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-grid" id="profileForm">
+
+              <div class="form-field" id="field-fullName">
+                <label>Full Name</label>
+                <input id="fullName" class="form-input" type="text" value="Fitrah Ramadhan" readonly>
+              </div>
+
+              <div class="form-field" id="field-email">
+                <label>Email</label>
+                <input id="email" class="form-input" type="email" value="fitrah@agrivisiontech.com" readonly>
+              </div>
+
+              <div class="form-field" id="field-phone">
+                <label>Phone</label>
+                <input id="phone" class="form-input" type="text" value="+62 812 3456 7890" readonly>
+              </div>
+
+              <div class="form-field" id="field-org">
+                <label>Organization</label>
+                <input id="org" class="form-input" type="text" value="PT. Visi Agrikultur Indonesia" readonly>
+              </div>
+
+              <div class="form-field" id="field-role">
+                <label>Role</label>
+                <input id="role" class="form-input" type="text" value="CTO" readonly>
+              </div>
+
+              <div class="form-field" id="field-location">
+                <label>Location</label>
+                <input id="location" class="form-input" type="text" value="Bandung, West Java" readonly>
+              </div>
+
+            </div>
+          </div>
+          <!-- end Personal Information -->
+
+          <!-- Card 2: Security -->
+          <div class="app-card">
+            <div class="card-title-text" style="margin-bottom:4px;">Security</div>
+
+            <!-- Password -->
+            <div class="security-row">
+              <div class="security-info">
+                <div class="security-label">Password</div>
+                <div class="security-sub">Last changed 3 months ago</div>
+              </div>
+              <button
+                class="btn-secondary"
+                style="font-size:12px; opacity:0.45; cursor:not-allowed;"
+                disabled
+              >Change Password &nbsp;·&nbsp; Coming Soon</button>
+            </div>
+
+            <!-- 2FA -->
+            <div class="security-row">
+              <div class="security-info">
+                <div class="security-label">Two-Factor Authentication</div>
+                <div class="security-sub">
+                  <span class="security-status-dot inactive"></span>Not enabled
+                </div>
+              </div>
+              <button
+                class="btn-secondary"
+                style="font-size:12px; opacity:0.45; cursor:not-allowed;"
+                disabled
+              >Enable &nbsp;·&nbsp; Coming Soon</button>
+            </div>
+
+            <!-- Sessions -->
+            <div class="security-row">
+              <div class="security-info">
+                <div class="security-label">Active Sessions</div>
+                <div class="security-sub">
+                  <span class="security-status-dot active"></span>1 active session &nbsp;·&nbsp; Chrome on Windows
+                </div>
+              </div>
+              <button
+                class="btn-secondary"
+                style="font-size:12px; opacity:0.45; cursor:not-allowed;"
+                disabled
+              >View Sessions &nbsp;·&nbsp; Coming Soon</button>
+            </div>
+
+          </div>
+          <!-- end Security -->
+
+        </div>
+        <!-- end right -->
+
+      </div>
+      <!-- end profile-grid -->
+
+    </div>
+    <!-- end app-content -->
+
+  </div>
+  <!-- end app-main -->
+
+</div>
+<!-- end app-layout -->
+
+<script>
+  const FIELD_IDS = ['fullName', 'email', 'phone', 'org', 'role', 'location'];
+  let originalValues = {};
+
+  function enterEditMode() {
+    FIELD_IDS.forEach(id => {
+      const input = document.getElementById(id);
+      const field = document.getElementById('field-' + id);
+      originalValues[id] = input.value;
+      input.removeAttribute('readonly');
+      input.classList.add('editable');
+      field.classList.add('editing');
+    });
+
+    document.getElementById('editBtn').style.display = 'none';
+    document.getElementById('editActions').style.display = 'flex';
+    document.getElementById('saveFeedback').classList.remove('visible');
+
+    // Focus first input
+    document.getElementById('fullName').focus();
+  }
+
+  function cancelEdit() {
+    FIELD_IDS.forEach(id => {
+      const input = document.getElementById(id);
+      const field = document.getElementById('field-' + id);
+      input.value = originalValues[id];
+      input.setAttribute('readonly', true);
+      input.classList.remove('editable');
+      field.classList.remove('editing');
+    });
+
+    document.getElementById('editBtn').style.display = '';
+    document.getElementById('editActions').style.display = 'none';
+  }
+
+  function saveProfile() {
+    FIELD_IDS.forEach(id => {
+      const input = document.getElementById(id);
+      const field = document.getElementById('field-' + id);
+      input.setAttribute('readonly', true);
+      input.classList.remove('editable');
+      field.classList.remove('editing');
+    });
+
+    document.getElementById('editBtn').style.display = '';
+    document.getElementById('editActions').style.display = 'none';
+
+    const feedback = document.getElementById('saveFeedback');
+    feedback.classList.add('visible');
+    setTimeout(() => feedback.classList.remove('visible'), 3000);
+  }
+</script>
+
+</body>
+</html>

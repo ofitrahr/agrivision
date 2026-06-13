@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agrivision — Dashboard</title>
+  <link rel="icon" type="image/png" href="../assets/images/titleicon.png">
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/app.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="app-sidebar">
+    <div class="sidebar-logo">
+      <img src="../assets/images/agrivision.png" alt="Agrivision Logo">
+    </div>
+
+    <nav class="sidebar-nav">
+      <span class="sidebar-section-label">Main</span>
+      <a href="dashboard.html" class="sidebar-link active">
+        <span class="sidebar-icon">🏠</span> Dashboard
+      </a>
+      <a href="select-project.html" class="sidebar-link">
+        <span class="sidebar-icon">🌿</span> My Farms
+      </a>
+      <a href="notifications.html" class="sidebar-link">
+        <span class="sidebar-icon">🔔</span> Notifications
+        <span class="sidebar-badge">3</span>
+      </a>
+
+      <div class="sidebar-divider"></div>
+      <span class="sidebar-section-label">Analytics</span>
+      <a href="carbon-portfolio.html" class="sidebar-link">
+        <span class="sidebar-icon">🌍</span> Carbon Portfolio
+      </a>
+      <a href="reports.html" class="sidebar-link">
+        <span class="sidebar-icon">📄</span> Reports
+      </a>
+
+      <div class="sidebar-divider"></div>
+      <span class="sidebar-section-label">Account</span>
+      <a href="profile.html" class="sidebar-link">
+        <span class="sidebar-icon">👤</span> Profile
+      </a>
+      <a href="settings.html" class="sidebar-link">
+        <span class="sidebar-icon">⚙️</span> Settings
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">FR</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">Fitrah Ramadhan</div>
+          <div class="sidebar-user-role">CTO · Admin</div>
+        </div>
+      </div>
+      <a href="../login.html" class="sidebar-link" style="color: rgba(255,100,100,0.8);">
+        <span class="sidebar-icon">🚪</span> Log Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="app-main">
+
+    <!-- TOPBAR -->
+    <header class="app-topbar">
+      <span class="topbar-title">Dashboard</span>
+      <div class="topbar-right">
+        <a href="notifications.html" class="topbar-icon-btn">
+          🔔
+          <span class="topbar-notif-dot"></span>
+        </a>
+        <a href="profile.html" class="topbar-icon-btn">👤</a>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <div class="app-content">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-header-top">
+          <div>
+            <div class="page-title">Selamat datang, Fitrah 👋</div>
+            <div class="page-subtitle">Berikut ringkasan kondisi semua lahan kamu — diperbarui triwulanan.</div>
+          </div>
+          <a href="select-project.html" class="btn-primary">+ View Farms</a>
+        </div>
+      </div>
+
+      <!-- KPI STATS -->
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-card-icon" style="background:#e8f5e9;">🌿</div>
+          <div class="stat-card-label">Total Lahan Aktif</div>
+          <div class="stat-card-value">25 Ha</div>
+          <div class="stat-card-change up">↑ 1 farm aktif</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon" style="background:#e8f5f5;">🌍</div>
+          <div class="stat-card-label">Total Stok Karbon</div>
+          <div class="stat-card-value">186 Ton C</div>
+          <div class="stat-card-change up">↑ +4.2 Ton dari periode lalu</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon" style="background:#fff8e1;">💰</div>
+          <div class="stat-card-label">Estimasi Carbon Credit</div>
+          <div class="stat-card-value">Rp 136 jt</div>
+          <div class="stat-card-change up">↑ +Rp 12 jt vs Q4 2025</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon" style="background:#fdecea;">⚠️</div>
+          <div class="stat-card-label">Area Anomali</div>
+          <div class="stat-card-value">0.33 Ha</div>
+          <div class="stat-card-change down">↓ perlu perhatian</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon" style="background:#e8f5e9;">📊</div>
+          <div class="stat-card-label">Rerata NDVI</div>
+          <div class="stat-card-value">0.73</div>
+          <div class="stat-card-change up">↑ +0.018 vs periode lalu</div>
+        </div>
+      </div>
+
+      <!-- 2 COLUMN GRID -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
+
+        <!-- My Farms -->
+        <div class="app-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div class="app-card-title" style="margin-bottom:0;">My Farms</div>
+            <a href="select-project.html" class="btn-secondary" style="font-size:11px; padding:6px 12px;">View All</a>
+          </div>
+          <table class="app-table">
+            <thead>
+              <tr>
+                <th>Farm Name</th>
+                <th>Area</th>
+                <th>Last Update</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div style="font-weight:600; color:#0e3f30;">Kadatuan, Puntang</div>
+                  <div style="font-size:11px; color:#aaa;">Arabica Coffee</div>
+                </td>
+                <td>25 Ha</td>
+                <td>Jan 2026</td>
+                <td><span class="badge-active">Active</span></td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="font-weight:600; color:#0e3f30;">Kadatuan, Cikembang</div>
+                  <div style="font-size:11px; color:#aaa;">Robusta Coffee</div>
+                </td>
+                <td>18 Ha</td>
+                <td>—</td>
+                <td><span class="badge-inactive">Pending</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Recent Alerts -->
+        <div class="app-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div class="app-card-title" style="margin-bottom:0;">Recent Alerts</div>
+            <a href="notifications.html" class="btn-secondary" style="font-size:11px; padding:6px 12px;">View All</a>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; gap:12px; align-items:flex-start; padding:10px; background:#fdecea; border-radius:8px;">
+              <span style="font-size:18px;">⚠️</span>
+              <div>
+                <div style="font-size:12px; font-weight:600; color:#c0392b;">Anomali SOC Terdeteksi</div>
+                <div style="font-size:11px; color:#888;">0.33 Ha area kritis di Kadatuan Puntang</div>
+                <div style="font-size:10px; color:#aaa; margin-top:2px;">Jan - Mar 2026</div>
+              </div>
+            </div>
+            <div style="display:flex; gap:12px; align-items:flex-start; padding:10px; background:#fff8e1; border-radius:8px;">
+              <span style="font-size:18px;">📊</span>
+              <div>
+                <div style="font-size:12px; font-weight:600; color:#d35400;">NDVI di bawah rata-rata</div>
+                <div style="font-size:11px; color:#888;">3 piksel dengan NDVI &lt; 0.4</div>
+                <div style="font-size:10px; color:#aaa; margin-top:2px;">Jan - Mar 2026</div>
+              </div>
+            </div>
+            <div style="display:flex; gap:12px; align-items:flex-start; padding:10px; background:#e8f5e9; border-radius:8px;">
+              <span style="font-size:18px;">✅</span>
+              <div>
+                <div style="font-size:12px; font-weight:600; color:#198754;">Data Q1 2026 Tersedia</div>
+                <div style="font-size:11px; color:#888;">Data terbaru sudah bisa diakses di dashboard</div>
+                <div style="font-size:10px; color:#aaa; margin-top:2px;">15 Jan 2026</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Recent Reports -->
+      <div class="app-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div class="app-card-title" style="margin-bottom:0;">Recent Reports</div>
+          <a href="reports.html" class="btn-secondary" style="font-size:11px; padding:6px 12px;">View All</a>
+        </div>
+        <table class="app-table">
+          <thead>
+            <tr>
+              <th>Report Name</th>
+              <th>Farm</th>
+              <th>Parameter</th>
+              <th>Period</th>
+              <th>Generated</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div style="font-weight:600;">Carbon Credit Report</div></td>
+              <td>Kadatuan, Puntang</td>
+              <td>SOC</td>
+              <td>Q1 2025 – Q1 2026</td>
+              <td>Jun 2026</td>
+              <td><a href="project-detail.html" class="btn-secondary" style="font-size:11px; padding:5px 10px;">View</a></td>
+            </tr>
+            <tr>
+              <td><div style="font-weight:600;">NDVI Analysis Report</div></td>
+              <td>Kadatuan, Puntang</td>
+              <td>NDVI</td>
+              <td>Q1 2026</td>
+              <td>Mar 2026</td>
+              <td><a href="project-detail.html" class="btn-secondary" style="font-size:11px; padding:5px 10px;">View</a></td>
+            </tr>
+            <tr>
+              <td><div style="font-weight:600;">NPK Soil Report</div></td>
+              <td>Kadatuan, Puntang</td>
+              <td>SoilNPK</td>
+              <td>Q4 2025</td>
+              <td>Dec 2025</td>
+              <td><a href="project-detail.html" class="btn-secondary" style="font-size:11px; padding:5px 10px;">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+    <!-- end app-content -->
+
+  </div>
+  <!-- end app-main -->
+
+</div>
+<!-- end app-layout -->
+
+</body>
+</html>
