@@ -12,29 +12,98 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/app.css">
+  <style>
+    /* App shell integration — override height calc from project-detail.css */
+    .app-map-shell {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+    /* dash-main was height:calc(100vh - header - breadcrumb - kpi).
+       Now it lives inside a flex column; let flex fill the space. */
+    .dash-main {
+      flex: 1 !important;
+      height: 0 !important;
+      min-height: 0 !important;
+    }
+  </style>
 </head>
 <body>
 
-  <header class="dash-header">
-    <div class="dash-header-left">
-      <a href="../index.html" style="display: flex; align-items: center;">
-        <img src="../assets/images/agrivision.png" alt="Agrivision Logo">
-      </a>
-      <span class="dash-title">Intelligence Project Detail — Kadatuan</span>
-    </div>
-    <div class="dash-header-right">
-      <button onclick="window.location.href='select-project.html'" class="btn-dash-outline">Project List</button>
-      <button onclick="window.location.href='../login.html'" class="btn-dash-solid">Log Out</button>
-    </div>
-  </header>
+<div class="app-layout">
 
-  <nav class="breadcrumb-bar">
-    <a href="../index.html" class="breadcrumb-item">Home</a>
-    <span class="breadcrumb-sep">›</span>
-    <a href="select-project.html" class="breadcrumb-item">Project Collection</a>
-    <span class="breadcrumb-sep">›</span>
-    <span class="breadcrumb-item breadcrumb-active">Kadatuan — Intelligence Project Detail</span>
-  </nav>
+  <!-- SIDEBAR -->
+  <aside class="app-sidebar">
+    <div class="sidebar-logo">
+      <img src="../assets/images/agrivision.png" alt="Agrivision Logo">
+    </div>
+    <nav class="sidebar-nav">
+      <span class="sidebar-section-label">Main</span>
+      <a href="dashboard.html" class="sidebar-link">
+        <span class="sidebar-icon">🏠</span> Dashboard
+      </a>
+      <a href="select-project.html" class="sidebar-link active">
+        <span class="sidebar-icon">🌿</span> My Farms
+      </a>
+      <a href="notifications.html" class="sidebar-link">
+        <span class="sidebar-icon">🔔</span> Notifications
+        <span class="sidebar-badge">3</span>
+      </a>
+      <div class="sidebar-divider"></div>
+      <span class="sidebar-section-label">Analytics</span>
+      <a href="carbon-portfolio.html" class="sidebar-link">
+        <span class="sidebar-icon">🌍</span> Carbon Portfolio
+      </a>
+      <a href="reports.html" class="sidebar-link">
+        <span class="sidebar-icon">📄</span> Reports
+      </a>
+      <div class="sidebar-divider"></div>
+      <span class="sidebar-section-label">Account</span>
+      <a href="profile.html" class="sidebar-link">
+        <span class="sidebar-icon">👤</span> Profile
+      </a>
+      <a href="settings.html" class="sidebar-link">
+        <span class="sidebar-icon">⚙️</span> Settings
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">FR</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">Fitrah Ramadhan</div>
+          <div class="sidebar-user-role">CTO · Admin</div>
+        </div>
+      </div>
+      <a href="../login.html" class="sidebar-link" style="color: rgba(255,100,100,0.8);">
+        <span class="sidebar-icon">🚪</span> Log Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="app-main">
+
+    <!-- TOPBAR -->
+    <header class="app-topbar">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <a href="select-project.html" style="font-size:13px; font-weight:600; color:#0e3f30; text-decoration:none; opacity:0.7;">My Farms</a>
+        <span style="color:#ccc; font-size:14px;">›</span>
+        <span class="topbar-title">Kadatuan, Puntang</span>
+      </div>
+      <div class="topbar-right">
+        <a href="notifications.html" class="topbar-icon-btn">
+          🔔
+          <span class="topbar-notif-dot"></span>
+        </a>
+        <a href="profile.html" class="topbar-icon-btn">👤</a>
+      </div>
+    </header>
+
+    <!-- MAP SHELL — contains the full 3-col map layout -->
+    <div class="app-map-shell">
 
   <!-- PDF MODAL -->
   <div id="pdfModal" class="pdf-modal-overlay" style="display:none;">
@@ -299,6 +368,10 @@
   </main>
 
   <div class="kpi-strip" id="kpiStrip"></div>
+
+    </div><!-- end app-map-shell -->
+  </div><!-- end app-main -->
+</div><!-- end app-layout -->
 
   <script>
   // ============================================================
