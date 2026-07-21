@@ -1,0 +1,38 @@
+import bcrypt
+import jwt
+from datetime import datetime, timedelta
+from flask import current_app
+from app.db.models import User
+
+def authenticate_user(username, password):
+    user = User.query.filter_by(username=username).first()
+
+    if not user:
+        return {"success": False, "message": "Username tidak ditemukan", "status": 404}
+    
+    if not user.is_active:
+        return {"success": False, "message": "Akun tidak aktif", "status": 403}
+    
+    if bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
+        payload = {
+            'user-id': str(user.id),
+            'company_id': str(user.company_id) if user.company_id else None,
+            'username': user.username,
+            'role': user.role,
+            'exp': datetime.utcnow() + timedelta(days=1)
+        }
+        token = jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
+
+        return {
+            "success": True,
+            "token": token,
+            "user": {
+                "id": str(user.id),
+                "user": user.username,
+                "role": user.role,
+                "full_name": user.full_name
+            },
+            "status": 200
+        }
+    else:
+        return {"success": False, "message": "Password salah", "status": 401}
