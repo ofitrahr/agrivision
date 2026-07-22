@@ -19,4 +19,7 @@ def create_app():
     from app.api.routes.auth_routes import auth_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
+    from app.api.routes.admin_routes import admin_bp
+    app.register_blueprint(admin_bp, url_prefix='/api/admin')
+
     return app
