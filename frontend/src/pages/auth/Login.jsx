@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import api from '../../shared/api/axios';
+import { AuthContext } from '../../features/auth/AuthContext';
 import './Login.css'; 
 
 const Login = () => {
@@ -11,10 +12,11 @@ const Login = () => {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { login } = useContext(AuthContext);
 
   useEffect(() => {
     if (localStorage.getItem('token')) {
-      navigate('/dashboard');
+      navigate('/admin/dashboard');
     }
   }, [navigate]);
 
@@ -27,20 +29,18 @@ const Login = () => {
     setError('');
     setLoading(true);
 
-    try {
-      const response = await api.post('/auth/login', formData);
-      if (response.data.success) {
-        // Simpan token JWT dan data user ke browser lokal
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        
-        navigate('/dashboard');
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Gagal tersambung ke server');
-    } finally {
-      setLoading(false);
+    const result = await login(formData.username, formData.password);
+    
+    if (result.success) {
+        if (result.user.role === 'super_admin') {
+            navigate('/admin/dashboard');
+        } else {
+            navigate('/dashboard'); // Atur nanti untuk manajer
+        }
+    } else {
+        setError(result.message || 'Gagal login');
     }
+    setLoading(false);
   };
 
   return (
