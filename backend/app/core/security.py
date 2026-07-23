@@ -12,6 +12,10 @@ def token_required(f):
             if auth_header.startswith('Bearer '):
                 token = auth_header.split(" ")[1]
         
+        # Fallback to query parameter for iframe / SSE support
+        if not token and 'token' in request.args:
+            token = request.args.get('token')
+        
         if not token:
             return jsonify({'success': False, 'message': 'Token tidak ditemukan!'}), 401
 

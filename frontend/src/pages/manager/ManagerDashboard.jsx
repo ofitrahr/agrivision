@@ -49,14 +49,16 @@ const ManagerDashboard = () => {
                     <h3 style={{ margin: '0 0 10px 0', color: '#6b7280' }}>Total Petani</h3>
                     <p style={{ fontSize: '32px', fontWeight: 'bold', margin: 0, color: '#2D6A4F' }}>{stats?.total_farmers || 0}</p>
                 </div>
-                <div className="stat-card" style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                    <h3 style={{ margin: '0 0 10px 0', color: '#6b7280' }}>Batch Aktif</h3>
-                    <p style={{ fontSize: '32px', fontWeight: 'bold', margin: 0, color: '#2D6A4F' }}>{stats?.active_batches || 0}</p>
                 </div>
-            </div>
 
-            <div style={{ marginTop: '30px' }}>
-                <button className="primary-btn" onClick={() => navigate('/manager/profile')}>
+            <div style={{ marginTop: '30px', display: 'flex', gap: '15px' }}>
+                <button className="primary-btn" onClick={() => navigate('/manager/gis')} style={{ background: '#2563eb', color: 'white' }}>
+                    Peta Lahan & Blok
+                </button>
+                <button className="primary-btn" onClick={() => navigate('/manager/farmers')} style={{ background: '#059669', color: 'white' }}>
+                    Kelola Data Pekerja
+                </button>
+                <button className="primary-btn" onClick={() => navigate('/manager/profile')} style={{ background: '#374151', color: 'white' }}>
                     Pengaturan Profil & Logo
                 </button>
             </div>

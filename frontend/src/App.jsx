@@ -9,6 +9,8 @@ import GlobalGIS from './pages/admin/GlobalGIS';
 
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import ManagerProfile from './pages/manager/ManagerProfile';
+import ManagerFarmers from './pages/manager/ManagerFarmers';
+import ManagerGIS from './pages/manager/ManagerGIS';
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
             <Route path="/manager" element={<Navigate to="/manager/dashboard" replace />} />
             <Route path="/manager/dashboard" element={<ManagerDashboard />} />
             <Route path="/manager/profile" element={<ManagerProfile />} />
+            <Route path="/manager/farmers" element={<ManagerFarmers />} />
+            <Route path="/manager/gis" element={<ManagerGIS />} />
         </Route>
         
         <Route path="*" element={<div style={{padding: '50px'}}>404 Not Found</div>} />
