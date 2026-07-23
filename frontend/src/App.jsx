@@ -7,18 +7,29 @@ import CompanyList from './pages/admin/CompanyList';
 import CompanyUsers from './pages/admin/CompanyUsers';
 import GlobalGIS from './pages/admin/GlobalGIS';
 
+import ManagerDashboard from './pages/manager/ManagerDashboard';
+import ManagerProfile from './pages/manager/ManagerProfile';
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
         
+        {/* Rute Super Admin */}
         <Route element={<ProtectedRoute allowedRoles={['super_admin']} />}>
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/companies" element={<CompanyList />} />
             <Route path="/admin/companies/:companyId/users" element={<CompanyUsers />} />
             <Route path="/admin/gis" element={<GlobalGIS />} />
+        </Route>
+
+        {/* Rute Manager Klien */}
+        <Route element={<ProtectedRoute allowedRoles={['manager']} />}>
+            <Route path="/manager" element={<Navigate to="/manager/dashboard" replace />} />
+            <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+            <Route path="/manager/profile" element={<ManagerProfile />} />
         </Route>
         
         <Route path="*" element={<div style={{padding: '50px'}}>404 Not Found</div>} />

@@ -15,8 +15,16 @@ const Login = () => {
   const { login } = useContext(AuthContext);
 
   useEffect(() => {
-    if (localStorage.getItem('token')) {
-      navigate('/admin/dashboard');
+    const userData = localStorage.getItem('user');
+    if (localStorage.getItem('token') && userData) {
+      const parsedUser = JSON.parse(userData);
+      if (parsedUser.role === 'super_admin') {
+        navigate('/admin/dashboard');
+      } else if (parsedUser.role === 'manager') {
+        navigate('/manager/dashboard');
+      } else if (parsedUser.role === 'board') {
+        navigate('/board/dashboard');
+      }
     }
   }, [navigate]);
 
@@ -34,8 +42,12 @@ const Login = () => {
     if (result.success) {
         if (result.user.role === 'super_admin') {
             navigate('/admin/dashboard');
+        } else if (result.user.role === 'manager') {
+            navigate('/manager/dashboard');
+        } else if (result.user.role === 'board') {
+            navigate('/board/dashboard');
         } else {
-            navigate('/dashboard'); // Atur nanti untuk manajer
+            navigate('/dashboard');
         }
     } else {
         setError(result.message || 'Gagal login');

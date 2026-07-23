@@ -22,4 +22,7 @@ def create_app():
     from app.api.routes.admin_routes import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
+    from app.api.routes.manager_routes import manager_bp
+    app.register_blueprint(manager_bp, url_prefix='/api/manager')
+
     return app
