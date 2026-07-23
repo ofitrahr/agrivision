@@ -33,7 +33,7 @@ def role_required(required_role):
     def decorated(f):
         @wraps(f)
         def decorated(current_user, *args, **kwargs):
-            if current_app.role != required_role:
+            if current_user.role != required_role:
                 return jsonify({'success': False, 'message': 'Akses ditolak. Fitur ini hanya untuk role tententu.'}), 403
             return f(current_user, *args, **kwargs)
         return decorated

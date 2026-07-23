@@ -4,6 +4,7 @@ import ProtectedRoute from './app/routes/ProtectedRoute';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/auth/Login';
 import CompanyList from './pages/admin/CompanyList';
+import CompanyUsers from './pages/admin/CompanyUsers';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/companies" element={<CompanyList />} />
+            <Route path="/admin/companies/:companyId/users" element={<CompanyUsers />} />
         </Route>
         
         <Route path="*" element={<div style={{padding: '50px'}}>404 Not Found</div>} />
