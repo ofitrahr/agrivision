@@ -4,7 +4,7 @@ from folium.plugins import Draw
 class GISService:
     @staticmethod
     def generate_global_map():
-        m = folium.Map(location=[-0.7893, 113.9213], zoom_start=5, tiles="OpenStreetMap")
+        m = folium.Map(location=[-0.7893, 113.9213], zoom_start=5, max_zoom=22, tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", attr="Google")
         
         draw = Draw(
             draw_options={
@@ -48,4 +48,5 @@ class GISService:
         </script>
         """ 
         m.get_root().html.add_child(folium.Element(js_code))
+
         return m.get_root().render()
