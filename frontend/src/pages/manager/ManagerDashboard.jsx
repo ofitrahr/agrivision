@@ -58,6 +58,9 @@ const ManagerDashboard = () => {
                 <button className="primary-btn" onClick={() => navigate('/manager/agronomy')} style={{ background: '#8b5cf6', color: 'white' }}>
                     Modul Agronomi
                 </button>
+                <button className="primary-btn" onClick={() => navigate('/manager/economics')} style={{ background: '#14b8a6', color: 'white' }}>
+                    Keuangan & Panen
+                </button>
                 <button className="primary-btn" onClick={() => navigate('/manager/traceability')} style={{ background: '#d97706', color: 'white' }}>
                     Traceability
                 </button>

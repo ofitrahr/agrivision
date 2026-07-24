@@ -203,6 +203,7 @@ class FinancialRecord(db.Model):
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='CASCADE'))
     farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id'))
     period = db.Column(db.String(20), nullable=False)
+    total_production_kg = db.Column(db.Numeric(15, 2), default=0)
     operational_cost = db.Column(db.Numeric(15, 2), default=0)
     estimated_revenue = db.Column(db.Numeric(15, 2), default=0)
     notes = db.Column(db.Text)

@@ -14,6 +14,7 @@ import ManagerProfile from './pages/manager/ManagerProfile';
 import ManagerFarmers from './pages/manager/ManagerFarmers';
 import ManagerGIS from './pages/manager/ManagerGIS';
 import ManagerAgronomy from './pages/manager/ManagerAgronomy';
+import ManagerEconomics from './pages/manager/ManagerEconomics';
 import ManagerTraceability from './pages/manager/ManagerTraceability';
 
 import BoardDashboard from './pages/board/BoardDashboard';
@@ -43,6 +44,7 @@ function App() {
             <Route path="/manager/farmers" element={<ManagerFarmers />} />
             <Route path="/manager/gis" element={<ManagerGIS />} />
             <Route path="/manager/agronomy" element={<ManagerAgronomy />} />
+            <Route path="/manager/economics" element={<ManagerEconomics />} />
             <Route path="/manager/traceability" element={<ManagerTraceability />} />
         </Route>
 

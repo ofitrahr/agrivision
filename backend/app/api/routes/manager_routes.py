@@ -264,6 +264,54 @@ def get_manager_farm_map(current_user, farm_id):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@manager_bp.route('/farms/<farm_id>/financials', methods=['GET', 'POST'])
+@token_required
+@role_required('manager')
+def manager_farm_financials(current_user, farm_id):
+    from app.db.models import FinancialRecord
+    farm = Farm.query.filter_by(id=farm_id, company_id=current_user.company_id).first()
+    if not farm:
+        return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
+
+    if request.method == 'GET':
+        records = FinancialRecord.query.filter_by(farm_id=farm.id).order_by(FinancialRecord.created_at.desc()).all()
+        data = []
+        for r in records:
+            data.append({
+                'id': r.id,
+                'period': r.period,
+                'total_production_kg': float(r.total_production_kg) if r.total_production_kg else 0,
+                'operational_cost': float(r.operational_cost) if r.operational_cost else 0,
+                'estimated_revenue': float(r.estimated_revenue) if r.estimated_revenue else 0,
+                'profit': float((r.estimated_revenue or 0) - (r.operational_cost or 0)),
+                'notes': r.notes
+            })
+        return jsonify({'success': True, 'data': data}), 200
+
+    # POST (Tambah laporan panen/keuangan baru)
+    try:
+        data = request.json
+        period = data.get('period')
+        if not period:
+            return jsonify({'success': False, 'message': 'Periode (Bulan/Tahun) wajib diisi'}), 400
+
+        record = FinancialRecord(
+            company_id=current_user.company_id,
+            farm_id=farm.id,
+            period=period,
+            total_production_kg=data.get('total_production_kg', 0),
+            operational_cost=data.get('operational_cost', 0),
+            estimated_revenue=data.get('estimated_revenue', 0),
+            notes=data.get('notes', '')
+        )
+        db.session.add(record)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Laporan berhasil ditambahkan'}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @manager_bp.route('/farms/<farm_id>/agronomy-map', methods=['GET'])
 @token_required

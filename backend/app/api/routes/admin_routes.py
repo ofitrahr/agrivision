@@ -83,7 +83,6 @@ def delete_company(current_user, company_id):
 @role_required('super_admin')
 def manage_company_permissions(current_user, company_id):
     try:
-        # Cari atau buat perizinan jika belum ada
         perms = CompanyPermission.query.filter_by(company_id=company_id).first()
         if not perms:
             perms = CompanyPermission(company_id=company_id)

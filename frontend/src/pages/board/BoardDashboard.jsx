@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 const GENDER_COLORS = ['#3b82f6', '#ec4899', '#9ca3af'];
@@ -52,23 +52,29 @@ const BoardDashboard = () => {
             </div>
 
             {/* Metrik Utama (Cards) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                 <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', borderLeft: '4px solid #10b981' }}>
-                    <h3 style={{ margin: '0 0 10px 0', color: '#6b7280', fontSize: '14px', textTransform: 'uppercase' }}>Total Lahan Utama</h3>
-                    <p style={{ margin: 0, fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>{metrics.total_farms}</p>
+                    <h3 style={{ margin: '0 0 10px 0', color: '#6b7280', fontSize: '14px', textTransform: 'uppercase' }}>Lahan Aktif</h3>
+                    <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#111827' }}>{metrics.total_farms}</p>
                 </div>
                 <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', borderLeft: '4px solid #3b82f6' }}>
-                    <h3 style={{ margin: '0 0 10px 0', color: '#6b7280', fontSize: '14px', textTransform: 'uppercase' }}>Total Luas Area (Ha)</h3>
-                    <p style={{ margin: 0, fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>{metrics.total_area_ha}</p>
+                    <h3 style={{ margin: '0 0 10px 0', color: '#6b7280', fontSize: '14px', textTransform: 'uppercase' }}>Luas Area (Ha)</h3>
+                    <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#111827' }}>{metrics.total_area_ha}</p>
                 </div>
                 <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', borderLeft: '4px solid #f59e0b' }}>
-                    <h3 style={{ margin: '0 0 10px 0', color: '#6b7280', fontSize: '14px', textTransform: 'uppercase' }}>Total Pekerja / Petani</h3>
-                    <p style={{ margin: 0, fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>{metrics.total_farmers}</p>
+                    <h3 style={{ margin: '0 0 10px 0', color: '#6b7280', fontSize: '14px', textTransform: 'uppercase' }}>Pekerja</h3>
+                    <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#111827' }}>{metrics.total_farmers}</p>
+                </div>
+                <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', borderLeft: '4px solid #8b5cf6' }}>
+                    <h3 style={{ margin: '0 0 10px 0', color: '#6b7280', fontSize: '14px', textTransform: 'uppercase' }}>Total Keuntungan</h3>
+                    <p style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#111827' }}>
+                        Rp {metrics.total_profit ? metrics.total_profit.toLocaleString('id-ID') : '0'}
+                    </p>
                 </div>
             </div>
 
-            {/* Analitik Grafik */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '30px' }}>
+            {/* Analitik Grafik Ekologi & Sosial */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '30px', marginBottom: '30px' }}>
                 
                 {/* Chart 1: Ekologi (Distribusi Lahan) */}
                 <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
@@ -117,6 +123,29 @@ const BoardDashboard = () => {
                     )}
                 </div>
 
+            </div>
+
+            {/* Grafik Ekonomi */}
+            <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', marginBottom: '40px' }}>
+                <h3 style={{ margin: '0 0 20px 0', color: '#374151' }}>Ekonomi: Tren Pendapatan & Biaya Bulanan</h3>
+                {charts.financial_trends && charts.financial_trends.length > 0 ? (
+                    <div style={{ height: '350px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={charts.financial_trends} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="period" />
+                                <YAxis />
+                                <Tooltip formatter={(value) => `Rp ${value.toLocaleString('id-ID')}`} />
+                                <Legend />
+                                <Line type="monotone" dataKey="revenue" name="Pendapatan (Rp)" stroke="#10b981" strokeWidth={3} activeDot={{ r: 8 }} />
+                                <Line type="monotone" dataKey="cost" name="Biaya Operasional (Rp)" stroke="#ef4444" strokeWidth={3} />
+                                <Line type="monotone" dataKey="profit" name="Keuntungan Bersih (Rp)" stroke="#3b82f6" strokeWidth={3} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                ) : (
+                    <p style={{ textAlign: 'center', color: '#9ca3af', marginTop: '50px', marginBottom: '50px' }}>Data keuangan belum tersedia.</p>
+                )}
             </div>
         </div>
     );
