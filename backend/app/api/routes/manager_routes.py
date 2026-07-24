@@ -82,7 +82,11 @@ def manager_farmers(current_user):
             'id': f.id,
             'name': f.name,
             'phone': f.phone,
-            'photo_url': f.photo_url
+            'photo_url': f.photo_url,
+            'gender': f.gender,
+            'age': f.age,
+            'join_year': f.join_year,
+            'farm_info': f.farm_info,
         } for f in farmers]
         return jsonify({'success': True, 'data': data}), 200
         
@@ -91,6 +95,10 @@ def manager_farmers(current_user):
         data = request.form
         name = data.get('name')
         phone = data.get('phone', '')
+        gender = data.get('gender')
+        age = data.get('age')
+        join_year = data.get('join_year')
+        farm_info = data.get('farm_info')
         
         if not name:
             return jsonify({'success': False, 'message': 'Nama petani wajib diisi'}), 400
@@ -105,7 +113,11 @@ def manager_farmers(current_user):
             company_id=company_id,
             name=name,
             phone=phone,
-            photo_url=photo_url
+            photo_url=photo_url,
+            gender=gender,
+            age=int(age) if age else None,
+            join_year=int(join_year) if join_year else None,
+            farm_info=farm_info
         )
         db.session.add(new_farmer)
         db.session.commit()
@@ -161,7 +173,6 @@ def manager_farm_blocks(current_user, farm_id):
         blocks = FarmBlock.query.filter_by(farm_id=farm.id).all()
         data = []
         for b in blocks:
-            # Mengambil data polygon dari database WKB format ke geometry standar opsional (nanti kita render map tersendiri)
             data.append({
                 'id': b.id,
                 'name': b.name,
@@ -185,7 +196,7 @@ def manager_farm_blocks(current_user, farm_id):
 
         new_polygon_ewkt = f'SRID=4326;{polygon_wkt}'
 
-        # Validasi Spasial: Pastikan blok berada di dalam batas lahan utama
+        # Validasi Spasial
         if farm.boundary is not None:
             from geoalchemy2.functions import ST_Contains, ST_GeomFromEWKT
             is_inside = db.session.query(ST_Contains(farm.boundary, ST_GeomFromEWKT(new_polygon_ewkt))).scalar()
@@ -252,3 +263,5 @@ def get_manager_farm_map(current_user, farm_id):
         }), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+

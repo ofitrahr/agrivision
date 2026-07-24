@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -6,10 +6,13 @@ const ManagerFarmers = () => {
     const [farmers, setFarmers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const fileInputRef = useRef(null);
     
     // State untuk form tambah petani
-    const [newFarmer, setNewFarmer] = useState({ name: '', phone: '' });
-    const [photoFile, setPhotoFile] = useState(null);
+    const [formData, setFormData] = useState({ 
+        name: '', phone: '', photo: null,
+        gender: 'Laki-laki', age: '', join_year: '', farm_info: ''
+    });
     const [showForm, setShowForm] = useState(false);
 
     const navigate = useNavigate();
@@ -33,26 +36,30 @@ const ManagerFarmers = () => {
         fetchFarmers();
     }, []);
 
-    const handleAddFarmer = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
         
         try {
-            const formData = new FormData();
-            formData.append('name', newFarmer.name);
-            formData.append('phone', newFarmer.phone);
-            if (photoFile) {
-                formData.append('photo', photoFile);
+            const data = new FormData();
+            data.append('name', formData.name);
+            data.append('phone', formData.phone);
+            data.append('gender', formData.gender);
+            data.append('age', formData.age);
+            data.append('join_year', formData.join_year);
+            data.append('farm_info', formData.farm_info);
+            if (formData.photo) {
+                data.append('photo', formData.photo);
             }
 
-            const response = await api.post('/manager/farmers', formData, {
+            const response = await api.post('/manager/farmers', data, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            alert(response.data.message);
             if (response.data.success) {
-                setNewFarmer({ name: '', phone: '' });
-                setPhotoFile(null);
+                alert('Petani berhasil ditambahkan!');
+                setFormData({ name: '', phone: '', photo: null, gender: 'Laki-laki', age: '', join_year: '', farm_info: '' });
+                if (fileInputRef.current) fileInputRef.current.value = "";
                 setShowForm(false);
                 fetchFarmers(); // Refresh list
             }
@@ -95,25 +102,52 @@ const ManagerFarmers = () => {
             {showForm && (
                 <div style={{ background: '#f9fafb', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e5e7eb' }}>
                     <h3 style={{ marginTop: 0, color: '#374151' }}>Form Data Pekerja Baru</h3>
-                    <form onSubmit={handleAddFarmer} style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                        <div className="form-group" style={{ flex: '1', minWidth: '200px' }}>
-                            <label>Nama Lengkap *</label>
-                            <input type="text" value={newFarmer.name} onChange={e => setNewFarmer({...newFarmer, name: e.target.value})} required />
-                        </div>
-                        <div className="form-group" style={{ flex: '1', minWidth: '150px' }}>
-                            <label>Nomor Telepon</label>
-                            <input type="text" value={newFarmer.phone} onChange={e => setNewFarmer({...newFarmer, phone: e.target.value})} />
-                        </div>
-                        <div className="form-group" style={{ flex: '1', minWidth: '150px' }}>
-                            <label>Pas Foto Wajah (Opsional)</label>
-                            <input type="file" accept="image/*" onChange={e => setPhotoFile(e.target.files[0])} style={{ padding: '8px 0' }} />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '15px' }}>
-                            <button type="submit" className="primary-btn" disabled={saving}>
-                                {saving ? 'Menyimpan...' : 'Simpan Pekerja'}
-                            </button>
-                        </div>
-                    </form>
+                        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Nama Lengkap *</label>
+                                <input type="text" style={{ width: '100%', padding: '8px' }} required 
+                                    value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>No. HP</label>
+                                <input type="text" style={{ width: '100%', padding: '8px' }} 
+                                    value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Gender</label>
+                                <select style={{ width: '100%', padding: '8px' }}
+                                    value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}>
+                                    <option value="Laki-laki">Laki-laki</option>
+                                    <option value="Perempuan">Perempuan</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Usia</label>
+                                <input type="number" style={{ width: '100%', padding: '8px' }}
+                                    value={formData.age} onChange={e => setFormData({...formData, age: e.target.value})} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Tahun Bergabung</label>
+                                <input type="number" style={{ width: '100%', padding: '8px' }}
+                                    value={formData.join_year} onChange={e => setFormData({...formData, join_year: e.target.value})} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Foto Wajah</label>
+                                <input type="file" accept="image/*" ref={fileInputRef} style={{ width: '100%', padding: '8px' }} 
+                                    onChange={e => setFormData({...formData, photo: e.target.files[0]})} />
+                            </div>
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Info Pertanian Tambahan</label>
+                                <textarea style={{ width: '100%', padding: '8px', minHeight: '60px' }}
+                                    value={formData.farm_info} onChange={e => setFormData({...formData, farm_info: e.target.value})} />
+                            </div>
+                            
+                            <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
+                                <button type="submit" className="primary-btn" style={{ width: '100%' }} disabled={saving}>
+                                    {saving ? 'Menyimpan...' : 'Simpan Pekerja'}
+                                </button>
+                            </div>
+                        </form>
                 </div>
             )}
 

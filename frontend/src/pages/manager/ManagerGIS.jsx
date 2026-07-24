@@ -13,6 +13,7 @@ const ManagerGIS = () => {
     // State untuk form penambahan blok
     const [drawnGeometry, setDrawnGeometry] = useState(null);
     const [showForm, setShowForm] = useState(false);
+    const [isOtherCrop, setIsOtherCrop] = useState(false);
     const [newBlock, setNewBlock] = useState({
         name: '',
         crop_type: '',
@@ -108,7 +109,9 @@ const ManagerGIS = () => {
                 alert('Blok lahan berhasil ditambahkan!');
                 setShowForm(false);
                 setDrawnGeometry(null);
+                setIsOtherCrop(false);
                 setNewBlock({ name: '', crop_type: '', area_ha: '', farmer_id: '' });
+                // Refresh list blok & iframe (untuk memunculkan blok baru di peta);
                 handleSelectFarm(selectedFarm);
             }
         } catch (error) {
@@ -183,9 +186,32 @@ const ManagerGIS = () => {
                                             value={newBlock.name} onChange={e => setNewBlock({...newBlock, name: e.target.value})} />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Jenis Tanaman</label>
-                                        <input type="text" style={{ width: '100%', padding: '8px' }} 
-                                            value={newBlock.crop_type} onChange={e => setNewBlock({...newBlock, crop_type: e.target.value})} />
+                                        <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Jenis Tanaman Utama</label>
+                                        <select style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
+                                            value={isOtherCrop ? "Lainnya" : newBlock.crop_type}
+                                            onChange={(e) => {
+                                                if (e.target.value === "Lainnya") {
+                                                    setIsOtherCrop(true);
+                                                    setNewBlock({...newBlock, crop_type: ''}); // Reset nilai
+                                                } else {
+                                                    setIsOtherCrop(false);
+                                                    setNewBlock({...newBlock, crop_type: e.target.value});
+                                                }
+                                            }}>
+                                            <option value="">-- Pilih Tanaman --</option>
+                                            <option value="Kopi">Kopi</option>
+                                            <option value="Lada">Lada</option>
+                                            <option value="Sereh Wangi">Sereh Wangi</option>
+                                            <option value="Lainnya">Lainnya...</option>
+                                        </select>
+
+                                        {isOtherCrop && (
+                                            <input type="text" placeholder="Ketik nama komoditas spesifik..." 
+                                                   style={{ width: '100%', padding: '8px', marginTop: '5px', border: '1px dashed #6b7280' }}
+                                                   value={newBlock.crop_type} 
+                                                   onChange={e => setNewBlock({...newBlock, crop_type: e.target.value})} 
+                                                   required />
+                                        )}
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Luas (Hektar)</label>
@@ -204,7 +230,7 @@ const ManagerGIS = () => {
                                     </div>
                                     <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                                         <button type="submit" className="primary-btn" style={{ flex: 1 }}>Simpan</button>
-                                        <button type="button" className="danger-btn" onClick={() => {setShowForm(false); setDrawnGeometry(null);}} style={{ flex: 1 }}>Batal</button>
+                                        <button type="button" className="danger-btn" onClick={() => {setShowForm(false); setDrawnGeometry(null); setIsOtherCrop(false);}} style={{ flex: 1 }}>Batal</button>
                                     </div>
                                 </form>
                             </div>

@@ -6,11 +6,13 @@ import Login from './pages/auth/Login';
 import CompanyList from './pages/admin/CompanyList';
 import CompanyUsers from './pages/admin/CompanyUsers';
 import GlobalGIS from './pages/admin/GlobalGIS';
+import AdminTraceability from './pages/admin/AdminTraceability';
 
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import ManagerProfile from './pages/manager/ManagerProfile';
 import ManagerFarmers from './pages/manager/ManagerFarmers';
 import ManagerGIS from './pages/manager/ManagerGIS';
+import ManagerTraceability from './pages/manager/ManagerTraceability';
 
 function App() {
   return (
@@ -25,6 +27,7 @@ function App() {
             <Route path="/admin/companies" element={<CompanyList />} />
             <Route path="/admin/companies/:companyId/users" element={<CompanyUsers />} />
             <Route path="/admin/gis" element={<GlobalGIS />} />
+            <Route path="/admin/traceability" element={<AdminTraceability />} />
         </Route>
 
         {/* Rute Manager Klien */}
@@ -34,6 +37,7 @@ function App() {
             <Route path="/manager/profile" element={<ManagerProfile />} />
             <Route path="/manager/farmers" element={<ManagerFarmers />} />
             <Route path="/manager/gis" element={<ManagerGIS />} />
+            <Route path="/manager/traceability" element={<ManagerTraceability />} />
         </Route>
         
         <Route path="*" element={<div style={{padding: '50px'}}>404 Not Found</div>} />
