@@ -83,7 +83,7 @@ const CompanyList = () => {
     return (
         <div style={{ padding: '30px' }}>
             <div style={{ marginBottom: '30px', display: 'flex', gap: '15px' }}>
-                <button className="action-btn view-btn" onClick={() => navigate('/admin/dashboard')}>⬅ Kembali ke Dashboard</button>
+                <button className="action-btn view-btn" onClick={() => navigate('/admin/dashboard')}> Kembali ke Dashboard</button>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>

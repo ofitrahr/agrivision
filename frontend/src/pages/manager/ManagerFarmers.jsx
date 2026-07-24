@@ -88,7 +88,7 @@ const ManagerFarmers = () => {
     return (
         <div style={{ padding: '30px' }}>
             <div style={{ marginBottom: '20px' }}>
-                <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}>⬅ Kembali ke Dashboard</button>
+                <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}> Kembali ke Dashboard</button>
             </div>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -164,7 +164,7 @@ const ManagerFarmers = () => {
                                 onClick={() => handleDelete(farmer.id)}
                                 style={{ position: 'absolute', top: '10px', right: '10px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '50%', width: '25px', height: '25px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                                 title="Hapus Pekerja"
-                            >✕</button>
+                            ></button>
                             
                             <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#e5e7eb', marginBottom: '15px', overflow: 'hidden' }}>
                                 {farmer.photo_url ? (

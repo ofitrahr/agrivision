@@ -79,7 +79,7 @@ const ManagerEconomics = () => {
 
     return (
         <div style={{ padding: '30px', maxWidth: '1000px', margin: '0 auto' }}>
-            <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')} style={{ marginBottom: '20px' }}>⬅ Kembali ke Dashboard</button>
+            <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')} style={{ marginBottom: '20px' }}> Kembali ke Dashboard</button>
             <h1 style={{ color: '#1B4332' }}>Laporan Panen & Keuangan</h1>
             <p style={{ color: '#6b7280', marginBottom: '30px' }}>Kelola laporan produksi dan biaya operasional bulanan per lahan.</p>
 

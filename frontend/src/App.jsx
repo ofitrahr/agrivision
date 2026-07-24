@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './app/routes/ProtectedRoute';
+import LandingPage from './pages/public/LandingPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/auth/Login';
 import CompanyList from './pages/admin/CompanyList';
@@ -23,6 +24,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         
         {/* Rute Super Admin */}

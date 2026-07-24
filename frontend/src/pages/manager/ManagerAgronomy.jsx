@@ -49,7 +49,7 @@ const ManagerAgronomy = () => {
     return (
         <div style={{ padding: '30px' }}>
             <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }}>
-                <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}>⬅ Kembali ke Dashboard</button>
+                <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}> Kembali ke Dashboard</button>
             </div>
             
             <h1 style={{ color: '#1B4332', marginBottom: '10px' }}> Modul Agronomi & Pemantauan Satelit</h1>

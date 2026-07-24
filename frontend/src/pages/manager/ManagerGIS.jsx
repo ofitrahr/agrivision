@@ -125,7 +125,7 @@ const ManagerGIS = () => {
         <div style={{ padding: '30px', display: 'flex', flexDirection: 'column', height: '100vh', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
-                    <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')} style={{ marginBottom: '10px' }}>⬅ Kembali ke Dashboard</button>
+                    <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')} style={{ marginBottom: '10px' }}> Kembali ke Dashboard</button>
                     <h1 style={{ color: '#1B4332', margin: 0 }}>Peta Lahan & Manajemen Blok</h1>
                 </div>
                 

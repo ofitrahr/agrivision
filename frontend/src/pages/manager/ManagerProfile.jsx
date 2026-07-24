@@ -61,7 +61,7 @@ const ManagerProfile = () => {
     return (
         <div style={{ padding: '30px', maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ marginBottom: '20px' }}>
-                <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}>⬅ Kembali ke Dashboard</button>
+                <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}> Kembali ke Dashboard</button>
             </div>
             
             <h1 style={{ color: '#1B4332' }}>Profil Perusahaan</h1>

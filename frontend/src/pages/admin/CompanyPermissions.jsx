@@ -61,7 +61,7 @@ const CompanyPermissions = () => {
 
     return (
         <div style={{ padding: '30px', maxWidth: '800px', margin: '0 auto' }}>
-            <button className="action-btn view-btn" onClick={() => navigate('/admin/companies')} style={{ marginBottom: '20px' }}>⬅ Kembali</button>
+            <button className="action-btn view-btn" onClick={() => navigate('/admin/companies')} style={{ marginBottom: '20px' }}> Kembali</button>
             <h1 style={{ color: '#1B4332' }}>Konfigurasi Modul & Langganan SaaS</h1>
             <p style={{ color: '#6b7280', marginBottom: '30px' }}>Atur fitur-fitur apa saja yang dapat diakses oleh manajer pada perusahaan klien ini.</p>
 
