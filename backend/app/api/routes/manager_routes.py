@@ -265,3 +265,57 @@ def get_manager_farm_map(current_user, farm_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@manager_bp.route('/farms/<farm_id>/agronomy-map', methods=['GET'])
+@token_required
+@role_required('manager')
+def get_agronomy_farm_map(current_user, farm_id):
+    from app.db.models import CompanyPermission
+    
+    # Cek izin akses agronomi modul
+    perms = CompanyPermission.query.filter_by(company_id=current_user.company_id).first()
+    if not perms or not perms.module_agronomy:
+        return jsonify({'success': False, 'message': 'Perusahaan Anda tidak berlangganan Modul Agronomi'}), 403
+
+    has_ndvi = perms.can_access_ndvi
+
+    farm = Farm.query.filter_by(id=farm_id, company_id=current_user.company_id).first()
+    if not farm:
+        return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
+
+    from app.services.gis_service import GISService
+    from app.db.models import FarmBlock
+    from geoalchemy2.functions import ST_AsGeoJSON
+    import json
+
+    farm_geojson = None
+    if farm.boundary is not None:
+        geojson_str = db.session.scalar(ST_AsGeoJSON(farm.boundary))
+        if geojson_str:
+            farm_geojson = json.loads(geojson_str)
+
+    blocks = FarmBlock.query.filter_by(farm_id=farm.id).all()
+    existing_blocks_geojson = []
+    for b in blocks:
+        if b.polygon is not None:
+            b_geojson_str = db.session.scalar(ST_AsGeoJSON(b.polygon))
+            if b_geojson_str:
+                existing_blocks_geojson.append({
+                    'name': b.name,
+                    'crop': b.crop_type or 'Tanaman',
+                    'polygon': json.loads(b_geojson_str)
+                })
+
+    try:
+        map_html = GISService.generate_agronomy_map(
+            farm_boundary_geojson=farm_geojson,
+            existing_blocks_geojson=existing_blocks_geojson,
+            has_ndvi=has_ndvi
+        )
+        return jsonify({
+            'success': True,
+            'data': {
+                'html': map_html
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500

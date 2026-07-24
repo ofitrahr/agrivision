@@ -25,4 +25,7 @@ def create_app():
     from app.api.routes.manager_routes import manager_bp
     app.register_blueprint(manager_bp, url_prefix='/api/manager')
 
+    from app.api.routes.board_routes import board_bp
+    app.register_blueprint(board_bp, url_prefix='/api/board')
+
     return app

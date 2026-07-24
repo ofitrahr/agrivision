@@ -127,6 +127,7 @@ const CompanyList = () => {
                                     <td style={{ display: 'flex', gap: '8px' }}>
                                         <button className="action-btn edit-btn" onClick={() => openModal('edit', company)}>Edit</button>
                                         <button className="action-btn view-btn" onClick={() => navigate(`/admin/companies/${company.id}/users`)}>Users</button>
+                                        <button className="action-btn primary-btn" onClick={() => navigate(`/admin/companies/${company.id}/permissions`)} style={{ padding: '6px 12px', fontSize: '12px' }}>Modul SaaS</button>
                                     </td>
                                 </tr>
                             ))

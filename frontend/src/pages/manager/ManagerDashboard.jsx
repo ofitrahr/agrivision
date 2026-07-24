@@ -55,6 +55,9 @@ const ManagerDashboard = () => {
                 <button className="primary-btn" onClick={() => navigate('/manager/gis')} style={{ background: '#2563eb', color: 'white' }}>
                     Peta Lahan & Blok
                 </button>
+                <button className="primary-btn" onClick={() => navigate('/manager/agronomy')} style={{ background: '#8b5cf6', color: 'white' }}>
+                    Modul Agronomi
+                </button>
                 <button className="primary-btn" onClick={() => navigate('/manager/traceability')} style={{ background: '#d97706', color: 'white' }}>
                     Traceability
                 </button>
