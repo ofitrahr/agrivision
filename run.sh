@@ -1,35 +1,68 @@
 #!/bin/bash
 
-# Get the root directory of this script
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKEND_PID=""
+FRONTEND_PID=""
 
-# Store PIDs of background processes
-PIDS=()
-
-# Cleanup function - kills all background processes
 cleanup() {
-    echo ""
-    echo "Stopping all processes..."
-    for pid in "${PIDS[@]}"; do
-        if kill -0 "$pid" 2>/dev/null; then
-            kill "$pid" 2>/dev/null
-        fi
-    done
+    echo
+    echo "Menghentikan semua proses..."
+
+    [ -n "$BACKEND_PID" ] && kill "$BACKEND_PID" 2>/dev/null
+    [ -n "$FRONTEND_PID" ] && kill "$FRONTEND_PID" 2>/dev/null
+
     wait
-    echo "Done!"
     exit 0
 }
 
-# Set trap to run cleanup on SIGINT (Ctrl+C) and EXIT
-trap cleanup SIGINT EXIT
+trap cleanup SIGINT SIGTERM EXIT
 
-# Run frontend dev server in background
-(cd "$ROOT_DIR/frontend" && npm run dev) &
-PIDS+=($!)
+# =========================
+# Backend
+# =========================
+if [ -d "backend" ]; then
+    echo "==== MENGINSTAL DEPENDENSI BACKEND ===="
 
-# Run backend in background
-(cd "$ROOT_DIR/backend" && python3 run.py) &
-PIDS+=($!)
+    (
+        cd backend || exit 1
 
-# Wait for all background processes
-wait    
+        if [ -f package-lock.json ]; then
+            npm ci
+        else
+            npm install
+        fi
+
+        echo "==== MENJALANKAN BACKEND ===="
+        npm run dev
+    ) &
+    BACKEND_PID=$!
+fi
+
+# =========================
+# Frontend
+# =========================
+if [ -d "frontend" ]; then
+    echo "==== MENGINSTAL DEPENDENSI FRONTEND ===="
+
+    (
+        cd frontend || exit 1
+
+        if [ -f package-lock.json ]; then
+            npm ci
+        else
+            npm install
+        fi
+
+        echo "==== MENJALANKAN FRONTEND ===="
+        npm run dev
+    ) &
+    FRONTEND_PID=$!
+fi
+
+echo
+echo "========================================"
+echo "Backend PID : $BACKEND_PID"
+echo "Frontend PID: $FRONTEND_PID"
+echo "Tekan CTRL+C untuk menghentikan semuanya."
+echo "========================================"
+
+wait
