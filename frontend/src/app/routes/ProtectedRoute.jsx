@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../../features/auth/AuthContext';
+import Layout from '../../shared/components/Layout';
 
 const ProtectedRoute = ({ allowedRoles }) => {
     const { user, loading } = useContext(AuthContext);
@@ -13,7 +14,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
         return <div style={{padding: '50px', textAlign: 'center', color: 'red'}}>Akses Ditolak. Anda tidak memiliki izin.</div>;
     }
 
-    return <Outlet />;
+    return <Layout />;
 };
 
 export default ProtectedRoute;
