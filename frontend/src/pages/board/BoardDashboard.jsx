@@ -5,12 +5,17 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Ba
 import { Leaf, Users, Map, DollarSign, Download, Filter } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-const GENDER_COLORS = ['#3b82f6', '#ec4899', '#9ca3af'];
+const GENDER_COLORS = ['#ec4899', '#3b82f6', '#9ca3af'];
 
 const BoardDashboard = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+
+    const formatCurrency = (value) => {
+        if (!value) return 'Rp 0';
+        return `Rp ${value.toLocaleString('id-ID')}`;
+    };
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -93,7 +98,7 @@ const BoardDashboard = () => {
                     {loading ? (
                         <div className="skeleton-text" style={{ width: '120px', height: '40px', marginTop: '12px' }}></div>
                     ) : (
-                        <p className="stat-value">Rp {metrics?.total_profit ? metrics.total_profit.toLocaleString('id-ID') : '0'}</p>
+                        <p className="stat-value">{formatCurrency(metrics?.total_profit)}</p>
                     )}
                 </div>
             </div>

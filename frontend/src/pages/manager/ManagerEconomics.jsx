@@ -269,8 +269,8 @@ const ManagerEconomics = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
                         
                         {/* Form Input Panen Per Blok */}
-                        <div style={{ background: '#ecfdf5', padding: '20px', borderRadius: '12px', border: '1px solid #34d399' }}>
-                            <h3 style={{ marginTop: 0, color: '#065f46' }}>Input Panen per Blok</h3>
+                        <div style={{ background: '#f9fafb', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                            <h3 style={{ marginTop: 0 }}>Input Panen per Blok</h3>
                             <form onSubmit={handleAnalyticsSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Pilih Blok *</label>

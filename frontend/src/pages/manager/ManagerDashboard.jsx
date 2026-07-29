@@ -10,6 +10,11 @@ const ManagerDashboard = () => {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
+    const formatCurrency = (value) => {
+        if (!value) return 'Rp 0';
+        return `Rp ${value.toLocaleString('id-ID')}`;
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -79,15 +84,17 @@ const ManagerDashboard = () => {
                     {loading ? (
                         <div className="skeleton-text" style={{ width: '80px', height: '40px', marginTop: '12px' }}></div>
                     ) : (
-                        <p className="stat-value">1,245</p>
+                        <p className="stat-value">{stats?.total_production_ton || 0}</p>
                     )}
                 </div>
                 <div className="stat-card">
-                    <h3>Pendapatan Bulan Ini</h3>
+                    <h3>Total Pendapatan (Rp)</h3>
                     {loading ? (
                         <div className="skeleton-text" style={{ width: '120px', height: '40px', marginTop: '12px' }}></div>
                     ) : (
-                        <p className="stat-value">Rp 450M</p>
+                        <p className="stat-value">
+                            {formatCurrency(stats?.total_revenue)}
+                        </p>
                     )}
                 </div>
             </div>

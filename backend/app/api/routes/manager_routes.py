@@ -15,11 +15,25 @@ def get_manager_stats(current_user):
     farms_count = Farm.query.filter_by(company_id=company_id).count()
     farmers_count = Farmer.query.filter_by(company_id=company_id).count()
     
+    # Calculate real production and revenue from FinancialRecord
+    from app.db.models import FinancialRecord
+    from sqlalchemy import func
+    
+    stats = db.session.query(
+        func.sum(FinancialRecord.total_production_kg).label('total_production_kg'),
+        func.sum(FinancialRecord.estimated_revenue).label('total_revenue')
+    ).filter(FinancialRecord.company_id == company_id).first()
+    
+    total_production_ton = float(stats.total_production_kg or 0) / 1000
+    total_revenue = float(stats.total_revenue or 0)
+    
     return jsonify({
         'success': True,
         'data': {
             'total_farms': farms_count,
-            'total_farmers': farmers_count
+            'total_farmers': farmers_count,
+            'total_production_ton': round(total_production_ton, 2),
+            'total_revenue': total_revenue
         }
     }), 200
 
