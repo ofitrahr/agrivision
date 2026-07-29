@@ -117,7 +117,7 @@ class GISService:
         return m.get_root().render()
 
     @staticmethod
-    def generate_agronomy_map(farm_boundary_geojson=None, existing_blocks_geojson=None, has_ndvi=False):
+    def generate_agronomy_map(farm_boundary_geojson=None, existing_blocks_geojson=None, layer_type='ndvi', has_access=False):
         m = folium.Map(location=[-0.7893, 113.9213], zoom_start=5, max_zoom=22, tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", attr="Google")
         
         if farm_boundary_geojson:
@@ -129,17 +129,39 @@ class GISService:
             m.fit_bounds(bounds_layer.get_bounds())
 
         if existing_blocks_geojson:
+            # TODO (Implementasi Data Asli):
+            # 1. Saat ini nilai NDVI, SOC, dan Biomassa masih disimulasikan menggunakan random.
+            # 2. Ketika data asli (misal dari citra satelit atau sensor IoT) sudah tersedia,
+            #    lakukan query ke model `GisLayer` (berdasarkan `farm_id` dan `parameter_type`).
+            # 3. Anda bisa menggunakan fungsi Spasial (ST_Contains/ST_Intersects) untuk 
+            #    mencocokkan titik koordinat data dengan polygon dari masing-masing blok ini.
+            # 4. Ganti fungsi `random.uniform` di bawah dengan nilai aktual (`numerical_value`).
             import random
             for block in existing_blocks_geojson:
-                # Simulasi NDVI
-                ndvi_value = round(random.uniform(0.4, 0.9), 2)
-                
-                if has_ndvi:
-                    color = '#10b981' if ndvi_value > 0.7 else ('#f59e0b' if ndvi_value > 0.5 else '#ef4444')
-                    popup_html = f"<b>Blok</b><br>Score NDVI: {ndvi_value}<br>{'Sehat' if ndvi_value > 0.7 else 'Waspada'}"
-                else:
-                    color = 'gray'
-                    popup_html = f"<b>Blok</b><br><i>Langganan Modul NDVI diperlukan untuk melihat tingkat kesehatan.</i>"
+                if layer_type == 'soc':
+                    value = round(random.uniform(20.0, 80.0), 1)
+                    if has_access:
+                        color = '#8b5a2b' if value > 50 else ('#cd853f' if value > 30 else '#deb887')
+                        popup_html = f"<b>Blok: {block.get('name', '')}</b><br>Kandungan SOC: {value} ton/ha<br>{'Tinggi' if value > 50 else ('Sedang' if value > 30 else 'Rendah')}"
+                    else:
+                        color = 'gray'
+                        popup_html = f"<b>Blok: {block.get('name', '')}</b><br><i>Langganan Modul SOC diperlukan untuk melihat kandungan karbon organik tanah.</i>"
+                elif layer_type == 'biomass':
+                    value = round(random.uniform(50.0, 250.0), 1)
+                    if has_access:
+                        color = '#228b22' if value > 150 else ('#32cd32' if value > 80 else '#90ee90')
+                        popup_html = f"<b>Blok: {block.get('name', '')}</b><br>Estimasi Biomassa: {value} ton/ha<br>{'Tinggi' if value > 150 else ('Sedang' if value > 80 else 'Rendah')}"
+                    else:
+                        color = 'gray'
+                        popup_html = f"<b>Blok: {block.get('name', '')}</b><br><i>Langganan Modul Biomassa diperlukan untuk melihat estimasi biomassa karbon.</i>"
+                else: # ndvi
+                    value = round(random.uniform(0.4, 0.9), 2)
+                    if has_access:
+                        color = '#10b981' if value > 0.7 else ('#f59e0b' if value > 0.5 else '#ef4444')
+                        popup_html = f"<b>Blok: {block.get('name', '')}</b><br>Score NDVI: {value}<br>{'Sehat' if value > 0.7 else 'Waspada'}"
+                    else:
+                        color = 'gray'
+                        popup_html = f"<b>Blok: {block.get('name', '')}</b><br><i>Langganan Modul NDVI diperlukan untuk melihat tingkat kesehatan tanaman.</i>"
 
                 layer = folium.GeoJson(
                     block['polygon'],

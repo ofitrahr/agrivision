@@ -157,7 +157,14 @@ def manager_farms(current_user):
             'crop_variety': f.crop_variety,
             'total_area_ha': float(f.total_area_ha) if f.total_area_ha else 0
         })
-    return jsonify({'success': True, 'data': data}), 200
+    from app.db.models import CompanyPermission
+    perms = CompanyPermission.query.filter_by(company_id=company_id).first()
+    perms_data = {
+        'can_access_ndvi': perms.can_access_ndvi if perms else False,
+        'can_access_soc': perms.can_access_soc if perms else False,
+        'can_access_biomass': perms.can_access_biomass if perms else False
+    }
+    return jsonify({'success': True, 'data': data, 'permissions': perms_data}), 200
 
 @manager_bp.route('/farms/<farm_id>/blocks', methods=['GET', 'POST'])
 @token_required
@@ -324,7 +331,14 @@ def get_agronomy_farm_map(current_user, farm_id):
     if not perms or not perms.module_agronomy:
         return jsonify({'success': False, 'message': 'Perusahaan Anda tidak berlangganan Modul Agronomi'}), 403
 
-    has_ndvi = perms.can_access_ndvi
+    layer_type = request.args.get('layer', 'ndvi')
+    
+    if layer_type == 'soc':
+        has_access = perms.can_access_soc
+    elif layer_type == 'biomass':
+        has_access = perms.can_access_biomass
+    else:
+        has_access = perms.can_access_ndvi
 
     farm = Farm.query.filter_by(id=farm_id, company_id=current_user.company_id).first()
     if not farm:
@@ -357,7 +371,8 @@ def get_agronomy_farm_map(current_user, farm_id):
         map_html = GISService.generate_agronomy_map(
             farm_boundary_geojson=farm_geojson,
             existing_blocks_geojson=existing_blocks_geojson,
-            has_ndvi=has_ndvi
+            layer_type=layer_type,
+            has_access=has_access
         )
         return jsonify({
             'success': True,
