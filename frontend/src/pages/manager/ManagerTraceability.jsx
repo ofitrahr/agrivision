@@ -319,7 +319,7 @@ const ManagerTraceability = () => {
 
         {/* Right Column */}
         <div style={{ gridColumn: 'span 4' }}>
-          <div style={{ position: 'sticky', top: 96, display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {/* Status & Publishing */}
             <div className="stat-card" style={{ padding: 24, border: '2px solid #E9ECEF' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
