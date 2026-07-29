@@ -196,6 +196,18 @@ class AgronomyActivity(db.Model):
     created_by = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class HarvestRecord(db.Model):
+    __tablename__ = 'harvest_records'
+    
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='CASCADE'))
+    farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id'))
+    block_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farm_blocks.id'))
+    period = db.Column(db.String(20), nullable=False)
+    yield_kg = db.Column(db.Numeric(15, 2), default=0)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 class FinancialRecord(db.Model):
     __tablename__ = 'financial_records'
     

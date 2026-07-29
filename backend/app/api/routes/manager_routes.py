@@ -162,7 +162,8 @@ def manager_farms(current_user):
     perms_data = {
         'can_access_ndvi': perms.can_access_ndvi if perms else False,
         'can_access_soc': perms.can_access_soc if perms else False,
-        'can_access_biomass': perms.can_access_biomass if perms else False
+        'can_access_biomass': perms.can_access_biomass if perms else False,
+        'can_access_yield': perms.can_access_yield if perms else False
     }
     return jsonify({'success': True, 'data': data, 'permissions': perms_data}), 200
 
@@ -381,4 +382,54 @@ def get_agronomy_farm_map(current_user, farm_id):
             }
         }), 200
     except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@manager_bp.route('/farms/<farm_id>/harvests', methods=['GET', 'POST'])
+@token_required
+@role_required('manager')
+def manager_farm_harvests(current_user, farm_id):
+    from app.db.models import HarvestRecord, FarmBlock
+    farm = Farm.query.filter_by(id=farm_id, company_id=current_user.company_id).first()
+    if not farm:
+        return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
+
+    if request.method == 'GET':
+        records = HarvestRecord.query.filter_by(farm_id=farm.id).order_by(HarvestRecord.created_at.desc()).all()
+        data = []
+        for r in records:
+            block = FarmBlock.query.get(r.block_id) if r.block_id else None
+            data.append({
+                'id': r.id,
+                'block_id': r.block_id,
+                'block_name': block.name if block else 'Umum',
+                'period': r.period,
+                'yield_kg': float(r.yield_kg) if r.yield_kg else 0,
+                'notes': r.notes
+            })
+        return jsonify({'success': True, 'data': data}), 200
+
+    # POST (Tambah catatan panen per blok)
+    try:
+        data = request.json
+        period = data.get('period')
+        block_id = data.get('block_id')
+        yield_kg = data.get('yield_kg', 0)
+        
+        if not period or not block_id:
+            return jsonify({'success': False, 'message': 'Periode dan Blok wajib diisi'}), 400
+
+        record = HarvestRecord(
+            company_id=current_user.company_id,
+            farm_id=farm.id,
+            block_id=block_id,
+            period=period,
+            yield_kg=yield_kg,
+            notes=data.get('notes', '')
+        )
+        db.session.add(record)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Data panen blok berhasil ditambahkan'}), 201
+
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
