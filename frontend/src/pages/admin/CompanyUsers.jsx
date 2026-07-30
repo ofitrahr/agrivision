@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../shared/api/axios';
 
 const initialFormData = {
+    project_id: '',
     username: '',
     full_name: '',
     phone: '',
@@ -15,6 +16,7 @@ const CompanyUsers = () => {
     const navigate = useNavigate();
 
     const [users, setUsers] = useState([]);
+    const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -22,6 +24,7 @@ const CompanyUsers = () => {
 
     useEffect(() => {
         fetchUsers();
+        fetchProjects();
     }, [companyId]);
 
     const fetchUsers = async () => {
@@ -35,6 +38,17 @@ const CompanyUsers = () => {
             console.error('Gagal mengambil data user', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchProjects = async () => {
+        try {
+            const response = await api.get(`/admin/companies/${companyId}/projects`);
+            if (response.data.success) {
+                setProjects(response.data.data);
+            }
+        } catch (error) {
+            console.error('Gagal mengambil daftar project', error);
         }
     };
 
@@ -88,6 +102,7 @@ const CompanyUsers = () => {
                         <tr>
                             <th>Username</th>
                             <th>Nama Lengkap</th>
+                            <th>Project</th>
                             <th>No. HP</th>
                             <th>Role</th>
                             <th>Aksi</th>
@@ -96,7 +111,7 @@ const CompanyUsers = () => {
                     <tbody>
                         {users.length === 0 ? (
                             <tr>
-                                <td colSpan="5" style={{ textAlign: 'center', padding: '30px' }}>
+                                <td colSpan="6" style={{ textAlign: 'center', padding: '30px' }}>
                                     Belum ada user di company ini.
                                 </td>
                             </tr>
@@ -105,6 +120,7 @@ const CompanyUsers = () => {
                                 <tr key={u.id}>
                                     <td style={{ fontWeight: '600' }}>{u.username}</td>
                                     <td>{u.full_name || '-'}</td>
+                                    <td>{u.project_name || '-'}</td>
                                     <td>{u.phone || '-'}</td>
                                     <td>
                                         <span className="badge badge-info">{u.role.toUpperCase()}</span>
@@ -134,6 +150,15 @@ const CompanyUsers = () => {
                             </button>
                         </div>
                         <form onSubmit={handleAddUser}>
+                            <div className="form-group">
+                                <label>Project *</label>
+                                <select name="project_id" value={formData.project_id} onChange={handleInputChange} required>
+                                    <option value="">-- Pilih Project --</option>
+                                    {projects.map((p) => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                             <div className="form-group">
                                 <label>Username *</label>
                                 <input type="text" name="username" value={formData.username} onChange={handleInputChange} required />

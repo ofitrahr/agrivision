@@ -12,27 +12,40 @@ class Company(db.Model):
     description = db.Column(db.Text)
     address = db.Column(db.Text)
     logo_url = db.Column(db.Text)
-    subscription_plan = db.Column(db.String(50), default='Starter')
+    subscription_plan = db.Column(db.String(50), default='Basic')
     max_farms = db.Column(db.Integer, default=5)
     max_users = db.Column(db.Integer, default=10)
     is_active = db.Column(db.Boolean, default=True)
     branding_color = db.Column(db.String(7), default='#2D6A4F')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     # Relationships 
-    users = db.relationship('User', backref='company', cascade='all, delete-orphan')
-    permissions = db.relationship('CompanyPermission', backref='company', uselist=False, cascade='all, delete-orphan')
-    farms = db.relationship('Farm', backref='company', cascade='all, delete-orphan')
+    projects = db.relationship('Project', backref='company', cascade='all, delete-orphan')
     farmers = db.relationship('Farmer', backref='company', cascade='all, delete-orphan')
     trace_templates = db.relationship('TraceTemplate', backref='company', cascade='all, delete-orphan')
     batches = db.relationship('Batch', backref='company', cascade='all, delete-orphan')
     financial_records = db.relationship('FinancialRecord', backref='company', cascade='all, delete-orphan')
     esg_metrics = db.relationship('EsgMetric', backref='company', cascade='all, delete-orphan')
 
+class Project(db.Model):
+    __tablename__ = 'projects'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='CASCADE'))
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    location = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    farms = db.relationship('Farm', backref='project', cascade='all, delete-orphan')
+    users = db.relationship('User', backref='project', cascade='all, delete-orphan')
+    permissions = db.relationship('ProjectPermission', backref='project', uselist=False, cascade='all, delete-orphan')
+
 class User(db.Model):
     __tablename__ = 'users'
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='CASCADE'))
+    project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('projects.id', ondelete='CASCADE'))
     username = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     full_name = db.Column(db.String(255))
@@ -42,11 +55,11 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class CompanyPermission(db.Model):
-    __tablename__ = 'company_permissions'
+class ProjectPermission(db.Model):
+    __tablename__ = 'project_permissions'
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='CASCADE'))
+    project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('projects.id', ondelete='CASCADE'))
     module_gis = db.Column(db.Boolean, default=True)
     module_traceability = db.Column(db.Boolean, default=True)
     module_agronomy = db.Column(db.Boolean, default=True)
@@ -61,7 +74,7 @@ class Farm(db.Model):
     __tablename__ = 'farms'
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='SET NULL'))
+    project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('projects.id', ondelete='CASCADE'))
     name = db.Column(db.String(255), nullable=False)
     crop_variety = db.Column(db.String(255))
     total_area_ha = db.Column(db.Numeric(10, 2))
@@ -70,9 +83,23 @@ class Farm(db.Model):
     created_by = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     # Relationships
-    blocks = db.relationship('FarmBlock', backref='farm', cascade='all, delete-orphan')
     gis_layers = db.relationship('GisLayer', backref='farm', cascade='all, delete-orphan')
     batches = db.relationship('Batch', backref='farm')
+    
+    farmers = db.relationship('Farmer', secondary='farm_farmers', backref=db.backref('farms', lazy='dynamic'))
+    crops = db.relationship('FarmCrop', backref='farm', cascade='all, delete-orphan')
+
+farm_farmers = db.Table('farm_farmers',
+    db.Column('farm_id', UUID(as_uuid=True), db.ForeignKey('farms.id', ondelete='CASCADE'), primary_key=True),
+    db.Column('farmer_id', UUID(as_uuid=True), db.ForeignKey('farmers.id', ondelete='CASCADE'), primary_key=True)
+)
+
+class FarmCrop(db.Model):
+    __tablename__ = 'farm_crops'
+    
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id', ondelete='CASCADE'))
+    crop_type = db.Column(db.String(100), nullable=False)
 
 class Farmer(db.Model):
     __tablename__ = 'farmers'
@@ -91,20 +118,7 @@ class Farmer(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class FarmBlock(db.Model):
-    __tablename__ = 'farm_blocks'
-    
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id', ondelete='CASCADE'))
-    farmer_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farmers.id', ondelete='SET NULL'))
-    name = db.Column(db.String(255))
-    crop_type = db.Column(db.String(100))
-    area_ha = db.Column(db.Numeric(10, 2))
-    polygon = db.Column(Geometry(geometry_type='POLYGON', srid=4326))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    # Relationships
-    batches = db.relationship('Batch', backref='block')
-    agronomy_activities = db.relationship('AgronomyActivity', backref='block', cascade='all, delete-orphan')
+
 
 class GisLayer(db.Model):
     __tablename__ = 'gis_layers'
@@ -150,7 +164,6 @@ class Batch(db.Model):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='CASCADE'))
     farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id'))
-    block_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farm_blocks.id'))
     template_id = db.Column(UUID(as_uuid=True), db.ForeignKey('trace_templates.id'))
     batch_number = db.Column(db.String(100), unique=True, nullable=False)
     product_name = db.Column(db.String(255), nullable=False)
@@ -187,7 +200,7 @@ class AgronomyActivity(db.Model):
     __tablename__ = 'agronomy_activities'
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    block_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farm_blocks.id', ondelete='CASCADE'))
+    farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id', ondelete='CASCADE'))
     activity_type = db.Column(db.String(50), nullable=False)
     quantity = db.Column(db.Numeric(10, 2))
     unit = db.Column(db.String(20))
@@ -202,7 +215,6 @@ class HarvestRecord(db.Model):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='CASCADE'))
     farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id'))
-    block_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farm_blocks.id'))
     period = db.Column(db.String(20), nullable=False)
     yield_kg = db.Column(db.Numeric(15, 2), default=0)
     notes = db.Column(db.Text)

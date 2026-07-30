@@ -20,10 +20,8 @@ const ManagerEconomics = () => {
     const [saving, setSaving] = useState(false);
 
     // Analytics Tab State
-    const [blocks, setBlocks] = useState([]);
     const [harvests, setHarvests] = useState([]);
     const [analyticsPeriod, setAnalyticsPeriod] = useState('');
-    const [analyticsBlockId, setAnalyticsBlockId] = useState('');
     const [analyticsYield, setAnalyticsYield] = useState('');
     const [analyticsNotes, setAnalyticsNotes] = useState('');
     const [analyticsSaving, setAnalyticsSaving] = useState(false);
@@ -57,11 +55,7 @@ const ManagerEconomics = () => {
 
     const fetchAnalyticsData = async (farmId) => {
         try {
-            const [blocksRes, harvestsRes] = await Promise.all([
-                api.get(`/manager/farms/${farmId}/blocks`),
-                api.get(`/manager/farms/${farmId}/harvests`)
-            ]);
-            if (blocksRes.data.success) setBlocks(blocksRes.data.data);
+            const harvestsRes = await api.get(`/manager/farms/${farmId}/harvests`);
             if (harvestsRes.data.success) setHarvests(harvestsRes.data.data);
         } catch (error) {
             console.error('Gagal memuat data analitik');
@@ -77,7 +71,6 @@ const ManagerEconomics = () => {
         } else {
             setRecords([]);
             setHarvests([]);
-            setBlocks([]);
         }
     };
 
@@ -122,14 +115,13 @@ const ManagerEconomics = () => {
         try {
             const payload = {
                 period: analyticsPeriod,
-                block_id: analyticsBlockId,
                 yield_kg: parseFloat(analyticsYield) || 0,
                 notes: analyticsNotes
             };
             const response = await api.post(`/manager/farms/${selectedFarm}/harvests`, payload);
             if (response.data.success) {
-                alert('Data panen blok berhasil disimpan!');
-                setAnalyticsPeriod(''); setAnalyticsBlockId(''); setAnalyticsYield(''); setAnalyticsNotes('');
+                alert('Data panen berhasil disimpan!');
+                setAnalyticsPeriod(''); setAnalyticsYield(''); setAnalyticsNotes('');
                 fetchAnalyticsData(selectedFarm);
             }
         } catch (error) {
@@ -140,13 +132,7 @@ const ManagerEconomics = () => {
     };
 
     // Prepare data for Analytics Charts
-    // 1. Productivity by Block (aggregate total yield per block)
-    const productivityData = blocks.map(block => {
-        const blockYield = harvests
-            .filter(h => h.block_id === block.id)
-            .reduce((sum, h) => sum + h.yield_kg, 0);
-        return { name: block.name, yield: blockYield };
-    });
+    const productivityData = [{ name: 'Lahan Ini', yield: harvests.reduce((sum, h) => sum + h.yield_kg, 0) }];
 
     // 2. Yield Forecast (Trend over periods)
     // Group by period
@@ -272,13 +258,7 @@ const ManagerEconomics = () => {
                         <div style={{ background: '#f9fafb', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
                             <h3 style={{ marginTop: 0 }}>Input Panen per Blok</h3>
                             <form onSubmit={handleAnalyticsSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Pilih Blok *</label>
-                                    <select required value={analyticsBlockId} onChange={e => setAnalyticsBlockId(e.target.value)} style={{ width: '100%', padding: '8px' }}>
-                                        <option value="">-- Pilih Blok --</option>
-                                        {blocks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                    </select>
-                                </div>
+
                                 <div>
                                     <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Periode (Misal: Juli 2026) *</label>
                                     <input type="text" required value={analyticsPeriod} onChange={e => setAnalyticsPeriod(e.target.value)} style={{ width: '100%', padding: '8px' }} />
@@ -299,7 +279,7 @@ const ManagerEconomics = () => {
 
                         {/* Chart: Productivity Analytics */}
                         <div style={{ background: 'white', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-                            <h3 style={{ marginTop: 0 }}>Productivity Analytics (Total Panen per Blok)</h3>
+                            <h3 style={{ marginTop: 0 }}>Productivity Analytics (Total Panen Lahan)</h3>
                             <div style={{ height: '300px', width: '100%' }}>
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={productivityData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -312,7 +292,7 @@ const ManagerEconomics = () => {
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
-                            <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '10px' }}>* Grafik membandingkan total produksi antar blok untuk mencari tahu zona paling produktif.</p>
+                            <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '10px' }}>* Grafik membandingkan total produksi di lahan ini.</p>
                         </div>
                     </div>
 
@@ -341,7 +321,6 @@ const ManagerEconomics = () => {
                         <table className="data-table">
                             <thead>
                                 <tr>
-                                    <th>Blok</th>
                                     <th>Periode</th>
                                     <th>Hasil (Kg)</th>
                                     <th>Catatan</th>
@@ -353,7 +332,6 @@ const ManagerEconomics = () => {
                                 ) : (
                                     harvests.map(h => (
                                         <tr key={h.id}>
-                                            <td style={{ fontWeight: 'bold' }}>{h.block_name}</td>
                                             <td>{h.period}</td>
                                             <td style={{ color: '#10b981' }}>{h.yield_kg} Kg</td>
                                             <td>{h.notes || '-'}</td>

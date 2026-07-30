@@ -108,7 +108,7 @@ const BoardDashboard = () => {
                 
                 {/* Chart 1: Ekologi (Distribusi Lahan) */}
                 <div style={{ background: 'var(--surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-muted)', boxShadow: 'var(--shadow-sm)' }}>
-                    <h3 style={{ fontSize: '18px', margin: '0 0 20px 0', fontFamily: 'var(--font-display)', color: 'var(--text-main)' }}>Distribusi Komoditas (Ekologi)</h3>
+                    <h3 style={{ fontSize: '18px', margin: '0 0 20px 0', fontFamily: 'var(--font-display)', color: 'var(--text-main)' }}>Biodiversity (Ekologi)</h3>
                     {loading ? (
                         <div className="skeleton-text" style={{ width: '100%', height: '300px' }}></div>
                     ) : charts?.crop_distribution?.length > 0 ? (

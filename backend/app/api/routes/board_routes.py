@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 from app.core.security import token_required, role_required
-from app.db.models import Farm, FarmBlock, Farmer, User
+from app.db.models import Farm, Farmer, User, FarmCrop
 from app.db.database import db
 from sqlalchemy import func
 
@@ -15,25 +15,33 @@ def get_dashboard_summary(current_user):
     
     try:
         # Metrik Utama
-        farms_count = Farm.query.filter_by(company_id=company_id).count()
+        from app.db.models import Project
+        farms_count = Farm.query.join(Project).filter(Project.company_id == company_id).count()
         farmers_count = Farmer.query.filter_by(company_id=company_id).count()
         
-        blocks = db.session.query(FarmBlock).join(Farm).filter(Farm.company_id == company_id).all()
-        total_area = sum([float(b.area_ha) for b in blocks if b.area_ha])
+        farms = Farm.query.join(Project).filter(Project.company_id == company_id).all()
+        total_area = sum([float(f.total_area_ha) for f in farms if f.total_area_ha])
         
-        # Distribusi Jenis Tanaman (Ekologi)
+        # Distribusi Jenis Tanaman 
         crop_distribution = {}
-        for b in blocks:
-            crop = b.crop_type or 'Tidak Diketahui'
-            area = float(b.area_ha) if b.area_ha else 0
-            if crop in crop_distribution:
-                crop_distribution[crop] += area
-            else:
-                crop_distribution[crop] = area
+        for f in farms:
+            crops = FarmCrop.query.filter_by(farm_id=f.id).all()
+            if not crops:
+                continue
+            
+            # Divide area equally among crops (simplified calculation)
+            area_per_crop = (float(f.total_area_ha) if f.total_area_ha else 0) / len(crops)
+            
+            for c in crops:
+                crop_name = c.crop_type or 'Tidak Diketahui'
+                if crop_name in crop_distribution:
+                    crop_distribution[crop_name] += area_per_crop
+                else:
+                    crop_distribution[crop_name] = area_per_crop
                 
         crop_chart_data = [{"name": k, "value": round(v, 2)} for k, v in crop_distribution.items()]
         
-        # Demografi Pekerja (Sosial) - Gender
+        # Demografi Pekerja 
         farmers = Farmer.query.filter_by(company_id=company_id).all()
         gender_dist = {"Laki-laki": 0, "Perempuan": 0, "Tidak Diketahui": 0}
         for f in farmers:
@@ -45,7 +53,7 @@ def get_dashboard_summary(current_user):
                 
         gender_chart_data = [{"name": k, "value": v} for k, v in gender_dist.items() if v > 0]
         
-        # Agregasi Data Ekonomi (Dari FinancialRecords)
+        # Agregasi Data Ekonomi 
         fin_records = FinancialRecord.query.filter_by(company_id=company_id).all()
         total_revenue = sum([float(r.estimated_revenue) for r in fin_records if r.estimated_revenue])
         total_cost = sum([float(r.operational_cost) for r in fin_records if r.operational_cost])

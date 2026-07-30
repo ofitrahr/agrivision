@@ -147,8 +147,6 @@ const AdminDashboard = () => {
 
                 {/* Sidebar widgets (Quick Actions & Activity) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-
-
                     {/* Activity Feed */}
                     <div style={{ background: 'var(--surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-muted)', boxShadow: 'var(--shadow-sm)' }}>
                         <h2 style={{ fontSize: '16px', margin: '0 0 16px 0', color: 'var(--text-main)' }}>Aktivitas Sistem</h2>

@@ -10,19 +10,23 @@ manager_bp = Blueprint('manager_bp', __name__)
 @token_required
 @role_required('manager')
 def get_manager_stats(current_user):
-    company_id = current_user.company_id
+    project_id = current_user.project_id
+    project = current_user.project
+    company_id = project.company_id if project else None
     
-    farms_count = Farm.query.filter_by(company_id=company_id).count()
+    farms_count = Farm.query.filter_by(project_id=project_id).count()
     farmers_count = Farmer.query.filter_by(company_id=company_id).count()
     
     # Calculate real production and revenue from FinancialRecord
     from app.db.models import FinancialRecord
     from sqlalchemy import func
     
+    farm_ids = db.session.query(Farm.id).filter(Farm.project_id == project_id)
+    
     stats = db.session.query(
         func.sum(FinancialRecord.total_production_kg).label('total_production_kg'),
         func.sum(FinancialRecord.estimated_revenue).label('total_revenue')
-    ).filter(FinancialRecord.company_id == company_id).first()
+    ).filter(FinancialRecord.farm_id.in_(farm_ids)).first()
     
     total_production_ton = float(stats.total_production_kg or 0) / 1000
     total_revenue = float(stats.total_revenue or 0)
@@ -41,7 +45,8 @@ def get_manager_stats(current_user):
 @token_required
 @role_required('manager')
 def manager_profile(current_user):
-    company = Company.query.get(current_user.company_id)
+    project = current_user.project
+    company = Company.query.get(project.company_id) if project else None
     if not company:
         return jsonify({'success': False, 'message': 'Company tidak ditemukan'}), 404
         
@@ -88,7 +93,8 @@ def manager_profile(current_user):
 @token_required
 @role_required('manager')
 def manager_farmers(current_user):
-    company_id = current_user.company_id
+    project = current_user.project
+    company_id = project.company_id if project else None
     
     if request.method == 'GET':
         farmers = Farmer.query.filter_by(company_id=company_id).all()
@@ -145,7 +151,9 @@ def manager_farmers(current_user):
 @token_required
 @role_required('manager')
 def delete_farmer(current_user, farmer_id):
-    farmer = Farmer.query.filter_by(id=farmer_id, company_id=current_user.company_id).first()
+    project = current_user.project
+    company_id = project.company_id if project else None
+    farmer = Farmer.query.filter_by(id=farmer_id, company_id=company_id).first()
     if not farmer:
         return jsonify({'success': False, 'message': 'Petani tidak ditemukan'}), 404
         
@@ -161,18 +169,24 @@ def delete_farmer(current_user, farmer_id):
 @token_required
 @role_required('manager')
 def manager_farms(current_user):
-    company_id = current_user.company_id
-    farms = Farm.query.filter_by(company_id=company_id).all()
+    project_id = current_user.project_id
+    farms = Farm.query.filter_by(project_id=project_id).all()
     data = []
     for f in farms:
+        from app.db.models import FarmCrop
+        farm_farmers = f.farmers
+        farm_crops = FarmCrop.query.filter_by(farm_id=f.id).all()
         data.append({
             'id': f.id,
             'name': f.name,
+            'project_name': current_user.project.name if current_user.project else '-',
             'crop_variety': f.crop_variety,
+            'farmers': [farmer.name for farmer in farm_farmers],
+            'crops': [crop.crop_type for crop in farm_crops],
             'total_area_ha': float(f.total_area_ha) if f.total_area_ha else 0
         })
-    from app.db.models import CompanyPermission
-    perms = CompanyPermission.query.filter_by(company_id=company_id).first()
+    from app.db.models import ProjectPermission
+    perms = ProjectPermission.query.filter_by(project_id=project_id).first()
     perms_data = {
         'can_access_ndvi': perms.can_access_ndvi if perms else False,
         'can_access_soc': perms.can_access_soc if perms else False,
@@ -181,63 +195,54 @@ def manager_farms(current_user):
     }
     return jsonify({'success': True, 'data': data, 'permissions': perms_data}), 200
 
-@manager_bp.route('/farms/<farm_id>/blocks', methods=['GET', 'POST'])
+@manager_bp.route('/farms/<farm_id>/details', methods=['GET'])
 @token_required
 @role_required('manager')
-def manager_farm_blocks(current_user, farm_id):
-    farm = Farm.query.filter_by(id=farm_id, company_id=current_user.company_id).first()
+def manager_farm_details(current_user, farm_id):
+    farm = Farm.query.filter_by(id=farm_id, project_id=current_user.project_id).first()
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
-    from app.db.models import FarmBlock
+    from app.db.models import Farmer, FarmCrop
+    farmers = farm.farmers
+    crops = FarmCrop.query.filter_by(farm_id=farm.id).all()
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'id': farm.id,
+            'name': farm.name,
+            'farmers': [{'id': f.id, 'name': f.name} for f in farmers],
+            'crops': [c.crop_type for c in crops]
+        }
+    }), 200
 
-    if request.method == 'GET':
-        blocks = FarmBlock.query.filter_by(farm_id=farm.id).all()
-        data = []
-        for b in blocks:
-            data.append({
-                'id': b.id,
-                'name': b.name,
-                'crop_type': b.crop_type,
-                'area_ha': float(b.area_ha) if b.area_ha else 0,
-                'farmer_id': b.farmer_id
-            })
-        return jsonify({'success': True, 'data': data}), 200
+@manager_bp.route('/farms/<farm_id>/details', methods=['PUT'])
+@token_required
+@role_required('manager')
+def manager_update_farm_details(current_user, farm_id):
+    farm = Farm.query.filter_by(id=farm_id, project_id=current_user.project_id).first()
+    if not farm:
+        return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
-    # POST (Tambah blok lahan baru dari map Polygon draw)
     try:
+        from app.db.models import Farmer, FarmCrop
         data = request.json
-        name = data.get('name')
-        crop_type = data.get('crop_type', '')
-        area_ha = data.get('area_ha', 0)
-        farmer_id = data.get('farmer_id')
-        polygon_wkt = data.get('polygon_wkt') # WKT string
+        farmer_ids = data.get('farmer_ids', [])
+        crop_types = data.get('crop_types', [])
         
-        if not name or not polygon_wkt:
-            return jsonify({'success': False, 'message': 'Nama blok dan gambar polygon di peta wajib diisi'}), 400
-
-        new_polygon_ewkt = f'SRID=4326;{polygon_wkt}'
-
-        # Validasi Spasial
-        if farm.boundary is not None:
-            from geoalchemy2.functions import ST_Contains, ST_GeomFromEWKT
-            is_inside = db.session.query(ST_Contains(farm.boundary, ST_GeomFromEWKT(new_polygon_ewkt))).scalar()
+        # Update Farmers
+        valid_farmers = Farmer.query.filter(Farmer.id.in_(farmer_ids), Farmer.company_id == current_user.project.company_id).all()
+        farm.farmers = valid_farmers
+        
+        # Update Crops
+        FarmCrop.query.filter_by(farm_id=farm.id).delete()
+        for c in crop_types:
+            new_crop = FarmCrop(farm_id=farm.id, crop_type=c)
+            db.session.add(new_crop)
             
-            if not is_inside:
-                return jsonify({'success': False, 'message': 'Gagal menyimpan! Blok lahan harus digambar SEPENUHNYA di DALAM batas Lahan Utama (Garis Kuning).'}), 400
-
-        new_block = FarmBlock(
-            farm_id=farm.id,
-            farmer_id=farmer_id if farmer_id else None,
-            name=name,
-            crop_type=crop_type,
-            area_ha=area_ha,
-            polygon=new_polygon_ewkt
-        )
-        db.session.add(new_block)
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Blok lahan berhasil ditambahkan'}), 201
-
+        return jsonify({'success': True, 'message': 'Informasi lahan berhasil diperbarui'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -246,12 +251,11 @@ def manager_farm_blocks(current_user, farm_id):
 @token_required
 @role_required('manager')
 def get_manager_farm_map(current_user, farm_id):
-    farm = Farm.query.filter_by(id=farm_id, company_id=current_user.company_id).first()
+    farm = Farm.query.filter_by(id=farm_id, project_id=current_user.project_id).first()
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
     from app.services.gis_service import GISService
-    from app.db.models import FarmBlock
     from geoalchemy2.functions import ST_AsGeoJSON
     import json
 
@@ -261,21 +265,10 @@ def get_manager_farm_map(current_user, farm_id):
         if geojson_str:
             farm_geojson = json.loads(geojson_str)
 
-    blocks = FarmBlock.query.filter_by(farm_id=farm.id).all()
-    existing_blocks_geojson = []
-    for b in blocks:
-        if b.polygon is not None:
-            b_geojson_str = db.session.scalar(ST_AsGeoJSON(b.polygon))
-            if b_geojson_str:
-                existing_blocks_geojson.append({
-                    'name': b.name,
-                    'polygon': json.loads(b_geojson_str)
-                })
-
     try:
         map_html = GISService.generate_manager_map(
             farm_boundary_geojson=farm_geojson,
-            existing_blocks_geojson=existing_blocks_geojson
+            existing_blocks_geojson=[]
         )
         return jsonify({
             'success': True,
@@ -291,7 +284,7 @@ def get_manager_farm_map(current_user, farm_id):
 @role_required('manager')
 def manager_farm_financials(current_user, farm_id):
     from app.db.models import FinancialRecord
-    farm = Farm.query.filter_by(id=farm_id, company_id=current_user.company_id).first()
+    farm = Farm.query.filter_by(id=farm_id, project_id=current_user.project_id).first()
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
@@ -318,7 +311,7 @@ def manager_farm_financials(current_user, farm_id):
             return jsonify({'success': False, 'message': 'Periode (Bulan/Tahun) wajib diisi'}), 400
 
         record = FinancialRecord(
-            company_id=current_user.company_id,
+            company_id=current_user.project.company_id if current_user.project else None,
             farm_id=farm.id,
             period=period,
             total_production_kg=data.get('total_production_kg', 0),
@@ -339,10 +332,12 @@ def manager_farm_financials(current_user, farm_id):
 @token_required
 @role_required('manager')
 def get_agronomy_farm_map(current_user, farm_id):
-    from app.db.models import CompanyPermission
+    from app.db.models import ProjectPermission
+    
+    project_id = current_user.project_id
     
     # Cek izin akses agronomi modul
-    perms = CompanyPermission.query.filter_by(company_id=current_user.company_id).first()
+    perms = ProjectPermission.query.filter_by(project_id=project_id).first()
     if not perms or not perms.module_agronomy:
         return jsonify({'success': False, 'message': 'Perusahaan Anda tidak berlangganan Modul Agronomi'}), 403
 
@@ -355,12 +350,11 @@ def get_agronomy_farm_map(current_user, farm_id):
     else:
         has_access = perms.can_access_ndvi
 
-    farm = Farm.query.filter_by(id=farm_id, company_id=current_user.company_id).first()
+    farm = Farm.query.filter_by(id=farm_id, project_id=current_user.project_id).first()
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
     from app.services.gis_service import GISService
-    from app.db.models import FarmBlock
     from geoalchemy2.functions import ST_AsGeoJSON
     import json
 
@@ -370,22 +364,10 @@ def get_agronomy_farm_map(current_user, farm_id):
         if geojson_str:
             farm_geojson = json.loads(geojson_str)
 
-    blocks = FarmBlock.query.filter_by(farm_id=farm.id).all()
-    existing_blocks_geojson = []
-    for b in blocks:
-        if b.polygon is not None:
-            b_geojson_str = db.session.scalar(ST_AsGeoJSON(b.polygon))
-            if b_geojson_str:
-                existing_blocks_geojson.append({
-                    'name': b.name,
-                    'crop': b.crop_type or 'Tanaman',
-                    'polygon': json.loads(b_geojson_str)
-                })
-
     try:
         map_html = GISService.generate_agronomy_map(
             farm_boundary_geojson=farm_geojson,
-            existing_blocks_geojson=existing_blocks_geojson,
+            existing_blocks_geojson=[],
             layer_type=layer_type,
             has_access=has_access
         )
@@ -402,8 +384,8 @@ def get_agronomy_farm_map(current_user, farm_id):
 @token_required
 @role_required('manager')
 def manager_farm_harvests(current_user, farm_id):
-    from app.db.models import HarvestRecord, FarmBlock
-    farm = Farm.query.filter_by(id=farm_id, company_id=current_user.company_id).first()
+    from app.db.models import HarvestRecord
+    farm = Farm.query.filter_by(id=farm_id, project_id=current_user.project_id).first()
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
@@ -411,31 +393,26 @@ def manager_farm_harvests(current_user, farm_id):
         records = HarvestRecord.query.filter_by(farm_id=farm.id).order_by(HarvestRecord.created_at.desc()).all()
         data = []
         for r in records:
-            block = FarmBlock.query.get(r.block_id) if r.block_id else None
             data.append({
                 'id': r.id,
-                'block_id': r.block_id,
-                'block_name': block.name if block else 'Umum',
                 'period': r.period,
                 'yield_kg': float(r.yield_kg) if r.yield_kg else 0,
                 'notes': r.notes
             })
         return jsonify({'success': True, 'data': data}), 200
 
-    # POST (Tambah catatan panen per blok)
+    # POST (Tambah catatan panen)
     try:
         data = request.json
         period = data.get('period')
-        block_id = data.get('block_id')
         yield_kg = data.get('yield_kg', 0)
         
-        if not period or not block_id:
-            return jsonify({'success': False, 'message': 'Periode dan Blok wajib diisi'}), 400
+        if not period:
+            return jsonify({'success': False, 'message': 'Periode wajib diisi'}), 400
 
         record = HarvestRecord(
-            company_id=current_user.company_id,
+            company_id=current_user.project.company_id if current_user.project else None,
             farm_id=farm.id,
-            block_id=block_id,
             period=period,
             yield_kg=yield_kg,
             notes=data.get('notes', '')

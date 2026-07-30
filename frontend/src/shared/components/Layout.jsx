@@ -10,15 +10,13 @@ const Sidebar = ({ role }) => {
   const adminLinks = [
     { to: '/admin/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { to: '/admin/companies', icon: <Users size={20} />, label: 'Companies' },
-    { to: '/admin/gis', icon: <Map size={20} />, label: 'Global GIS' },
+    { to: '/admin/gis', icon: <Map size={20} />, label: 'GIS' },
     { to: '/admin/traceability', icon: <Activity size={20} />, label: 'Traceability' },
   ];
 
   const managerLinks = [
     { to: '/manager/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { to: '/manager/farmers', icon: <Users size={20} />, label: 'Farmers' },
-    { to: '/manager/gis', icon: <Map size={20} />, label: 'GIS' },
-    { to: '/manager/agronomy', icon: <FileText size={20} />, label: 'Agronomy' },
     { to: '/manager/economics', icon: <Activity size={20} />, label: 'Economics' },
     { to: '/manager/traceability', icon: <Shield size={20} />, label: 'Traceability' },
   ];
@@ -74,8 +72,7 @@ const Header = () => {
     <>
       <header className="top-header">
         <div className="header-search">
-          <Search size={18} className="search-icon" />
-          <input type="text" placeholder="Search projects, files, members..." />
+          .......................
         </div>
         <div className="header-right">
           <Bell size={20} className="icon-btn" />

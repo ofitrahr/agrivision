@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const ManagerAgronomy = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [farms, setFarms] = useState([]);
     const [selectedFarm, setSelectedFarm] = useState(null);
     const [mapHtml, setMapHtml] = useState('');
@@ -30,21 +31,31 @@ const ManagerAgronomy = () => {
                 if (response.data.permissions) {
                     setPermissions(response.data.permissions);
                 }
+                
+                // Auto-select farm based on query params
+                const params = new URLSearchParams(location.search);
+                const queryFarmId = params.get('farm_id');
+                if (queryFarmId) {
+                    loadAgronomyMap(queryFarmId, selectedLayer, response.data.data);
+                } else if (response.data.data.length > 0 && !selectedFarm) {
+                    loadAgronomyMap(response.data.data[0].id, selectedLayer, response.data.data);
+                }
             }
         } catch (error) {
             console.error(error);
         }
     };
 
-    const loadAgronomyMap = async (farmId, layer = selectedLayer) => {
+    const loadAgronomyMap = async (farmId, layer = selectedLayer, farmList = farms) => {
         setLoading(true);
         setErrorMsg('');
         setMapHtml('');
         try {
-            const response = await api.get(`/manager/farms/${farmId}/agronomy-map`, { params: { layer } });
-            if (response.data.success) {
-                setMapHtml(response.data.data.html);
-                setSelectedFarm(farms.find(f => f.id === farmId));
+            const mapRes = await api.get(`/manager/farms/${farmId}/agronomy-map?layer=${layer}`);
+            
+            if (mapRes.data.success) {
+                setMapHtml(mapRes.data.data.html);
+                setSelectedFarm(farmList.find(f => f.id === farmId));
             }
         } catch (error) {
             if (error.response && error.response.status === 403) {
@@ -62,21 +73,8 @@ const ManagerAgronomy = () => {
             <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }}>
                 <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}> Kembali ke Dashboard</button>
             </div>
-            
-            <h1 style={{ color: '#1B4332', marginBottom: '10px' }}> Modul Agronomi & Pemantauan Satelit</h1>
-            <p style={{ color: '#6b7280', marginBottom: '30px' }}>Pilih lahan untuk melihat indeks kesehatan tanaman (NDVI) dan estimasi biomassa.</p>
-
-            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                {farms.map(farm => (
-                    <button 
-                        key={farm.id}
-                        className={`action-btn ${selectedFarm?.id === farm.id ? 'primary-btn' : 'edit-btn'}`}
-                        onClick={() => loadAgronomyMap(farm.id)}
-                    >
-                        {farm.name}
-                    </button>
-                ))}
-            </div>
+            <h1 style={{ color: '#1B4332', marginBottom: '10px' }}>Agronomi: {selectedFarm?.name || '...'}</h1>
+            <p style={{ color: '#6b7280', marginBottom: '30px' }}>Peta indeks kesehatan tanaman (NDVI) dan estimasi biomassa karbon untuk lahan ini.</p>
 
             {errorMsg && (
                 <div style={{ background: '#fef2f2', color: '#b91c1c', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #ef4444' }}>
@@ -110,6 +108,8 @@ const ManagerAgronomy = () => {
                     />
                 </div>
             )}
+
+
         </div>
     );
 };
