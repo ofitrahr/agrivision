@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -15,4 +15,5 @@ COPY . .
 
 EXPOSE 8000
 
+# Command to run Flask app with Gunicorn
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "run:app"]
