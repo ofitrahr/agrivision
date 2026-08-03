@@ -123,6 +123,19 @@ def manager_farmers(current_user):
         if not name:
             return jsonify({'success': False, 'message': 'Nama petani wajib diisi'}), 400
             
+        # Cek Redundansi Data
+        if phone:
+            existing_phone = Farmer.query.filter_by(company_id=company_id, phone=phone).first()
+            if existing_phone:
+                return jsonify({'success': False, 'message': f'Petani dengan nomor telepon {phone} sudah terdaftar'}), 400
+        else:
+            existing_name = Farmer.query.filter(
+                Farmer.company_id == company_id,
+                db.func.lower(Farmer.name) == name.lower().strip()
+            ).first()
+            if existing_name:
+                return jsonify({'success': False, 'message': f'Petani dengan nama "{name}" sudah terdaftar'}), 400
+            
         photo_url = None
         if 'photo' in request.files:
             file = request.files['photo']
@@ -131,8 +144,8 @@ def manager_farmers(current_user):
                 
         new_farmer = Farmer(
             company_id=company_id,
-            name=name,
-            phone=phone,
+            name=name.strip(),
+            phone=phone if phone else None,
             photo_url=photo_url,
             gender=gender,
             age=int(age) if age else None,
@@ -161,9 +174,14 @@ def edit_farmer(current_user, farmer_id):
         data = request.form
         
         if 'name' in data:
-            farmer.name = data['name']
+            farmer.name = data['name'].strip()
         if 'phone' in data:
-            farmer.phone = data['phone']
+            new_phone = data['phone'].strip()
+            if new_phone and new_phone != farmer.phone:
+                existing_phone = Farmer.query.filter_by(company_id=company_id, phone=new_phone).first()
+                if existing_phone:
+                    return jsonify({'success': False, 'message': f'Nomor telepon {new_phone} sudah digunakan oleh petani lain'}), 400
+            farmer.phone = new_phone if new_phone else None
         if 'gender' in data:
             farmer.gender = data['gender']
         if 'age' in data and data['age']:
