@@ -83,13 +83,17 @@ const CompanyList = () => {
     return (
         <div style={{ padding: '30px' }}>
             <div style={{ marginBottom: '30px', display: 'flex', gap: '15px' }}>
-                <button className="action-btn view-btn" onClick={() => navigate('/admin/dashboard')}> Kembali ke Dashboard</button>
+                <button className="action-btn view-btn" onClick={() => navigate('/admin/dashboard')}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_back</span>
+                    Kembali ke Dashboard
+                </button>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h1 style={{ color: '#1B4332', margin: 0 }}>Manajemen Klien (Company)</h1>
                 <button className="primary-btn" onClick={() => openModal('add')}>
-                    + Tambah Company
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                    Tambah Company
                 </button>
             </div>
 
@@ -125,9 +129,18 @@ const CompanyList = () => {
                                         </span>
                                     </td>
                                     <td style={{ display: 'flex', gap: '8px' }}>
-                                        <button className="action-btn edit-btn" onClick={() => openModal('edit', company)}>Edit</button>
-                                        <button className="action-btn view-btn" onClick={() => navigate(`/admin/companies/${company.id}/projects`)}>Projects</button>
-                                        <button className="action-btn view-btn" onClick={() => navigate(`/admin/companies/${company.id}/users`)}>Users</button>
+                                        <button className="action-btn edit-btn" onClick={() => openModal('edit', company)}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
+                                            Edit
+                                        </button>
+                                        <button className="action-btn view-btn" onClick={() => navigate(`/admin/companies/${company.id}/projects`)}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>folder_open</span>
+                                            Projects
+                                        </button>
+                                        <button className="action-btn view-btn" onClick={() => navigate(`/admin/companies/${company.id}/users`)}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>
+                                            Users
+                                        </button>
                                     </td>
                                 </tr>
                             ))

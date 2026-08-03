@@ -71,7 +71,10 @@ const ManagerAgronomy = () => {
     return (
         <div style={{ padding: '30px' }}>
             <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between' }}>
-                <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}> Kembali ke Dashboard</button>
+                <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_back</span>
+                    Kembali ke Dashboard
+                </button>
             </div>
             <h1 style={{ color: '#1B4332', marginBottom: '10px' }}>Agronomi: {selectedFarm?.name || '...'}</h1>
             <p style={{ color: '#6b7280', marginBottom: '30px' }}>Peta indeks kesehatan tanaman (NDVI) dan estimasi biomassa karbon untuk lahan ini.</p>

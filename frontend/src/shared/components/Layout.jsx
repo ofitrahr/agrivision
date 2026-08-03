@@ -1,28 +1,29 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../features/auth/AuthContext';
-import { 
-  LayoutDashboard, Users, Shield, Map, Activity, 
-  Settings, LogOut, FileText, Bell, Search 
-} from 'lucide-react';
 
-const Sidebar = ({ role }) => {
+const Sidebar = ({ role, user }) => {
+  const navigate = useNavigate();
+  const { logout } = useContext(AuthContext);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   const adminLinks = [
-    { to: '/admin/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-    { to: '/admin/companies', icon: <Users size={20} />, label: 'Companies' },
-    { to: '/admin/gis', icon: <Map size={20} />, label: 'GIS' },
-    { to: '/admin/traceability', icon: <Activity size={20} />, label: 'Traceability' },
+    { to: '/admin/dashboard', icon: 'dashboard', label: 'Platform Overview' },
+    { to: '/admin/companies', icon: 'business', label: 'Daftar Klien' },
+    { to: '/admin/gis', icon: 'map', label: 'GIS & Pemetaan' },
+    { to: '/admin/traceability', icon: 'qr_code_scanner', label: 'Traceability' },
   ];
 
   const managerLinks = [
-    { to: '/manager/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-    { to: '/manager/farmers', icon: <Users size={20} />, label: 'Farmers' },
-    { to: '/manager/economics', icon: <Activity size={20} />, label: 'Economics' },
-    { to: '/manager/traceability', icon: <Shield size={20} />, label: 'Traceability' },
+    { to: '/manager/dashboard', icon: 'dashboard', label: 'Dashboard' },
+    { to: '/manager/farmers', icon: 'group', label: 'Data Petani' },
+    { to: '/manager/farm-management', icon: 'landscape', label: 'Manajemen Lahan' },
+    { to: '/manager/economics', icon: 'payments', label: 'Ekonomi' },
+    { to: '/manager/traceability', icon: 'verified', label: 'Traceability' },
   ];
   
   const boardLinks = [
-    { to: '/board/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
+    { to: '/board/dashboard', icon: 'analytics', label: 'Dashboard Eksekutif' },
   ];
 
   let links = [];
@@ -30,38 +31,13 @@ const Sidebar = ({ role }) => {
   else if (role === 'manager') links = managerLinks;
   else if (role === 'board') links = boardLinks;
 
-  return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
-        <div className="logo-box">A</div>
-        <h2 className="brand-name">Agrivision</h2>
-      </div>
-      <nav className="sidebar-nav">
-        {links.map((link) => (
-          <NavLink 
-            key={link.to} 
-            to={link.to} 
-            className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}
-          >
-            {link.icon}
-            <span>{link.label}</span>
-          </NavLink>
-        ))}
-      </nav>
-      <div className="sidebar-footer">
-        <div className="nav-item" style={{cursor: 'pointer'}}>
-          <Settings size={20} />
-          <span>Settings</span>
-        </div>
-      </div>
-    </aside>
-  );
-};
+  const roleLabel = role === 'super_admin' ? 'Super Admin' : (role === 'manager' ? 'Manager' : 'Board');
 
-const Header = () => {
-  const { user, logout } = useContext(AuthContext);
-  const navigate = useNavigate();
-  const [showLogoutModal, setShowLogoutModal] = React.useState(false);
+  const profilePath = role === 'super_admin'
+    ? '/admin/profile'
+    : role === 'manager'
+      ? '/manager/profile-user'
+      : '/board/profile';
 
   const handleLogout = () => {
     logout();
@@ -70,21 +46,102 @@ const Header = () => {
 
   return (
     <>
-      <header className="top-header">
-        <div className="header-search">
-          .......................
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <div className="sidebar-logo">
+            <img src="/assets/images/logo_icon.png" alt="Agrivision Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
+          <div>
+            <div className="sidebar-brand-name">Agrivision</div>
+          </div>
         </div>
-        <div className="header-right">
-          <Bell size={20} className="icon-btn" />
-          <div className="user-profile">
-            <div className="user-info">
-              <div className="user-name">{user?.username || 'User'}</div>
-              <div className="user-role">{user?.role || 'Guest'}</div>
+
+        <nav className="sidebar-nav">
+          <div className="sidebar-section-label">Menu Utama</div>
+          {links.map((link) => (
+            <NavLink 
+              key={link.to} 
+              to={link.to} 
+              className={({isActive}) => isActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'}
+            >
+              <span className="material-symbols-outlined">{link.icon}</span>
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-user">
+            <div className="sidebar-avatar">
+              {(user?.full_name || user?.user || 'U').charAt(0).toUpperCase()}
             </div>
-            <div className="user-avatar">
-              {user?.username?.charAt(0).toUpperCase() || 'U'}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="sidebar-user-name">{user?.full_name || user?.user || 'Pengguna'}</div>
+              <div className="sidebar-user-role">{roleLabel}</div>
             </div>
-            <LogOut size={20} className="icon-btn text-error" onClick={() => setShowLogoutModal(true)} title="Logout" />
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="sidebar-footer-btn" onClick={() => navigate(profilePath)} title="Profil">
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person</span>
+              Profil
+            </button>
+            <button className="sidebar-footer-btn sidebar-footer-btn-danger" onClick={() => setShowLogoutConfirm(true)} title="Keluar">
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
+              Keluar
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {showLogoutConfirm && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--color-error)' }}>logout</span>
+            </div>
+            <h2 style={{ margin: '0 0 8px 0', color: 'var(--color-text-main)', fontSize: '20px', fontFamily: 'var(--font-display)' }}>
+              Konfirmasi Keluar
+            </h2>
+            <p style={{ margin: '0 0 24px 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+              Apakah Anda yakin ingin keluar dari sesi ini?
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button className="btn btn-ghost" onClick={() => setShowLogoutConfirm(false)}>Batal</button>
+              <button className="btn btn-primary" style={{ background: 'var(--color-error)' }} onClick={handleLogout}>Ya, Keluar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+const Header = () => {
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  return (
+    <>
+      <header className="topnav">
+        <div className="search-input-wrap">
+          <span className="material-symbols-outlined">search</span>
+          <input type="text" className="search-input" placeholder="Cari data..." aria-label="Pencarian global" />
+        </div>
+        <div className="topnav-actions">
+          <button className="topnav-icon-btn" title="Notifikasi" aria-label="Notifikasi">
+            <span className="material-symbols-outlined">notifications</span>
+          </button>
+          <button className="topnav-icon-btn" title="Pengaturan" aria-label="Pengaturan">
+            <span className="material-symbols-outlined">settings</span>
+          </button>
+          <div className="topnav-avatar" onClick={() => setShowLogoutModal(true)} title="Logout">
+            {user?.username?.charAt(0).toUpperCase() || 'U'}
           </div>
         </div>
       </header>
@@ -92,11 +149,11 @@ const Header = () => {
       {showLogoutModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center' }}>
-            <h2 style={{ margin: '0 0 16px 0', color: 'var(--text-main)', fontSize: '20px' }}>Konfirmasi Logout</h2>
-            <p style={{ margin: '0 0 24px 0', color: 'var(--text-muted)' }}>Apakah Anda yakin ingin keluar dari sesi ini?</p>
+            <h2 style={{ margin: '0 0 16px 0', color: 'var(--color-primary-container)', fontSize: '20px' }}>Konfirmasi Keluar</h2>
+            <p style={{ margin: '0 0 24px 0', color: 'var(--color-text-muted)' }}>Apakah Anda yakin ingin keluar dari sesi ini?</p>
             <div className="modal-actions" style={{ justifyContent: 'center' }}>
-              <button className="secondary-btn" onClick={() => setShowLogoutModal(false)}>Batal</button>
-              <button className="danger-btn" onClick={handleLogout}>Ya, Keluar</button>
+              <button className="btn btn-ghost" onClick={() => setShowLogoutModal(false)}>Batal</button>
+              <button className="btn btn-primary" style={{ background: 'var(--color-error)' }} onClick={handleLogout}>Ya, Keluar</button>
             </div>
           </div>
         </div>
@@ -106,14 +163,14 @@ const Header = () => {
 };
 
 const Layout = () => {
+  const { user } = useContext(AuthContext);
+  
   return (
     <div className="app-layout">
-      <Sidebar role={JSON.parse(localStorage.getItem('user'))?.role || 'guest'} />
+      <Sidebar role={user?.role || 'guest'} user={user} />
+      <Header />
       <main className="main-content">
-        <Header />
-        <div className="page-content">
-          <Outlet />
-        </div>
+        <Outlet />
       </main>
     </div>
   );

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
-import { Users, Building, Map, Activity, Plus, Settings, MoreVertical } from 'lucide-react';
+import StatCard from '../../shared/components/UI/StatCard';
+import Card from '../../shared/components/UI/Card';
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState(null);
@@ -42,81 +43,69 @@ const AdminDashboard = () => {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Super Admin Dashboard</h1>
-                    <p className="page-description">Ringkasan sistem dan perusahaan yang terdaftar.</p>
+                    <p className="page-subtitle">Ringkasan sistem dan perusahaan yang terdaftar.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button className="secondary-btn" onClick={() => navigate('/admin/companies')}>
-                        <Settings size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                    <button className="btn btn-ghost" onClick={() => navigate('/admin/companies')}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>settings</span>
                         Kelola Sistem
                     </button>
-                    <button className="primary-btn" onClick={() => navigate('/admin/companies')}>
-                        <Plus size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-                        Tambah Perusahaan
+                    <button className="btn btn-primary" onClick={() => navigate('/admin/companies')}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                        Tambah Klien Baru
                     </button>
                 </div>
             </div>
             
             {/* Overview Cards */}
-            <div className="grid-cards">
-                <div className="stat-card">
-                    <h3>Total Company</h3>
-                    {loading ? (
-                        <div className="skeleton-text" style={{ width: '60px', height: '40px', marginTop: '12px' }}></div>
-                    ) : (
-                        <p className="stat-value">{stats?.total_companies || 0}</p>
-                    )}
-                </div>
-                <div className="stat-card">
-                    <h3>Active Company</h3>
-                    {loading ? (
-                        <div className="skeleton-text" style={{ width: '60px', height: '40px', marginTop: '12px' }}></div>
-                    ) : (
-                        <p className="stat-value">{stats?.active_companies || 0}</p>
-                    )}
-                </div>
-                <div className="stat-card">
-                    <h3>Total Project</h3>
-                    {loading ? (
-                        <div className="skeleton-text" style={{ width: '60px', height: '40px', marginTop: '12px' }}></div>
-                    ) : (
-                        <p className="stat-value">{stats?.total_projects || 0}</p>
-                    )}
-                </div>
-                <div className="stat-card">
-                    <h3>Total Lahan (Farms)</h3>
-                    {loading ? (
-                        <div className="skeleton-text" style={{ width: '60px', height: '40px', marginTop: '12px' }}></div>
-                    ) : (
-                        <p className="stat-value">{stats?.total_farms || 0}</p>
-                    )}
-                </div>
-                <div className="stat-card">
-                    <h3>Total Luas Area (Ha)</h3>
-                    {loading ? (
-                        <div className="skeleton-text" style={{ width: '60px', height: '40px', marginTop: '12px' }}></div>
-                    ) : (
-                        <p className="stat-value">{stats?.total_area_ha || 0}</p>
-                    )}
-                </div>
-                <div className="stat-card">
-                    <h3>Total Pengguna</h3>
-                    {loading ? (
-                        <div className="skeleton-text" style={{ width: '60px', height: '40px', marginTop: '12px' }}></div>
-                    ) : (
-                        <p className="stat-value">{stats?.total_users || 0}</p>
-                    )}
-                </div>
+            <div className="stats-grid">
+                {loading ? (
+                    Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="stat-card" aria-busy="true">
+                            <div className="skeleton-text" style={{ width: '40px', height: '14px', marginBottom: '12px' }}></div>
+                            <div className="skeleton-text" style={{ width: '80px', height: '32px' }}></div>
+                        </div>
+                    ))
+                ) : (
+                    <>
+                        <StatCard 
+                            title="Total Klien" 
+                            value={stats?.total_companies || 0} 
+                            icon="business" 
+                        />
+                        <StatCard 
+                            title="Klien Aktif" 
+                            value={stats?.active_companies || 0} 
+                            icon="verified" 
+                        />
+                        <StatCard 
+                            title="Total Proyek" 
+                            value={stats?.total_projects || 0} 
+                            icon="account_tree" 
+                        />
+                        <StatCard 
+                            title="Total Lahan" 
+                            value={stats?.total_farms || 0} 
+                            icon="landscape" 
+                        />
+                        <StatCard 
+                            title="Total Luas (Ha)" 
+                            value={stats?.total_area_ha || 0} 
+                            icon="map" 
+                        />
+                        <StatCard 
+                            title="Total Pengguna" 
+                            value={stats?.total_users || 0} 
+                            icon="group" 
+                        />
+                    </>
+                )}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 'var(--gutter)' }}>
                 {/* Recent Companies Section */}
-                <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h2 style={{ fontSize: '20px', margin: 0, fontFamily: 'var(--font-display)', color: 'var(--text-main)' }}>Perusahaan Terbaru</h2>
-                        <button className="action-btn view-btn" onClick={() => navigate('/admin/companies')} style={{ background: 'transparent', color: 'var(--primary)' }}>Lihat Semua</button>
-                    </div>
-                    
-                    <div className="table-container">
+                <Card title="Daftar Klien (Perusahaan)" actionLabel="Lihat Semua" onAction={() => navigate('/admin/companies')}>
+                    <div className="table-container" style={{ margin: '0 -24px -24px -24px', border: 'none', boxShadow: 'none' }}>
                         <table className="data-table">
                             <thead>
                                 <tr>
@@ -140,60 +129,62 @@ const AdminDashboard = () => {
                                     recentCompanies.length > 0 ? (
                                         recentCompanies.map(company => (
                                             <tr key={company.id}>
-                                                <td style={{ fontWeight: 500 }}>{company.name}</td>
+                                                <td>{company.name}</td>
                                                 <td>
-                                                    <span className={`badge ${company.is_active ? 'badge-success' : 'badge-neutral'}`}>
+                                                    <span className={`badge badge-${company.is_active ? 'active' : 'expired'}`}>
                                                         {company.is_active ? 'Aktif' : 'Non-Aktif'}
                                                     </span>
                                                 </td>
-                                                <td style={{ color: 'var(--text-muted)' }}>{company.subscription_plan}</td>
-                                                <td style={{ color: 'var(--text-muted)' }}>{new Date(company.created_at).toLocaleDateString('id-ID')}</td>
+                                                <td style={{ color: 'var(--color-text-muted)' }}>{company.subscription_plan}</td>
+                                                <td style={{ color: 'var(--color-text-muted)' }}>{new Date(company.created_at).toLocaleDateString('id-ID')}</td>
                                             </tr>
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>Belum ada perusahaan terdaftar.</td>
+                                            <td colSpan="4" style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '20px' }}>Belum ada perusahaan terdaftar.</td>
                                         </tr>
                                     )
                                 )}
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </Card>
 
                 {/* Sidebar widgets (Quick Actions & Activity) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gutter)' }}>
                     {/* Activity Feed */}
-                    <div style={{ background: 'var(--surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-muted)', boxShadow: 'var(--shadow-sm)' }}>
-                        <h2 style={{ fontSize: '16px', margin: '0 0 16px 0', color: 'var(--text-main)' }}>Aktivitas Sistem</h2>
+                    <Card title="Log Aktivitas Terbaru">
                         {loading ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} aria-busy="true">
                                 <div className="skeleton-text" style={{ width: '100%', height: '40px' }}></div>
                                 <div className="skeleton-text" style={{ width: '100%', height: '40px' }}></div>
                             </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div style={{ display: 'flex', gap: '12px' }}>
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--surface-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Building size={14} color="var(--text-main)" />
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-text-main)' }}>domain_add</span>
                                     </div>
                                     <div>
-                                        <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--text-main)' }}>Perusahaan baru terdaftar.</p>
-                                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Sistem • 2 jam yang lalu</p>
+                                        <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--color-text-main)', fontWeight: 600 }}>Perusahaan baru terdaftar.</p>
+                                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>Sistem • 2 jam yang lalu</p>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '12px' }}>
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--surface-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Users size={14} color="var(--text-main)" />
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-text-main)' }}>group_add</span>
                                     </div>
                                     <div>
-                                        <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--text-main)' }}>15 user ditambahkan.</p>
-                                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>Agri Nusantara • Kemarin</p>
+                                        <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--color-text-main)', fontWeight: 600 }}>15 user ditambahkan.</p>
+                                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>Agri Nusantara • Kemarin</p>
                                     </div>
                                 </div>
                             </div>
                         )}
-                    </div>
+                        <button className="btn btn-ghost w-full" style={{ marginTop: '16px', justifyContent: 'center' }}>
+                            Lihat Semua Aktivitas
+                        </button>
+                    </Card>
                 </div>
             </div>
         </div>

@@ -111,7 +111,10 @@ const GlobalGIS = () => {
             <div style={{ padding: '30px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h1 style={{ color: '#1B4332', margin: 0 }}>Buat Lahan Baru (Global GIS)</h1>
-                    <button className="secondary-btn" onClick={() => setIsCreatingFarm(false)}>Batal</button>
+                    <button className="secondary-btn" onClick={() => setIsCreatingFarm(false)}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+                        Batal
+                    </button>
                 </div>
                 
                 <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', border: '2px solid #2D6A4F', position: 'relative' }}>
@@ -179,7 +182,7 @@ const GlobalGIS = () => {
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h1 className="page-title" style={{ fontSize: '24px', margin: 0 }}>Global GIS & Lahan</h1>
                 <button className="primary-btn" onClick={() => setIsCreatingFarm(true)}>
-                    <Plus size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
                     Add New Farm
                 </button>
             </div>

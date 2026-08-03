@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
+import Card from '../../shared/components/UI/Card';
 
 const ManagerProfile = () => {
     const [profile, setProfile] = useState({ name: '', description: '', address: '', logo_url: '' });
@@ -29,7 +30,6 @@ const ManagerProfile = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            // Karena upload file, gunakan FormData bukan format JSON biasa
             const formData = new FormData();
             formData.append('name', profile.name);
             formData.append('description', profile.description || '');
@@ -45,7 +45,7 @@ const ManagerProfile = () => {
             alert(response.data.message);
             if (response.data.logo_url) {
                 setProfile(prev => ({ ...prev, logo_url: response.data.logo_url }));
-                setLogoFile(null); // Reset logo picker
+                setLogoFile(null);
             }
         } catch (error) {
             alert(error.response?.data?.message || 'Gagal menyimpan profil');
@@ -54,61 +54,105 @@ const ManagerProfile = () => {
         }
     };
 
-    if (loading) return <div style={{padding: '30px'}}>Memuat profil...</div>;
+    if (loading) return (
+        <div style={{ padding: 'var(--space-xl)', textAlign: 'center' }} aria-busy="true">
+            <div className="skeleton-text" style={{ width: '200px', height: '32px', margin: '0 auto' }}></div>
+        </div>
+    );
 
     const baseURL = "http://localhost:8000";
 
     return (
-        <div style={{ padding: '30px', maxWidth: '800px', margin: '0 auto' }}>
-            <div style={{ marginBottom: '20px' }}>
-                <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}> Kembali ke Dashboard</button>
-            </div>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <header className="page-header" style={{ marginBottom: 'var(--space-md)' }}>
+                <div>
+                    <h1 className="page-title">Profil Perusahaan</h1>
+                    <p className="page-subtitle">Kelola informasi profil dan identitas perusahaan Anda.</p>
+                </div>
+                <div>
+                    <button className="btn btn-ghost" onClick={() => navigate('/manager/dashboard')}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_back</span>
+                        Kembali
+                    </button>
+                </div>
+            </header>
             
-            <h1 style={{ color: '#1B4332' }}>Profil Perusahaan</h1>
-            
-            <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                <form onSubmit={handleSubmit}>
-                    <div style={{ display: 'flex', gap: '30px', marginBottom: '20px' }}>
-                        {/* Tampilan Logo */}
-                        <div style={{ width: '150px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: '#f3f4f6', overflow: 'hidden', border: '2px dashed #9ca3af', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Card>
+                <form onSubmit={handleSubmit} style={{ padding: 'var(--space-md)' }}>
+                    <div style={{ display: 'flex', gap: 'var(--space-xl)', marginBottom: 'var(--space-xl)', flexDirection: 'row', flexWrap: 'wrap' }}>
+                        
+                        {/* Logo Upload Section */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '200px' }}>
+                            <div style={{ 
+                                width: '160px', height: '160px', borderRadius: 'var(--radius-md)', 
+                                background: 'var(--color-surface-container-low)', overflow: 'hidden', 
+                                border: '2px dashed var(--color-border-muted)', display: 'flex', 
+                                justifyContent: 'center', alignItems: 'center', marginBottom: '16px' 
+                            }}>
                                 {profile.logo_url ? (
                                     <img src={`${baseURL}${profile.logo_url}`} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
-                                    <span style={{ color: '#9ca3af', fontSize: '14px' }}>No Logo</span>
+                                    <span style={{ color: 'var(--color-text-muted)', fontSize: '14px', fontWeight: 500 }}>No Logo</span>
                                 )}
                             </div>
-                            <label style={{ marginTop: '10px', fontSize: '14px', cursor: 'pointer', color: '#2D6A4F', fontWeight: 'bold' }}>
-                                Ubah Logo
+                            <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer', width: '100%', justifyContent: 'center' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>upload</span>
+                                Unggah Logo
                                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => setLogoFile(e.target.files[0])} />
                             </label>
-                            {logoFile && <p style={{ fontSize: '12px', color: '#059669', margin: '5px 0 0 0', textAlign: 'center' }}>File terpilih:<br/>{logoFile.name}</p>}
+                            {logoFile && (
+                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: '8px 0 0 0', textAlign: 'center', wordBreak: 'break-all' }}>
+                                    Terpilih: {logoFile.name}
+                                </p>
+                            )}
                         </div>
 
                         {/* Input Data Profile */}
-                        <div style={{ flex: 1 }}>
-                            <div className="form-group">
-                                <label>Nama Perusahaan *</label>
-                                <input type="text" value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} required />
+                        <div style={{ flex: 1, minWidth: '300px', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                            <div>
+                                <label className="form-label">Nama Perusahaan <span style={{color: 'var(--color-error)'}}>*</span></label>
+                                <input 
+                                    className="form-input" 
+                                    type="text" 
+                                    value={profile.name} 
+                                    onChange={e => setProfile({...profile, name: e.target.value})} 
+                                    required 
+                                    placeholder="Masukkan nama perusahaan"
+                                />
                             </div>
-                            <div className="form-group">
-                                <label>Deskripsi Singkat</label>
-                                <textarea rows="3" value={profile.description || ''} onChange={e => setProfile({...profile, description: e.target.value})} />
+                            <div>
+                                <label className="form-label">Deskripsi Singkat</label>
+                                <textarea 
+                                    className="form-input" 
+                                    rows="4" 
+                                    style={{ resize: 'vertical' }}
+                                    value={profile.description || ''} 
+                                    onChange={e => setProfile({...profile, description: e.target.value})} 
+                                    placeholder="Tuliskan deskripsi singkat mengenai perusahaan"
+                                />
                             </div>
-                            <div className="form-group">
-                                <label>Alamat Utama</label>
-                                <textarea rows="2" value={profile.address || ''} onChange={e => setProfile({...profile, address: e.target.value})} />
+                            <div>
+                                <label className="form-label">Alamat Utama</label>
+                                <textarea 
+                                    className="form-input" 
+                                    rows="3" 
+                                    style={{ resize: 'vertical' }}
+                                    value={profile.address || ''} 
+                                    onChange={e => setProfile({...profile, address: e.target.value})} 
+                                    placeholder="Alamat lengkap operasional"
+                                />
                             </div>
                         </div>
                     </div>
                     
-                    <div style={{ textAlign: 'right' }}>
-                        <button type="submit" className="primary-btn" disabled={saving}>
-                            {saving ? 'Menyimpan...' : 'Simpan Profil'}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 'var(--space-md)', borderTop: '1px solid var(--color-border-muted)' }}>
+                        <button type="submit" className="btn btn-primary" disabled={saving}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span>
+                            {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
                         </button>
                     </div>
                 </form>
-            </div>
+            </Card>
         </div>
     );
 };

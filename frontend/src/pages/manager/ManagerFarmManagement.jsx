@@ -96,6 +96,7 @@ const ManagerFarmManagement = () => {
         <div style={{ padding: '30px' }}>
             <div style={{ marginBottom: '20px' }}>
                 <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_back</span>
                     Kembali ke Dashboard
                 </button>
             </div>
@@ -154,7 +155,10 @@ const ManagerFarmManagement = () => {
                                 placeholder="Cth: Kopi Arabika, Jagung Manis"
                                 style={{ flex: 1, padding: '10px 15px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px' }}
                             />
-                            <button type="submit" className="primary-btn" style={{ padding: '10px 20px', whiteSpace: 'nowrap' }}>Tambah</button>
+                            <button type="submit" className="primary-btn" style={{ padding: '10px 20px', whiteSpace: 'nowrap' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                                Tambah
+                            </button>
                         </form>
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>

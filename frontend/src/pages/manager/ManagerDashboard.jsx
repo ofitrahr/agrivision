@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
-import { Map, FileText, Activity, Settings, LayoutDashboard } from 'lucide-react';
+import StatCard from '../../shared/components/UI/StatCard';
+import Card from '../../shared/components/UI/Card';
 
 // --- Presentational Components ---
 
@@ -9,13 +10,6 @@ const StatCardSkeleton = () => (
     <div className="stat-card" aria-busy="true">
         <div className="skeleton-text mb-2" style={{ height: '14px', width: '50%' }}></div>
         <div className="skeleton-text mt-3" style={{ height: '32px', width: '80%' }}></div>
-    </div>
-);
-
-const StatCard = ({ title, value }) => (
-    <div className="stat-card">
-        <h3>{title}</h3>
-        <p className="stat-value">{value}</p>
     </div>
 );
 
@@ -32,7 +26,7 @@ const FarmMapThumbnail = ({ farmId }) => {
     
     if(!mapHtml) {
         return (
-            <div className="flex items-center justify-center bg-subtle w-full" style={{ height: '200px' }} aria-busy="true">
+            <div className="flex items-center justify-center w-full" style={{ height: '200px', background: 'var(--color-surface-container)' }} aria-busy="true">
                 <div className="skeleton-text w-full" style={{ height: '100%' }}></div>
             </div>
         );
@@ -40,13 +34,13 @@ const FarmMapThumbnail = ({ farmId }) => {
     
     return (
         <div className="w-full overflow-hidden" style={{ height: '200px' }}>
-            <iframe srcDoc={mapHtml} className="w-full border-none" style={{ height: '100%', pointerEvents: 'none' }} title="Peta Lahan" tabIndex={-1} />
+            <iframe srcDoc={mapHtml} className="w-full border-none" style={{ height: '100%', pointerEvents: 'none', border: 'none' }} title="Peta Lahan" tabIndex={-1} />
         </div>
     );
 };
 
 const FarmCardSkeleton = () => (
-    <div className="farm-card" aria-busy="true">
+    <Card>
         <div className="skeleton-text w-full" style={{ height: '200px' }}></div>
         <div className="p-4 flex-col gap-3">
             <div className="skeleton-text mb-1" style={{ height: '24px', width: '70%' }}></div>
@@ -56,66 +50,69 @@ const FarmCardSkeleton = () => (
             <div className="skeleton-text mb-3" style={{ height: '14px', width: '80%' }}></div>
             
             <div className="flex gap-2 mt-2">
-                <div className="skeleton-text rounded-full w-full" style={{ height: '36px' }}></div>
-                <div className="skeleton-text rounded-full w-full" style={{ height: '36px' }}></div>
+                <div className="skeleton-text w-full" style={{ height: '36px', borderRadius: 'var(--radius-pill)' }}></div>
+                <div className="skeleton-text w-full" style={{ height: '36px', borderRadius: 'var(--radius-pill)' }}></div>
             </div>
         </div>
-    </div>
+    </Card>
 );
 
 const FarmCard = ({ farm, onManage, onAgronomy }) => (
-    <div className="farm-card flex-col">
+    <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
         <FarmMapThumbnail farmId={farm.id} />
-        <div className="p-4 flex-col gap-3" style={{ flex: 1 }}>
+        <div style={{ padding: 'var(--space-md)', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-                <h3 className="text-lg font-semibold text-main m-0">{farm.name}</h3>
-                <span className="flex items-center gap-1 text-sm text-muted mt-1">
-                    <Map size={14}/> {farm.total_area_ha} Ha
+                <h3 className="card-title" style={{ marginBottom: '4px' }}>{farm.name}</h3>
+                <span className="badge badge-stable" style={{ fontSize: '11px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>map</span>
+                    {farm.total_area_ha} Ha
                 </span>
             </div>
             
-            <div className="text-sm">
-                <div className="font-semibold text-main mb-1">Tanaman:</div>
-                <div className="text-muted">
+            <div style={{ fontSize: '13px' }}>
+                <div style={{ fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '2px' }}>Tanaman:</div>
+                <div style={{ color: 'var(--color-text-muted)' }}>
                     {farm.crops && farm.crops.length > 0 ? farm.crops.join(', ') : 'Belum diatur'}
                 </div>
             </div>
             
-            <div className="text-sm mb-2">
-                <div className="font-semibold text-main mb-1">Penanggung Jawab:</div>
-                <div className="text-muted">
+            <div style={{ fontSize: '13px', marginBottom: '8px' }}>
+                <div style={{ fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '2px' }}>Penanggung Jawab:</div>
+                <div style={{ color: 'var(--color-text-muted)' }}>
                     {farm.farmers && farm.farmers.length > 0 ? farm.farmers.join(', ') : 'Belum ditugaskan'}
                 </div>
             </div>
             
-            <div className="flex gap-2 mt-auto">
+            <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
                 <button 
-                    className="secondary-btn w-full flex items-center justify-center gap-1 text-xs" 
+                    className="btn btn-ghost btn-sm" 
+                    style={{ flex: 1, justifyContent: 'center' }}
                     onClick={() => onManage(farm.id)}
-                    aria-label={`Kelola lahan ${farm.name}`}
                 >
-                    <Settings size={14} /> Kelola Lahan
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>settings</span> 
+                    Kelola
                 </button>
                 <button 
-                    className="primary-btn w-full flex items-center justify-center gap-1 text-xs" 
+                    className="btn btn-primary btn-sm" 
+                    style={{ flex: 1, justifyContent: 'center' }}
                     onClick={() => onAgronomy(farm.id)}
-                    aria-label={`Lihat agronomi lahan ${farm.name}`}
                 >
-                    <Activity size={14} /> Lihat Agronomi
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>eco</span> 
+                    Agronomi
                 </button>
             </div>
         </div>
     </div>
 );
 
-const ActivityItem = ({ icon: Icon, text, subtext }) => (
-    <div className="flex gap-3 items-center">
-        <div className="icon-box">
-            <Icon size={16} />
+const ActivityItem = ({ icon, text, subtext }) => (
+    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '16px' }}>
+        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-container)' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{icon}</span>
         </div>
         <div>
-            <p className="text-sm font-semibold text-main m-0">{text}</p>
-            <p className="text-xs text-muted mt-1 m-0">{subtext}</p>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-main)', margin: 0 }}>{text}</p>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: '4px 0 0 0' }}>{subtext}</p>
         </div>
     </div>
 );
@@ -155,7 +152,6 @@ const ManagerDashboard = () => {
                 console.error("Gagal mengambil data dashboard", err);
                 setError("Gagal memuat data dashboard. Silakan coba lagi.");
             } finally {
-                // Simulate slight delay for skeleton presentation as previously intended
                 setTimeout(() => setLoading(false), 500);
             }
         };
@@ -168,15 +164,11 @@ const ManagerDashboard = () => {
 
     if (error) {
         return (
-            <div className="p-10 text-center flex-col items-center justify-center gap-4 bg-surface rounded-2xl border w-full mt-4">
-                <div className="icon-box bg-subtle mx-auto" style={{ width: '48px', height: '48px' }}>
-                    <LayoutDashboard size={24} className="text-muted" />
-                </div>
-                <div>
-                    <h2 className="text-lg font-semibold text-main mb-2">Terjadi Kesalahan</h2>
-                    <p className="text-sm text-muted">{error}</p>
-                </div>
-                <button className="primary-btn mt-4" onClick={() => window.location.reload()}>
+            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-xl)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--color-error)', marginBottom: '16px' }}>error</span>
+                <h2 className="text-headline-lg" style={{ marginBottom: '8px' }}>Terjadi Kesalahan</h2>
+                <p className="text-body-md" style={{ color: 'var(--color-text-muted)', marginBottom: '24px' }}>{error}</p>
+                <button className="btn btn-primary" onClick={() => window.location.reload()}>
                     Muat Ulang
                 </button>
             </div>
@@ -188,21 +180,21 @@ const ManagerDashboard = () => {
             <header className="page-header">
                 <div>
                     <h1 className="page-title">Dashboard Manajer</h1>
-                    <p className="page-description">Ringkasan operasional dan data perusahaan Anda.</p>
+                    <p className="page-subtitle">Ringkasan operasional dan data perusahaan Anda.</p>
                 </div>
-                <div className="flex gap-3">
+                <div style={{ display: 'flex', gap: '12px' }}>
                     <button 
-                        className="secondary-btn flex items-center justify-center gap-2" 
+                        className="btn btn-ghost" 
                         onClick={() => navigate('/manager/profile')}
-                        aria-label="Pengaturan Profil"
                     >
-                        <Settings size={16} /> Pengaturan
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>settings</span> 
+                        Pengaturan
                     </button>
                 </div>
             </header>
             
             {/* Overview Stats */}
-            <section aria-label="Statistik Utama" className="grid-cards mb-8">
+            <section aria-label="Statistik Utama" className="stats-grid">
                 {loading ? (
                     <>
                         <StatCardSkeleton />
@@ -212,24 +204,39 @@ const ManagerDashboard = () => {
                     </>
                 ) : (
                     <>
-                        <StatCard title="Total Lahan" value={stats?.total_farms || 0} />
-                        <StatCard title="Total Petani" value={stats?.total_farmers || 0} />
-                        <StatCard title="Total Produksi (Ton)" value={stats?.total_production_ton || 0} />
-                        <StatCard title="Total Pendapatan" value={formatCurrency(stats?.total_revenue)} />
+                        <StatCard 
+                            title="Total Lahan" 
+                            value={stats?.total_farms || 0} 
+                            icon="landscape" 
+                        />
+                        <StatCard 
+                            title="Total Petani" 
+                            value={stats?.total_farmers || 0} 
+                            icon="group" 
+                        />
+                        <StatCard 
+                            title="Total Produksi (Ton)" 
+                            value={stats?.total_production_ton || 0} 
+                            icon="eco" 
+                        />
+                        <StatCard 
+                            title="Total Pendapatan" 
+                            value={formatCurrency(stats?.total_revenue)} 
+                            icon="payments" 
+                            iconColor="var(--color-main-gold)"
+                        />
                     </>
                 )}
             </section>
 
-            <div className="dashboard-layout">
+            <div style={{ display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 'var(--gutter)' }}>
                 {/* Recent Projects Section */}
                 <section aria-label="Daftar Lahan Perusahaan">
-                    <div className="flex justify-between items-center mb-5">
-                        <h2 className="text-xl font-semibold text-main m-0" style={{ fontFamily: 'var(--font-display)' }}>
-                            Daftar Lahan Perusahaan
-                        </h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
+                        <h2 className="text-headline-lg" style={{ fontSize: '20px', margin: 0 }}>Daftar Lahan Perusahaan</h2>
                     </div>
                     
-                    <div className="farm-grid">
+                    <div className="stats-grid-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
                         {loading ? (
                             <>
                                 <FarmCardSkeleton />
@@ -245,40 +252,46 @@ const ManagerDashboard = () => {
                                 />
                             ))
                         ) : (
-                            <div className="p-10 text-center bg-subtle rounded-xl border" style={{ gridColumn: '1 / -1' }}>
-                                <LayoutDashboard size={32} className="text-muted mx-auto mb-3" />
-                                <p className="text-main font-semibold mb-1">Belum ada lahan terdaftar</p>
-                                <p className="text-sm text-muted">Lahan yang Anda kelola akan muncul di sini.</p>
-                            </div>
+                            <Card style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>landscape</span>
+                                <p style={{ fontWeight: 600, color: 'var(--color-text-main)', margin: '0 0 4px 0' }}>Belum ada lahan terdaftar</p>
+                                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>Lahan yang Anda kelola akan muncul di sini.</p>
+                            </Card>
                         )}
                     </div>
                 </section>
 
                 {/* Sidebar Widgets */}
-                <aside aria-label="Widget Sampingan" className="flex-col gap-8">
-                    <div className="activity-feed">
-                        <h2 className="text-base font-semibold text-main mt-0 mb-4">Aktivitas Terkini</h2>
-                        
+                <aside aria-label="Widget Sampingan">
+                    <Card title="Aktivitas Terkini">
                         {loading ? (
-                            <div className="flex-col gap-4" aria-busy="true">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} aria-busy="true">
                                 <div className="skeleton-text w-full" style={{ height: '40px' }}></div>
                                 <div className="skeleton-text w-full" style={{ height: '40px' }}></div>
                             </div>
                         ) : (
-                            <div className="flex-col gap-4">
+                            <div>
                                 <ActivityItem 
-                                    icon={Map} 
+                                    icon="map" 
                                     text="Peta lahan baru ditambahkan." 
                                     subtext="Oleh Budi • 1 jam yang lalu" 
                                 />
                                 <ActivityItem 
-                                    icon={FileText} 
+                                    icon="description" 
                                     text="Laporan panen Q2 selesai." 
                                     subtext="Oleh Andi • Kemarin" 
                                 />
+                                <ActivityItem 
+                                    icon="group_add" 
+                                    text="Petani baru didaftarkan." 
+                                    subtext="Oleh Anda • 2 hari yang lalu" 
+                                />
                             </div>
                         )}
-                    </div>
+                        <button className="btn btn-ghost w-full" style={{ marginTop: '8px', justifyContent: 'center' }}>
+                            Lihat Semua Aktivitas
+                        </button>
+                    </Card>
                 </aside>
             </div>
         </div>

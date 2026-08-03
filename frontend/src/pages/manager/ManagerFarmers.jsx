@@ -105,7 +105,10 @@ const ManagerFarmers = () => {
     return (
         <div style={{ padding: '30px' }}>
             <div style={{ marginBottom: '20px' }}>
-                <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}> Kembali ke Dashboard</button>
+                <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_back</span>
+                    Kembali ke Dashboard
+                </button>
             </div>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -119,7 +122,8 @@ const ManagerFarmers = () => {
                         setShowForm(true);
                     }
                 }}>
-                    {showForm ? 'Batal' : '+ Tambah Pekerja Baru'}
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{showForm ? 'close' : 'add'}</span>
+                    {showForm ? 'Batal' : 'Tambah Pekerja Baru'}
                 </button>
             </div>
 

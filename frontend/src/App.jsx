@@ -23,6 +23,8 @@ import ManagerTraceability from './pages/manager/ManagerTraceability';
 
 import BoardDashboard from './pages/board/BoardDashboard';
 
+import UserProfile from './pages/shared/UserProfile';
+
 function App() {
   return (
     <BrowserRouter>
@@ -41,6 +43,7 @@ function App() {
             <Route path="/admin/projects/:projectId/permissions" element={<CompanyPermissions />} />
             <Route path="/admin/gis" element={<GIS />} />
             <Route path="/admin/traceability" element={<AdminTraceability />} />
+            <Route path="/admin/profile" element={<UserProfile />} />
 
 
         </Route>
@@ -56,11 +59,13 @@ function App() {
             <Route path="/manager/agronomy" element={<ManagerAgronomy />} />
             <Route path="/manager/economics" element={<ManagerEconomics />} />
             <Route path="/manager/traceability" element={<ManagerTraceability />} />
+            <Route path="/manager/profile-user" element={<UserProfile />} />
         </Route>
 
         {/* Rute Board */}
         <Route element={<ProtectedRoute allowedRoles={['board']} />}>
             <Route path="/board/dashboard" element={<BoardDashboard />} />
+            <Route path="/board/profile" element={<UserProfile />} />
         </Route>
         
         <Route path="*" element={<div style={{padding: '50px'}}>404 Not Found</div>} />
