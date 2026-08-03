@@ -10,6 +10,8 @@ def get_dashboard_stats():
     total_farms = Farm.query.count()
     total_users = User.query.count()
     total_batches = Batch.query.count()
+    total_projects = Project.query.count()
+    total_area_ha = db.session.query(db.func.sum(Farm.total_area_ha)).scalar() or 0
 
     return {
         "success" : True,
@@ -18,7 +20,9 @@ def get_dashboard_stats():
             "active_companies" : active_companies,
             "total_farms" : total_farms,
             "total_users" : total_users,
-            "total_batches" : total_batches
+            "total_batches" : total_batches,
+            "total_projects": total_projects,
+            "total_area_ha": float(total_area_ha)
         }
     }
 

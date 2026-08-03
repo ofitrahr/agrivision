@@ -105,7 +105,6 @@ const GlobalGIS = () => {
 
     const totalFarms = farms.length;
     const totalArea = farms.reduce((sum, f) => sum + (f.total_area_ha || 0), 0);
-    const totalCrops = farms.reduce((sum, f) => sum + (f.total_crops || 0), 0);
 
     if (isCreatingFarm) {
         return (
@@ -205,16 +204,6 @@ const GlobalGIS = () => {
                         <div className="skeleton-text" style={{ width: '60px', height: '30px' }}></div>
                     ) : (
                         <p className="stat-value" style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{totalArea.toFixed(2)} ha</p>
-                    )}
-                </div>
-                <div className="stat-card" style={{ flex: 1, padding: '20px', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-                    <h3 style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: '#10b981' }}>🌾</span> Total Crops
-                    </h3>
-                    {loading ? (
-                        <div className="skeleton-text" style={{ width: '60px', height: '30px' }}></div>
-                    ) : (
-                        <p className="stat-value" style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{totalCrops}</p>
                     )}
                 </div>
                 <div style={{ flex: 1 }}></div>

@@ -5,7 +5,7 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Ba
 import { Leaf, Users, Map, DollarSign, Download, Filter } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-const GENDER_COLORS = ['#ec4899', '#3b82f6', '#9ca3af'];
+const GENDER_COLORS = ['#3b82f6', '#ec4899', '#9ca3af'];
 
 const BoardDashboard = () => {
     const [data, setData] = useState(null);
@@ -157,6 +157,34 @@ const BoardDashboard = () => {
                     ) : (
                         <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <p style={{ color: 'var(--text-muted)' }}>Data pekerja belum tersedia.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Chart 3: Sosial (Demografi Usia Pekerja) */}
+                <div style={{ background: 'var(--surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-muted)', boxShadow: 'var(--shadow-sm)' }}>
+                    <h3 style={{ fontSize: '18px', margin: '0 0 20px 0', fontFamily: 'var(--font-display)', color: 'var(--text-main)' }}>Demografi Usia Pekerja (Sosial)</h3>
+                    {loading ? (
+                        <div className="skeleton-text" style={{ width: '100%', height: '300px' }}></div>
+                    ) : charts?.age_distribution?.length > 0 ? (
+                        <div style={{ height: '300px' }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={charts.age_distribution} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-muted)" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--text-muted)'}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--text-muted)'}} />
+                                    <Tooltip cursor={{fill: 'var(--surface-dim)'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-lg)'}} />
+                                    <Bar dataKey="value" name="Jumlah Orang" radius={[4, 4, 0, 0]}>
+                                        {charts.age_distribution.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    ) : (
+                        <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <p style={{ color: 'var(--text-muted)' }}>Data usia pekerja belum tersedia.</p>
                         </div>
                     )}
                 </div>
