@@ -1,18 +1,41 @@
-version: '3.8'
-
 services:
-  db: 
+  db:
     image: postgis/postgis:15-3.4
     container_name: agrivision_db
-    environment: 
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: agrivision
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-password}
+      POSTGRES_DB: ${DB_NAME:-agrivision}
     ports:
-      - "5433:5432" 
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  backend:
+    build: ./backend
+    container_name: agrivision_backend
+    environment:
+      - FLASK_APP=run.py
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASS:-password}@db:5432/${DB_NAME:-agrivision}
+      - JWT_SECRET_KEY=${JWT_SECRET:-agrivision_jwt_secret_key_98765}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - ./backend/uploads:/app/uploads
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: agrivision_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
 volumes:
-  postgres_data:  
+  postgres_data:

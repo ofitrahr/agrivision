@@ -2,7 +2,7 @@ import bcrypt
 import string
 import random
 from app.db.database import db
-from app.db.models import Company, User, Farm, Batch, CompanyPermission
+from app.db.models import Company, User, Farm, Batch, ProjectPermission, Project
 
 def get_dashboard_stats():
     total_companies = Company.query.count() 
@@ -45,16 +45,13 @@ def create_company(data):
             name = data.get('name'),
             description = data.get('description'),
             address = data.get('address'),
-            subscription_plan = data.get('subscription_plan', 'Starter'),
+            subscription_plan = data.get('subscription_plan', 'Basic'),
             max_farms = data.get('max_farms'),
             max_users = data.get('max_users'),
             branding_color = data.get('branding_color', '#2D6A4F')
         )
         db.session.add(new_company)
         db.session.flush() # Menyimpan sementara untuk mendapatkan new_company.id
-
-        default_permissions = CompanyPermission(company_id=new_company.id)
-        db.session.add(default_permissions)
 
         db.session.commit()
         return {"success": True, "messages": "Company berhasil dibuat", "data": {"id": str(new_company.id)}}
@@ -90,11 +87,15 @@ def update_company(company_id, data):
     
 
 def get_company_users(company_id):
-    users = User.query.filter_by(company_id=company_id).all()
+    # Mengambil semua user yang terdaftar di project-project milik company ini
+    users = User.query.join(Project).filter(Project.company_id == company_id).all()
+    
     result = []
     for u in users:
         result.append({
             "id": str(u.id),
+            "project_id": str(u.project_id),
+            "project_name": u.project.name if u.project else "-",
             "username": u.username,
             "full_name": u.full_name,
             "phone": u.phone,
@@ -110,7 +111,18 @@ def create_company_user(company_id, data):
         if not company:
             return {"success": False, "message": "Company tidak ditemukan"}
             
-        current_users_count = User.query.filter_by(company_id=company_id).count()
+        # 1. Pastikan project_id dikirim dari frontend
+        project_id = data.get('project_id')
+        if not project_id:
+            return {"success": False, "message": "Pilih Project terlebih dahulu untuk user ini"}
+            
+        # 2. Cek apakah project valid dan milik company ini
+        project = Project.query.filter_by(id=project_id, company_id=company_id).first()
+        if not project:
+            return {"success": False, "message": "Project tidak valid atau bukan milik company ini"}
+            
+        # 3. Cek batasan kuota user per company
+        current_users_count = User.query.join(Project).filter(Project.company_id == company_id).count()
         if current_users_count >= company.max_users:
             return {"success": False, "message": f"Kuota penuh. Maksimal {company.max_users} user."}
             
@@ -129,8 +141,9 @@ def create_company_user(company_id, data):
         salt = bcrypt.gensalt()
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
             
+        # 4. Simpan ke Database dengan project_id
         new_user = User(
-            company_id=company_id,
+            project_id=project_id, 
             username=data.get('username'),
             full_name=data.get('full_name'),
             phone=data.get('phone'),
@@ -165,8 +178,84 @@ def reset_user_password(user_id, data):
         return {
             "success": True, 
             "message": "Password berhasil direset", 
-            "data": {"new_password": new_password} # Password baru dikirimkan sebagai response agar Admin bisa melihatnya
+            "data": {"new_password": new_password} 
         }
     except Exception as e:
         db.session.rollback()
         return {"success": False, "message": f"Gagal mereset password: {str(e)}"}
+
+def update_user(user_id, data):
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return {"success": False, "message": "User tidak ditemukan"}
+            
+        user.username = data.get('username', user.username)
+        user.full_name = data.get('full_name', user.full_name)
+        user.phone = data.get('phone', user.phone)
+        user.role = data.get('role', user.role)
+        
+        if 'project_id' in data:
+            user.project_id = data['project_id']
+            
+        db.session.commit()
+        return {"success": True, "message": "User berhasil diupdate"}
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": f"Gagal mengupdate user: {str(e)}"}
+
+def delete_user(user_id):
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return {"success": False, "message": "User tidak ditemukan"}
+            
+        db.session.delete(user)
+        db.session.commit()
+        return {"success": True, "message": "User berhasil dihapus"}
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": f"Gagal menghapus user: {str(e)}"}
+
+def get_company_projects(company_id):
+    project = Project.query.filter_by(company_id = company_id).order_by(Project.created_at.desc()).all()
+    result = []
+    for p in project:
+        result.append({
+            "id": str(p.id),
+            "company_id": str(p.company_id),
+            "name": p.name,
+            "description": p.description,
+            "location": p.location,
+            "created_at": p.created_at.isoformat() if p.created_at  else None
+        })
+    return {"success": True, "data": result}
+
+def create_project(company_id, data):
+    try:
+        company = Company.query.get(company_id)
+        if not company:
+            return {"success": False, "message": "Company tidak ditemukan"}
+
+        new_project = Project(
+            company_id = company_id,
+            name = data.get('name'),
+            description = data.get('description'),
+            location = data.get('location')
+        )
+
+        db.session.add(new_project)
+        db.session.flush()
+
+        default_permissions = ProjectPermission(project_id=new_project.id)
+        db.session.add(default_permissions)
+
+        db.session.commit()
+        return {"success": True, "message": "Project berhasil dibuat", "data": {"id": str(new_project.id)}}
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": f"Gagal membuat project: {str(e)}"}    
+
+        
+
+        

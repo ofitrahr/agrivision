@@ -6,16 +6,18 @@ import TraceabilityDashboard from './pages/public/TraceabilityDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/auth/Login';
 import CompanyList from './pages/admin/CompanyList';
+import ProjectList from './pages/admin/ProjectList';
 import CompanyUsers from './pages/admin/CompanyUsers';
 import CompanyPermissions from './pages/admin/CompanyPermissions';
-import GlobalGIS from './pages/admin/GlobalGIS';
+import GIS from './pages/admin/GIS';
 import AdminTraceability from './pages/admin/AdminTraceability';
 
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import ManagerProfile from './pages/manager/ManagerProfile';
 import ManagerFarmers from './pages/manager/ManagerFarmers';
-import ManagerGIS from './pages/manager/ManagerGIS';
+
 import ManagerAgronomy from './pages/manager/ManagerAgronomy';
+import ManagerFarmManagement from './pages/manager/ManagerFarmManagement';
 import ManagerEconomics from './pages/manager/ManagerEconomics';
 import ManagerTraceability from './pages/manager/ManagerTraceability';
 
@@ -34,10 +36,13 @@ function App() {
             <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/companies" element={<CompanyList />} />
+            <Route path="/admin/companies/:companyId/projects" element={<ProjectList />} />
             <Route path="/admin/companies/:companyId/users" element={<CompanyUsers />} />
-            <Route path="/admin/companies/:companyId/permissions" element={<CompanyPermissions />} />
-            <Route path="/admin/gis" element={<GlobalGIS />} />
+            <Route path="/admin/projects/:projectId/permissions" element={<CompanyPermissions />} />
+            <Route path="/admin/gis" element={<GIS />} />
             <Route path="/admin/traceability" element={<AdminTraceability />} />
+
+
         </Route>
 
         {/* Rute Manager Klien */}
@@ -46,7 +51,8 @@ function App() {
             <Route path="/manager/dashboard" element={<ManagerDashboard />} />
             <Route path="/manager/profile" element={<ManagerProfile />} />
             <Route path="/manager/farmers" element={<ManagerFarmers />} />
-            <Route path="/manager/gis" element={<ManagerGIS />} />
+
+            <Route path="/manager/farm-management" element={<ManagerFarmManagement />} />
             <Route path="/manager/agronomy" element={<ManagerAgronomy />} />
             <Route path="/manager/economics" element={<ManagerEconomics />} />
             <Route path="/manager/traceability" element={<ManagerTraceability />} />

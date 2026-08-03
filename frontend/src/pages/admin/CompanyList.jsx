@@ -9,7 +9,7 @@ const CompanyList = () => {
     const [modalMode, setModalMode] = useState('add'); // 'add' atau 'edit'
     
     const initialForm = {
-        name: '', description: '', address: '', subscription_plan: 'Starter',
+        name: '', description: '', address: '', subscription_plan: 'Basic',
         max_farms: 5, max_users: 10, branding_color: '#2D6A4F', is_active: true
     };
     const [formData, setFormData] = useState(initialForm);
@@ -126,8 +126,8 @@ const CompanyList = () => {
                                     </td>
                                     <td style={{ display: 'flex', gap: '8px' }}>
                                         <button className="action-btn edit-btn" onClick={() => openModal('edit', company)}>Edit</button>
+                                        <button className="action-btn view-btn" onClick={() => navigate(`/admin/companies/${company.id}/projects`)}>Projects</button>
                                         <button className="action-btn view-btn" onClick={() => navigate(`/admin/companies/${company.id}/users`)}>Users</button>
-                                        <button className="action-btn primary-btn" onClick={() => navigate(`/admin/companies/${company.id}/permissions`)} style={{ padding: '6px 12px', fontSize: '12px' }}>Modul SaaS</button>
                                     </td>
                                 </tr>
                             ))
@@ -154,7 +154,7 @@ const CompanyList = () => {
                                 <div className="form-group" style={{ flex: 1 }}>
                                     <label>Paket (Plan)</label>
                                     <select name="subscription_plan" value={formData.subscription_plan} onChange={handleInputChange}>
-                                        <option value="Starter">Starter</option>
+                                        <option value="Basic">Basic</option>
                                         <option value="Professional">Professional</option>
                                         <option value="Enterprise">Enterprise</option>
                                     </select>

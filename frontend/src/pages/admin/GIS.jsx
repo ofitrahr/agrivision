@@ -1,9 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Map } from 'lucide-react';
+import { Plus, Map, Leaf, Maximize, Calendar, Sprout } from 'lucide-react';
 
-const GlobalGIS = () => {
+const FarmMapThumbnail = ({ farmId }) => {
+    const [mapHtml, setMapHtml] = useState(null);
+
+    useEffect(() => {
+        api.get(`/admin/farms/${farmId}/map?thumbnail=true`).then(res => {
+            if (res.data.success) {
+                setMapHtml(res.data.data.html);
+            }
+        }).catch(() => {
+            // ignore error for thumbnails
+        });
+    }, [farmId]);
+
+    if (!mapHtml) {
+        return (
+            <div style={{ height: '100%', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
+                <Map size={48} opacity={0.5} />
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ height: '100%', width: '100%', pointerEvents: 'none' }}>
+            <iframe 
+                srcDoc={mapHtml} 
+                style={{ width: '100%', height: '100%', border: 'none' }} 
+                title={`Map-${farmId}`} 
+                scrolling="no"
+            />
+        </div>
+    );
+};
+
+const GIS = () => {
     // State for grid view
     const [farms, setFarms] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -189,7 +222,7 @@ const GlobalGIS = () => {
             <div className="grid-cards" style={{ display: 'flex', gap: '20px', marginBottom: '30px' }}>
                 <div className="stat-card" style={{ flex: 1, padding: '20px', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
                     <h3 style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: '#10b981' }}>🌿</span> Total Farms
+                        <Leaf size={16} color="#10b981" /> Total Farms
                     </h3>
                     {loading ? (
                         <div className="skeleton-text" style={{ width: '60px', height: '30px' }}></div>
@@ -209,7 +242,7 @@ const GlobalGIS = () => {
                 </div>
                 <div className="stat-card" style={{ flex: 1, padding: '20px', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
                     <h3 style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ color: '#10b981' }}>🌾</span> Total Crops
+                        <Sprout size={16} color="#10b981" /> Total Crops
                     </h3>
                     {loading ? (
                         <div className="skeleton-text" style={{ width: '60px', height: '30px' }}></div>
@@ -229,26 +262,28 @@ const GlobalGIS = () => {
                     <div style={{ padding: '20px', color: '#6b7280', background: 'white', borderRadius: '8px' }}>Belum ada lahan terdaftar.</div>
                 ) : (
                     farms.map((farm) => (
-                        <div key={farm.id} onClick={() => navigate(`/admin/farms/${farm.id}/blocks`)} style={{ cursor: 'pointer', background: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'transform 0.2s', ':hover': { transform: 'translateY(-2px)' } }}>
-                            <div style={{ height: '150px', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>
-                                {/* Map Thumbnail Placeholder */}
-                                <Map size={48} opacity={0.5} />
+                        <div key={farm.id} onClick={() => alert("Lahan ini memiliki " + farm.total_area_ha + " ha.")} style={{ cursor: 'pointer', background: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'transform 0.2s', ':hover': { transform: 'translateY(-2px)' } }}>
+                            <div style={{ height: '150px', background: '#374151', overflow: 'hidden' }}>
+                                <FarmMapThumbnail farmId={farm.id} />
                             </div>
                             <div style={{ padding: '15px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                                     <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#111827' }}>
-                                        <span style={{ color: '#fbbf24', marginRight: '5px' }}>{farm.name}</span> 
+                                        {farm.name}
                                     </h3>
                                 </div>
                                 <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 15px 0' }}>Project: {farm.project_name}</p>
                                 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#4b5563', marginBottom: '8px' }}>
-                                    <span><span style={{color: '#10b981'}}>⛶</span> {farm.total_area_ha} ha</span>
-                                    <span>{farm.blocks_count} Blok</span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                        <Maximize size={14} color="#10b981" /> {farm.total_area_ha} ha
+                                    </span>
                                 </div>
                                 <div style={{ fontSize: '13px', color: '#4b5563', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                    <span style={{color: '#10b981'}}>🌿</span> {farm.crop_variety || 'Belum di set'}
+                                    <Leaf size={14} color="#10b981" /> {farm.crop_variety || 'Belum di set'}
                                 </div>
+                                
+
                             </div>
                         </div>
                     ))
@@ -258,4 +293,4 @@ const GlobalGIS = () => {
     );
 };
 
-export default GlobalGIS;
+export default GIS;

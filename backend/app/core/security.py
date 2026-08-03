@@ -12,7 +12,6 @@ def token_required(f):
             if auth_header.startswith('Bearer '):
                 token = auth_header.split(" ")[1]
         
-        # Fallback to query parameter for iframe / SSE support
         if not token and 'token' in request.args:
             token = request.args.get('token')
         

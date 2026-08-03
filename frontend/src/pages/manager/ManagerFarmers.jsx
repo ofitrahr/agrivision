@@ -16,7 +16,7 @@ const ManagerFarmers = () => {
     const [showForm, setShowForm] = useState(false);
 
     const navigate = useNavigate();
-    const baseURL = "http://localhost:8000";
+    const baseURL = window.location.origin;
 
     const fetchFarmers = async () => {
         setLoading(true);

@@ -3,7 +3,7 @@ import api from '../../shared/api/axios';
 import { useParams, useNavigate } from 'react-router-dom';
 
 const CompanyPermissions = () => {
-    const { companyId } = useParams();
+    const { projectId } = useParams();
     const navigate = useNavigate();
     const [permissions, setPermissions] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -11,11 +11,11 @@ const CompanyPermissions = () => {
 
     useEffect(() => {
         fetchPermissions();
-    }, [companyId]);
+    }, [projectId]);
 
     const fetchPermissions = async () => {
         try {
-            const response = await api.get(`/admin/companies/${companyId}/permissions`);
+            const response = await api.get(`/admin/projects/${projectId}/permissions`);
             if (response.data.success) {
                 setPermissions(response.data.data);
             }
@@ -33,10 +33,10 @@ const CompanyPermissions = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const response = await api.put(`/admin/companies/${companyId}/permissions`, permissions);
+            const response = await api.put(`/admin/projects/${projectId}/permissions`, permissions);
             if (response.data.success) {
                 alert('Konfigurasi modul berhasil disimpan!');
-                navigate('/admin/companies');
+                navigate('/admin/companies'); // atau bisa navigate ke previous page (-1)
             }
         } catch (error) {
             alert('Gagal menyimpan konfigurasi');
@@ -61,9 +61,9 @@ const CompanyPermissions = () => {
 
     return (
         <div style={{ padding: '30px', maxWidth: '800px', margin: '0 auto' }}>
-            <button className="action-btn view-btn" onClick={() => navigate('/admin/companies')} style={{ marginBottom: '20px' }}> Kembali</button>
-            <h1 style={{ color: '#1B4332' }}>Konfigurasi Modul & Langganan SaaS</h1>
-            <p style={{ color: '#6b7280', marginBottom: '30px' }}>Atur fitur-fitur apa saja yang dapat diakses oleh manajer pada perusahaan klien ini.</p>
+            <button className="action-btn view-btn" onClick={() => navigate(-1)} style={{ marginBottom: '20px' }}> Kembali</button>
+            <h1 style={{ color: '#1B4332' }}>Konfigurasi Modul & Langganan SaaS Project</h1>
+            <p style={{ color: '#6b7280', marginBottom: '30px' }}>Atur fitur-fitur apa saja yang dapat diakses oleh manajer pada project ini.</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div>

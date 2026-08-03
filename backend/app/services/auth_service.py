@@ -16,7 +16,8 @@ def authenticate_user(username, password):
     if bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
         payload = {
             'user-id': str(user.id),
-            'company_id': str(user.company_id) if user.company_id else None,
+            'project_id': str(user.project_id) if user.project_id else None,
+            'company_id': str(user.project.company_id) if user.project_id and user.project else None,
             'username': user.username,
             'role': user.role,
             'exp': datetime.utcnow() + timedelta(days=1)

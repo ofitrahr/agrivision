@@ -17,7 +17,7 @@ cleanup() {
 trap cleanup SIGINT SIGTERM EXIT
 
 # =========================
-# Backend
+# Backend (Python)
 # =========================
 if [ -d "backend" ]; then
     echo "==== MENGINSTAL DEPENDENSI BACKEND ===="
@@ -25,20 +25,25 @@ if [ -d "backend" ]; then
     (
         cd backend || exit 1
 
-        if [ -f package-lock.json ]; then
-            npm ci
-        else
-            npm install
+        # Aktifkan virtual environment jika ada
+        if [ -f "venv/bin/activate" ]; then
+            source venv/bin/activate
+        fi
+
+        # Instal dependensi Python
+        if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
         fi
 
         echo "==== MENJALANKAN BACKEND ===="
-        npm run dev
+        # Ganti main.py / app.py sesuai entry point backend Anda (misal: uvicorn, flask, dsb)
+        python run.py
     ) &
     BACKEND_PID=$!
 fi
 
 # =========================
-# Frontend
+# Frontend (Node.js)
 # =========================
 if [ -d "frontend" ]; then
     echo "==== MENGINSTAL DEPENDENSI FRONTEND ===="

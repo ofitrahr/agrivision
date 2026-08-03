@@ -5,12 +5,17 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Ba
 import { Leaf, Users, Map, DollarSign, Download, Filter } from 'lucide-react';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
-const GENDER_COLORS = ['#3b82f6', '#ec4899', '#9ca3af'];
+const GENDER_COLORS = ['#ec4899', '#3b82f6', '#9ca3af'];
 
 const BoardDashboard = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+
+    const formatCurrency = (value) => {
+        if (!value) return 'Rp 0';
+        return `Rp ${value.toLocaleString('id-ID')}`;
+    };
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -93,7 +98,7 @@ const BoardDashboard = () => {
                     {loading ? (
                         <div className="skeleton-text" style={{ width: '120px', height: '40px', marginTop: '12px' }}></div>
                     ) : (
-                        <p className="stat-value">Rp {metrics?.total_profit ? metrics.total_profit.toLocaleString('id-ID') : '0'}</p>
+                        <p className="stat-value">{formatCurrency(metrics?.total_profit)}</p>
                     )}
                 </div>
             </div>
@@ -103,7 +108,7 @@ const BoardDashboard = () => {
                 
                 {/* Chart 1: Ekologi (Distribusi Lahan) */}
                 <div style={{ background: 'var(--surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-muted)', boxShadow: 'var(--shadow-sm)' }}>
-                    <h3 style={{ fontSize: '18px', margin: '0 0 20px 0', fontFamily: 'var(--font-display)', color: 'var(--text-main)' }}>Distribusi Komoditas (Ekologi)</h3>
+                    <h3 style={{ fontSize: '18px', margin: '0 0 20px 0', fontFamily: 'var(--font-display)', color: 'var(--text-main)' }}>Biodiversity (Ekologi)</h3>
                     {loading ? (
                         <div className="skeleton-text" style={{ width: '100%', height: '300px' }}></div>
                     ) : charts?.crop_distribution?.length > 0 ? (
