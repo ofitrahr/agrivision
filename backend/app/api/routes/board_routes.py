@@ -17,11 +17,16 @@ def get_dashboard_summary(current_user):
     try:
         # Metrik Utama
         from app.db.models import Project
-        farms_count = Farm.query.join(Project).filter(Project.company_id == company_id).count()
-        farmers_count = Farmer.query.filter_by(company_id=company_id).count()
+        project_id = current_user.project_id
         
-        farms = Farm.query.join(Project).filter(Project.company_id == company_id).all()
+        farms_count = Farm.query.filter_by(project_id=project_id).count()
+        
+        farms = Farm.query.filter_by(project_id=project_id).all()
         total_area = sum([float(f.total_area_ha) for f in farms if f.total_area_ha])
+        
+        # Ambil data farmer yang ditugaskan ke farm dalam project ini
+        farmers = Farmer.query.join(Farmer.farms).filter(Farm.project_id == project_id).distinct().all()
+        farmers_count = len(farmers)
         
         # Distribusi Jenis Tanaman 
         crop_distribution = {}
@@ -41,8 +46,7 @@ def get_dashboard_summary(current_user):
                 
         crop_chart_data = [{"name": k, "value": round(v, 2)} for k, v in crop_distribution.items()]
         
-        # Demografi Pekerja 
-        farmers = Farmer.query.filter_by(company_id=company_id).all()
+        # Demografi Pekerja (Gender)
         gender_dist = {"Laki-laki": 0, "Perempuan": 0, "Tidak Diketahui": 0}
         for f in farmers:
             g = f.gender if f.gender else "Tidak Diketahui"
@@ -53,8 +57,25 @@ def get_dashboard_summary(current_user):
                 
         gender_chart_data = [{"name": k, "value": v} for k, v in gender_dist.items() if v > 0]
         
+        # Demografi Pekerja (Usia)
+        age_dist = {"<20 Tahun": 0, "20-30 Tahun": 0, "31-40 Tahun": 0, "41-50 Tahun": 0, ">50 Tahun": 0, "Tidak Diketahui": 0}
+        for f in farmers:
+            if not f.age:
+                age_dist["Tidak Diketahui"] += 1
+            elif f.age < 20:
+                age_dist["<20 Tahun"] += 1
+            elif f.age <= 30:
+                age_dist["20-30 Tahun"] += 1
+            elif f.age <= 40:
+                age_dist["31-40 Tahun"] += 1
+            elif f.age <= 50:
+                age_dist["41-50 Tahun"] += 1
+            else:
+                age_dist[">50 Tahun"] += 1
+        age_chart_data = [{"name": k, "value": v} for k, v in age_dist.items() if v > 0]
+        
         # Agregasi Data Ekonomi 
-        fin_records = FinancialRecord.query.filter_by(company_id=company_id).all()
+        fin_records = FinancialRecord.query.join(Farm).filter(Farm.project_id == project_id).all()
         total_revenue = sum([float(r.estimated_revenue) for r in fin_records if r.estimated_revenue])
         total_cost = sum([float(r.operational_cost) for r in fin_records if r.operational_cost])
         total_profit = total_revenue - total_cost
@@ -88,6 +109,7 @@ def get_dashboard_summary(current_user):
                 'charts': {
                     'crop_distribution': crop_chart_data,
                     'gender_distribution': gender_chart_data,
+                    'age_distribution': age_chart_data,
                     'financial_trends': financial_chart_data
                 }
             }

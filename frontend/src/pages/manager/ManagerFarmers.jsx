@@ -6,9 +6,10 @@ const ManagerFarmers = () => {
     const [farmers, setFarmers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [editId, setEditId] = useState(null);
     const fileInputRef = useRef(null);
     
-    // State untuk form tambah petani
+    // State untuk form tambah/edit petani
     const [formData, setFormData] = useState({ 
         name: '', phone: '', photo: null,
         gender: 'Laki-laki', age: '', join_year: '', farm_info: ''
@@ -16,7 +17,7 @@ const ManagerFarmers = () => {
     const [showForm, setShowForm] = useState(false);
 
     const navigate = useNavigate();
-    const baseURL = window.location.origin;
+    const baseURL = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/api\/?$/, '') : window.location.origin;
 
     const fetchFarmers = async () => {
         setLoading(true);
@@ -52,22 +53,38 @@ const ManagerFarmers = () => {
                 data.append('photo', formData.photo);
             }
 
-            const response = await api.post('/manager/farmers', data, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const response = editId 
+                ? await api.put(`/manager/farmers/${editId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } })
+                : await api.post('/manager/farmers', data, { headers: { 'Content-Type': 'multipart/form-data' } });
 
             if (response.data.success) {
-                alert('Petani berhasil ditambahkan!');
+                alert(`Pekerja berhasil ${editId ? 'diperbarui' : 'ditambahkan'}!`);
                 setFormData({ name: '', phone: '', photo: null, gender: 'Laki-laki', age: '', join_year: '', farm_info: '' });
+                setEditId(null);
                 if (fileInputRef.current) fileInputRef.current.value = "";
                 setShowForm(false);
                 fetchFarmers(); // Refresh list
             }
         } catch (error) {
-            alert(error.response?.data?.message || 'Gagal menambah petani');
+            alert(error.response?.data?.message || 'Gagal menyimpan data pekerja');
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleEdit = (farmer) => {
+        setEditId(farmer.id);
+        setFormData({
+            name: farmer.name || '',
+            phone: farmer.phone || '',
+            photo: null,
+            gender: farmer.gender || 'Laki-laki',
+            age: farmer.age || '',
+            join_year: farmer.join_year || '',
+            farm_info: farmer.farm_info || ''
+        });
+        setShowForm(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleDelete = async (id) => {
@@ -93,15 +110,23 @@ const ManagerFarmers = () => {
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h1 style={{ color: '#1B4332' }}>Daftar Petani (Pekerja)</h1>
-                <button className="primary-btn" onClick={() => setShowForm(!showForm)}>
-                    {showForm ? 'Batal Tambah' : '+ Tambah Pekerja Baru'}
+                <button className="primary-btn" onClick={() => {
+                    if (showForm) {
+                        setShowForm(false);
+                        setEditId(null);
+                        setFormData({ name: '', phone: '', photo: null, gender: 'Laki-laki', age: '', join_year: '', farm_info: '' });
+                    } else {
+                        setShowForm(true);
+                    }
+                }}>
+                    {showForm ? 'Batal' : '+ Tambah Pekerja Baru'}
                 </button>
             </div>
 
-            {/* Form Tambah Petani */}
+            {/* Form Tambah/Edit Petani */}
             {showForm && (
                 <div style={{ background: '#f9fafb', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e5e7eb' }}>
-                    <h3 style={{ marginTop: 0, color: '#374151' }}>Form Data Pekerja Baru</h3>
+                    <h3 style={{ marginTop: 0, color: '#374151' }}>{editId ? 'Edit Data Pekerja' : 'Form Data Pekerja Baru'}</h3>
                         <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Nama Lengkap *</label>
@@ -135,6 +160,7 @@ const ManagerFarmers = () => {
                                 <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Foto Wajah</label>
                                 <input type="file" accept="image/*" ref={fileInputRef} style={{ width: '100%', padding: '8px' }} 
                                     onChange={e => setFormData({...formData, photo: e.target.files[0]})} />
+                                {editId && <small style={{ color: '#6b7280' }}>Kosongkan jika tidak ingin mengubah foto</small>}
                             </div>
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Info Pertanian Tambahan</label>
@@ -144,7 +170,7 @@ const ManagerFarmers = () => {
                             
                             <div style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
                                 <button type="submit" className="primary-btn" style={{ width: '100%' }} disabled={saving}>
-                                    {saving ? 'Menyimpan...' : 'Simpan Pekerja'}
+                                    {saving ? 'Menyimpan...' : (editId ? 'Update Pekerja' : 'Simpan Pekerja')}
                                 </button>
                             </div>
                         </form>
@@ -160,11 +186,18 @@ const ManagerFarmers = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
                     {farmers.map(farmer => (
                         <div key={farmer.id} style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative' }}>
-                            <button 
-                                onClick={() => handleDelete(farmer.id)}
-                                style={{ position: 'absolute', top: '10px', right: '10px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '50%', width: '25px', height: '25px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-                                title="Hapus Pekerja"
-                            ></button>
+                            <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '5px' }}>
+                                <button 
+                                    onClick={() => handleEdit(farmer)}
+                                    style={{ background: '#fef3c7', color: '#d97706', border: 'none', borderRadius: '50%', width: '25px', height: '25px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                                    title="Edit Pekerja"
+                                >✎</button>
+                                <button 
+                                    onClick={() => handleDelete(farmer.id)}
+                                    style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '50%', width: '25px', height: '25px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                                    title="Hapus Pekerja"
+                                >✖</button>
+                            </div>
                             
                             <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#e5e7eb', marginBottom: '15px', overflow: 'hidden' }}>
                                 {farmer.photo_url ? (
@@ -175,6 +208,7 @@ const ManagerFarmers = () => {
                             </div>
                             <h3 style={{ margin: '0 0 5px 0', color: '#1f2937' }}>{farmer.name}</h3>
                             <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>{farmer.phone || 'Tidak ada no. telp'}</p>
+                            <p style={{ margin: '5px 0 0 0', color: '#4b5563', fontSize: '12px' }}>{farmer.gender} {farmer.age ? `• ${farmer.age} th` : ''}</p>
                         </div>
                     ))}
                 </div>

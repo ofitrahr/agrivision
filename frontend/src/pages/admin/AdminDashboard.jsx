@@ -75,11 +75,27 @@ const AdminDashboard = () => {
                     )}
                 </div>
                 <div className="stat-card">
+                    <h3>Total Project</h3>
+                    {loading ? (
+                        <div className="skeleton-text" style={{ width: '60px', height: '40px', marginTop: '12px' }}></div>
+                    ) : (
+                        <p className="stat-value">{stats?.total_projects || 0}</p>
+                    )}
+                </div>
+                <div className="stat-card">
                     <h3>Total Lahan (Farms)</h3>
                     {loading ? (
                         <div className="skeleton-text" style={{ width: '60px', height: '40px', marginTop: '12px' }}></div>
                     ) : (
                         <p className="stat-value">{stats?.total_farms || 0}</p>
+                    )}
+                </div>
+                <div className="stat-card">
+                    <h3>Total Luas Area (Ha)</h3>
+                    {loading ? (
+                        <div className="skeleton-text" style={{ width: '60px', height: '40px', marginTop: '12px' }}></div>
+                    ) : (
+                        <p className="stat-value">{stats?.total_area_ha || 0}</p>
                     )}
                 </div>
                 <div className="stat-card">

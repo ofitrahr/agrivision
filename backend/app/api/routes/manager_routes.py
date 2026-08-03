@@ -123,6 +123,19 @@ def manager_farmers(current_user):
         if not name:
             return jsonify({'success': False, 'message': 'Nama petani wajib diisi'}), 400
             
+        # Cek Redundansi Data
+        if phone:
+            existing_phone = Farmer.query.filter_by(company_id=company_id, phone=phone).first()
+            if existing_phone:
+                return jsonify({'success': False, 'message': f'Petani dengan nomor telepon {phone} sudah terdaftar'}), 400
+        else:
+            existing_name = Farmer.query.filter(
+                Farmer.company_id == company_id,
+                db.func.lower(Farmer.name) == name.lower().strip()
+            ).first()
+            if existing_name:
+                return jsonify({'success': False, 'message': f'Petani dengan nama "{name}" sudah terdaftar'}), 400
+            
         photo_url = None
         if 'photo' in request.files:
             file = request.files['photo']
@@ -131,8 +144,8 @@ def manager_farmers(current_user):
                 
         new_farmer = Farmer(
             company_id=company_id,
-            name=name,
-            phone=phone,
+            name=name.strip(),
+            phone=phone if phone else None,
             photo_url=photo_url,
             gender=gender,
             age=int(age) if age else None,
@@ -143,6 +156,49 @@ def manager_farmers(current_user):
         db.session.commit()
         
         return jsonify({'success': True, 'message': 'Petani berhasil ditambahkan'}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@manager_bp.route('/farmers/<farmer_id>', methods=['PUT'])
+@token_required
+@role_required('manager')
+def edit_farmer(current_user, farmer_id):
+    project = current_user.project
+    company_id = project.company_id if project else None
+    farmer = Farmer.query.filter_by(id=farmer_id, company_id=company_id).first()
+    if not farmer:
+        return jsonify({'success': False, 'message': 'Petani tidak ditemukan'}), 404
+        
+    try:
+        data = request.form
+        
+        if 'name' in data:
+            farmer.name = data['name'].strip()
+        if 'phone' in data:
+            new_phone = data['phone'].strip()
+            if new_phone and new_phone != farmer.phone:
+                existing_phone = Farmer.query.filter_by(company_id=company_id, phone=new_phone).first()
+                if existing_phone:
+                    return jsonify({'success': False, 'message': f'Nomor telepon {new_phone} sudah digunakan oleh petani lain'}), 400
+            farmer.phone = new_phone if new_phone else None
+        if 'gender' in data:
+            farmer.gender = data['gender']
+        if 'age' in data and data['age']:
+            farmer.age = int(data['age'])
+        if 'join_year' in data and data['join_year']:
+            farmer.join_year = int(data['join_year'])
+        if 'farm_info' in data:
+            farmer.farm_info = data['farm_info']
+            
+        if 'photo' in request.files:
+            file = request.files['photo']
+            if file.filename != '':
+                photo_url = save_file_locally(file, subfolder='farmers')
+                farmer.photo_url = photo_url
+                
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Petani berhasil diperbarui'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500

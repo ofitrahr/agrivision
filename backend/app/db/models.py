@@ -121,11 +121,13 @@ class FarmCrop(db.Model):
 
 class Farmer(db.Model):
     __tablename__ = 'farmers'
+    __table_args__ = (
+        db.UniqueConstraint('company_id', 'phone', name='uq_company_farmer_phone'),
+    )
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='CASCADE'), nullable=False)
     name = db.Column(db.String(255), nullable=False)
-    nik = db.Column(db.String(20), unique=True)
     address = db.Column(db.Text)
     phone = db.Column(db.String(20))
     photo_url = db.Column(db.Text)
