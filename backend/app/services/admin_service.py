@@ -178,11 +178,44 @@ def reset_user_password(user_id, data):
         return {
             "success": True, 
             "message": "Password berhasil direset", 
-            "data": {"new_password": new_password} # Password baru dikirimkan sebagai response agar Admin bisa melihatnya
+            "data": {"new_password": new_password} 
         }
     except Exception as e:
         db.session.rollback()
         return {"success": False, "message": f"Gagal mereset password: {str(e)}"}
+
+def update_user(user_id, data):
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return {"success": False, "message": "User tidak ditemukan"}
+            
+        user.username = data.get('username', user.username)
+        user.full_name = data.get('full_name', user.full_name)
+        user.phone = data.get('phone', user.phone)
+        user.role = data.get('role', user.role)
+        
+        if 'project_id' in data:
+            user.project_id = data['project_id']
+            
+        db.session.commit()
+        return {"success": True, "message": "User berhasil diupdate"}
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": f"Gagal mengupdate user: {str(e)}"}
+
+def delete_user(user_id):
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return {"success": False, "message": "User tidak ditemukan"}
+            
+        db.session.delete(user)
+        db.session.commit()
+        return {"success": True, "message": "User berhasil dihapus"}
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": f"Gagal menghapus user: {str(e)}"}
 
 def get_company_projects(company_id):
     project = Project.query.filter_by(company_id = company_id).order_by(Project.created_at.desc()).all()

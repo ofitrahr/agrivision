@@ -10,7 +10,8 @@ board_bp = Blueprint('board_bp', __name__)
 @token_required
 @role_required('board')
 def get_dashboard_summary(current_user):
-    company_id = current_user.company_id
+    project = current_user.project
+    company_id = project.company_id if project else None
     from app.db.models import FinancialRecord
     
     try:
@@ -29,7 +30,6 @@ def get_dashboard_summary(current_user):
             if not crops:
                 continue
             
-            # Divide area equally among crops (simplified calculation)
             area_per_crop = (float(f.total_area_ha) if f.total_area_ha else 0) / len(crops)
             
             for c in crops:

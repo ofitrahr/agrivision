@@ -158,13 +158,33 @@ def add_company_user(current_user, company_id):
 @token_required
 @role_required('super_admin')
 def reset_password(current_user, user_id):
-    # Pakai or {} agar tidak error kalau request bodynya kosong
     data = request.get_json(silent=True) or {}
     
     result = reset_user_password(user_id, data)
     status_code = 200 if result.get('success') else 400
     return jsonify(result), status_code
 
+
+@admin_bp.route('/users/<user_id>', methods=['PUT'])
+@token_required
+@role_required('super_admin')
+def edit_user(current_user, user_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "Data body tidak boleh kosong"}), 400
+        
+    result = update_user(user_id, data)
+    status_code = 200 if result.get('success') else 400
+    return jsonify(result), status_code
+
+
+@admin_bp.route('/users/<user_id>', methods=['DELETE'])
+@token_required
+@role_required('super_admin')
+def remove_user(current_user, user_id):
+    result = delete_user(user_id)
+    status_code = 200 if result.get('success') else 400
+    return jsonify(result), status_code
 
 @admin_bp.route('/gis/map', methods=['GET'])
 @token_required
