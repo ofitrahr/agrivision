@@ -125,7 +125,6 @@ class Farmer(db.Model):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='CASCADE'), nullable=False)
     name = db.Column(db.String(255), nullable=False)
-    nik = db.Column(db.String(20), unique=True)
     address = db.Column(db.Text)
     phone = db.Column(db.String(20))
     photo_url = db.Column(db.Text)
