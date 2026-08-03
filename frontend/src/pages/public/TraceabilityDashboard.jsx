@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import api from '../../shared/api/axios';
 import { Building2, Package, MapPin, Sprout, Leaf, Users, TrendingUp, Trees, BadgeCheck, QrCode } from 'lucide-react';
 
 const MOCK_DATA = {
   batch_number: 'BATCH-2025-001',
   company_name: 'Kadatuan Coffee',
+  project_name: 'Arabica Highland Program',
   commodity: 'Coffee',
   location: 'Aceh Tengah',
   tagline: 'Sustainable Coffee Producer',
@@ -61,29 +61,14 @@ const loadingSkeleton = (
 );
 
 const TraceabilityDashboard = () => {
-  const { batchNumber } = useParams();
-  const [data, setData] = useState(null);
+  const { projectRef } = useParams();
+  const [data] = useState(MOCK_DATA);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await api.get(`/public/trace/${batchNumber}`);
-        if (response.data.success) {
-          setData(response.data.data);
-        } else {
-          console.warn('API returned success=false, using mock data');
-          setData(MOCK_DATA);
-        }
-      } catch (error) {
-        console.warn('API not available, using mock data', error.message);
-        setData(MOCK_DATA);
-      } finally {
-        setTimeout(() => setLoading(false), 600);
-      }
-    };
-    fetchData();
-  }, [batchNumber]);
+    const t = setTimeout(() => setLoading(false), 600);
+    return () => clearTimeout(t);
+  }, [projectRef]);
 
   if (loading) return loadingSkeleton;
   if (!data) return (
@@ -168,10 +153,10 @@ const TraceabilityDashboard = () => {
               letterSpacing: '-0.02em',
               lineHeight: '40px'
             }}>
-              {data.company_name}
+              {data.project_name || data.company_name}
             </h1>
             <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.8)', margin: 0, fontStyle: 'italic' }}>
-              {data.tagline}
+              {data.company_name && data.project_name && data.company_name !== data.project_name ? `${data.company_name} · ` : ''}{data.tagline}
             </p>
           </div>
         </div>
@@ -183,6 +168,19 @@ const TraceabilityDashboard = () => {
           gap: 16,
           marginBottom: 32
         }}>
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #E9ECEF',
+            borderRadius: 12,
+            padding: 16,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#414844' }}>
+              <Sprout size={20} />
+              <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em' }}>Project</span>
+            </div>
+            <p style={{ fontSize: 20, fontWeight: 600, color: '#191c1d', margin: 0 }}>{data.project_name}</p>
+          </div>
           <div style={{
             background: '#ffffff',
             border: '1px solid #E9ECEF',

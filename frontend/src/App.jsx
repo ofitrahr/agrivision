@@ -26,7 +26,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/trace/:batchNumber" element={<TraceabilityDashboard />} />
+        <Route path="/trace/:projectRef" element={<TraceabilityDashboard />} />
         <Route path="/login" element={<Login />} />
         
         {/* Rute Super Admin */}
