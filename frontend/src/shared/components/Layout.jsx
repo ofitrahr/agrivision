@@ -47,12 +47,14 @@ const Sidebar = ({ role, user }) => {
   return (
     <>
       <aside className="sidebar">
-        <div className="sidebar-brand">
-          <div className="sidebar-logo">
-            <img src="/assets/images/logo_icon.png" alt="Agrivision Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          </div>
-          <div>
-            <div className="sidebar-brand-name">Agrivision</div>
+        <div className="sidebar-brand" style={{ justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="sidebar-logo">
+              <img src="/assets/images/logo_icon.png" alt="Agrivision Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+            <div>
+              <div className="sidebar-brand-name">Agrivision</div>
+            </div>
           </div>
         </div>
 
@@ -69,6 +71,8 @@ const Sidebar = ({ role, user }) => {
             </NavLink>
           ))}
         </nav>
+
+
 
         <div className="sidebar-footer">
           <div className="sidebar-user">
@@ -116,59 +120,135 @@ const Sidebar = ({ role, user }) => {
   );
 };
 
-const Header = () => {
-  const { user, logout } = useContext(AuthContext);
+const Header = ({ onToggleSidebar, isSidebarOpen }) => {
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const profilePath = user?.role === 'super_admin'
+    ? '/admin/profile'
+    : user?.role === 'manager'
+      ? '/manager/profile-user'
+      : '/board/profile';
+
+  const mockNotifications = [
+    { id: 1, title: 'Sistem Operasional Normal', time: 'Baru saja', icon: 'check_circle', color: '#10b981' },
+    { id: 2, title: 'Pembaruan Data Lahan & Petani', time: '1 jam yang lalu', icon: 'landscape', color: '#3b82f6' },
+    { id: 3, title: 'Laporan Traceability Siap', time: 'Hari ini', icon: 'verified', color: '#f59e0b' },
+  ];
 
   return (
     <>
       <header className="topnav">
-        <div className="search-input-wrap">
-          <span className="material-symbols-outlined">search</span>
-          <input type="text" className="search-input" placeholder="Cari data..." aria-label="Pencarian global" />
-        </div>
-        <div className="topnav-actions">
-          <button className="topnav-icon-btn" title="Notifikasi" aria-label="Notifikasi">
-            <span className="material-symbols-outlined">notifications</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button 
+            className="topnav-toggle-btn"
+            onClick={onToggleSidebar}
+            title={isSidebarOpen ? "Sembunyikan Sidebar" : "Tampilkan Sidebar"}
+            aria-label="Toggle Sidebar"
+          >
+            <span className="material-symbols-outlined">menu</span>
           </button>
-          <button className="topnav-icon-btn" title="Pengaturan" aria-label="Pengaturan">
+          <div className="search-input-wrap">
+            <span className="material-symbols-outlined">search</span>
+            <input type="text" className="search-input" placeholder="Cari data..." aria-label="Pencarian global" />
+          </div>
+        </div>
+        <div className="topnav-actions" style={{ position: 'relative' }}>
+
+
+          {/* Tombol Notifikasi */}
+          <button 
+            className="topnav-icon-btn" 
+            title="Notifikasi" 
+            aria-label="Notifikasi"
+            onClick={() => setShowNotifications(!showNotifications)}
+            style={{ position: 'relative' }}
+          >
+            <span className="material-symbols-outlined">notifications</span>
+            <span style={{
+              position: 'absolute', top: '2px', right: '2px', width: '8px', height: '8px',
+              borderRadius: '50%', background: 'var(--color-main-gold)'
+            }} />
+          </button>
+
+          {/* Tombol Pengaturan */}
+          <button 
+            className="topnav-icon-btn" 
+            title="Pengaturan Akun" 
+            aria-label="Pengaturan"
+            onClick={() => navigate(profilePath)}
+          >
             <span className="material-symbols-outlined">settings</span>
           </button>
-          <div className="topnav-avatar" onClick={() => setShowLogoutModal(true)} title="Logout">
-            {user?.username?.charAt(0).toUpperCase() || 'U'}
+
+          {/* Avatar User -> Ke Profil */}
+          <div 
+            className="topnav-avatar" 
+            onClick={() => navigate(profilePath)} 
+            title="Lihat Profil Akun"
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            {(user?.full_name || user?.user || user?.username || 'U').charAt(0).toUpperCase()}
           </div>
+          {/* Dropdown Notifikasi */}
+          {showNotifications && (
+            <div style={{
+              position: 'absolute', top: '48px', right: '0', width: '320px',
+              background: 'var(--color-surface-white)', border: '1px solid var(--color-border-muted)',
+              borderRadius: 'var(--radius-md)', boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+              zIndex: 100, overflow: 'hidden'
+            }}>
+              <div style={{
+                padding: '12px 16px', borderBottom: '1px solid var(--color-border-muted)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+                <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--color-text-main)' }}>Notifikasi</span>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>3 Baru</span>
+              </div>
+              <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                {mockNotifications.map(n => (
+                  <div key={n.id} style={{
+                    padding: '12px 16px', borderBottom: '1px solid var(--color-surface-container-high)',
+                    display: 'flex', gap: '12px', alignItems: 'flex-start', cursor: 'pointer',
+                    transition: 'background var(--transition)'
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: n.color, marginTop: '2px' }}>{n.icon}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-main)' }}>{n.title}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>{n.time}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ padding: '8px 16px', textAlign: 'center', background: 'var(--color-surface-container-low)' }}>
+                <button 
+                  onClick={() => setShowNotifications(false)}
+                  style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
-
-      {showLogoutModal && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center' }}>
-            <h2 style={{ margin: '0 0 16px 0', color: 'var(--color-primary-container)', fontSize: '20px' }}>Konfirmasi Keluar</h2>
-            <p style={{ margin: '0 0 24px 0', color: 'var(--color-text-muted)' }}>Apakah Anda yakin ingin keluar dari sesi ini?</p>
-            <div className="modal-actions" style={{ justifyContent: 'center' }}>
-              <button className="btn btn-ghost" onClick={() => setShowLogoutModal(false)}>Batal</button>
-              <button className="btn btn-primary" style={{ background: 'var(--color-error)' }} onClick={handleLogout}>Ya, Keluar</button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };
 
 const Layout = () => {
   const { user } = useContext(AuthContext);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(prev => !prev);
+  };
   
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
       <Sidebar role={user?.role || 'guest'} user={user} />
-      <Header />
+      <Header onToggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
       <main className="main-content">
         <Outlet />
       </main>

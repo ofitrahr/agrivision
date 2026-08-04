@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 const ManagerFarmManagement = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const [farmList, setFarmList] = useState([]);
     const [farmId, setFarmId] = useState(null);
     const [farm, setFarm] = useState(null);
     const [allFarmers, setAllFarmers] = useState([]);
@@ -19,18 +20,43 @@ const ManagerFarmManagement = () => {
     const [errorMsg, setErrorMsg] = useState('');
     
     useEffect(() => {
-        const params = new URLSearchParams(location.search);
-        const qFarmId = params.get('farm_id');
-        if (qFarmId) {
-            setFarmId(qFarmId);
-            fetchData(qFarmId);
-        } else {
-            setErrorMsg('ID Lahan tidak ditemukan. Silakan kembali ke Dashboard.');
-        }
+        initFarms();
     }, [location]);
+
+    const initFarms = async () => {
+        setLoading(true);
+        setErrorMsg('');
+        try {
+            const farmsRes = await api.get('/manager/farms');
+            if (farmsRes.data.success) {
+                const farmsData = farmsRes.data.data;
+                setFarmList(farmsData);
+
+                if (farmsData.length === 0) {
+                    setErrorMsg('Belum ada data lahan yang terdaftar di proyek ini.');
+                    setLoading(false);
+                    return;
+                }
+
+                const params = new URLSearchParams(location.search);
+                const qFarmId = params.get('farm_id');
+                
+                const targetId = (qFarmId && farmsData.some(f => f.id === qFarmId))
+                    ? qFarmId
+                    : farmsData[0].id;
+
+                setFarmId(targetId);
+                await fetchData(targetId);
+            }
+        } catch (error) {
+            setErrorMsg('Gagal memuat daftar lahan.');
+            setLoading(false);
+        }
+    };
 
     const fetchData = async (id) => {
         setLoading(true);
+        setErrorMsg('');
         try {
             const [farmRes, farmersRes] = await Promise.all([
                 api.get(`/manager/farms/${id}/details`),
@@ -47,10 +73,17 @@ const ManagerFarmManagement = () => {
                 setAllFarmers(farmersRes.data.data);
             }
         } catch (error) {
-            setErrorMsg('Gagal memuat data lahan.');
+            setErrorMsg('Gagal memuat data detail lahan.');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSelectFarmChange = (e) => {
+        const selectedId = e.target.value;
+        setFarmId(selectedId);
+        navigate(`/manager/farm-management?farm_id=${selectedId}`, { replace: true });
+        fetchData(selectedId);
     };
 
     const handleAddCrop = (e) => {
@@ -101,8 +134,27 @@ const ManagerFarmManagement = () => {
                 </button>
             </div>
             
-            <h1 style={{ color: '#1B4332', marginBottom: '5px' }}>Kelola Lahan: {farm ? farm.name : '...'}</h1>
-            <p style={{ color: '#6b7280', marginBottom: '30px' }}>Atur komoditas tanaman dan tugaskan banyak petani untuk lahan ini secara langsung.</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
+                <div>
+                    <h1 style={{ color: '#1B4332', margin: 0 }}>Kelola Lahan: {farm ? farm.name : '...'}</h1>
+                    <p style={{ color: '#6b7280', margin: '4px 0 0 0' }}>Atur komoditas tanaman dan tugaskan banyak petani untuk lahan ini secara langsung.</p>
+                </div>
+                {farmList.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <label style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text-main)' }}>Pilih Lahan:</label>
+                        <select
+                            value={farmId || ''}
+                            onChange={handleSelectFarmChange}
+                            className="form-input"
+                            style={{ width: 'auto', minWidth: '200px' }}
+                        >
+                            {farmList.map(f => (
+                                <option key={f.id} value={f.id}>{f.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+            </div>
 
             {errorMsg && (
                 <div style={{ background: '#fef2f2', color: '#b91c1c', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #ef4444', marginBottom: '20px' }}>
