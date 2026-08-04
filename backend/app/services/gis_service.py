@@ -149,6 +149,22 @@ class GISService:
                 else:
                     color = 'gray'
                     popup_html = f"<i>Langganan Modul Biomassa diperlukan untuk melihat estimasi biomassa karbon.</i>"
+            elif layer_type == 'yield':
+                value = round(random.uniform(0.8, 3.5), 2)
+                if has_access:
+                    color = '#feb24c' if value > 2.0 else ('#f03b20' if value > 1.2 else '#ffeda0')
+                    popup_html = f"<b>Estimasi Produksi (Yield):</b> {value} Ton/Ha"
+                else:
+                    color = 'gray'
+                    popup_html = f"<i>Langganan Modul Yield diperlukan.</i>"
+            elif layer_type == 'soilnpk':
+                value = round(random.uniform(60.0, 280.0), 1)
+                if has_access:
+                    color = '#1c9099' if value > 180 else ('#a6bddb' if value > 100 else '#ece2f0')
+                    popup_html = f"<b>Nutrisi Tanah (NPK):</b> {value} kg NPK/Ha"
+                else:
+                    color = 'gray'
+                    popup_html = f"<i>Langganan Modul Nutrisi NPK diperlukan.</i>"
             else: # ndvi
                 value = round(random.uniform(0.4, 0.9), 2)
                 if has_access:

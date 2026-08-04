@@ -18,6 +18,7 @@ const Sidebar = ({ role, user }) => {
     { to: '/manager/dashboard', icon: 'dashboard', label: 'Dashboard' },
     { to: '/manager/farmers', icon: 'group', label: 'Data Petani' },
     { to: '/manager/farm-management', icon: 'landscape', label: 'Manajemen Lahan' },
+    { to: '/manager/agronomy', icon: 'eco', label: 'Agronomi' },
     { to: '/manager/economics', icon: 'payments', label: 'Ekonomi' },
     { to: '/manager/traceability', icon: 'verified', label: 'Traceability' },
   ];
@@ -131,6 +132,12 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
       ? '/manager/profile-user'
       : '/board/profile';
 
+  const settingsPath = user?.role === 'super_admin'
+    ? '/admin/settings'
+    : user?.role === 'manager'
+      ? '/manager/settings'
+      : '/board/settings';
+
   const mockNotifications = [
     { id: 1, title: 'Sistem Operasional Normal', time: 'Baru saja', icon: 'check_circle', color: '#10b981' },
     { id: 2, title: 'Pembaruan Data Lahan & Petani', time: '1 jam yang lalu', icon: 'landscape', color: '#3b82f6' },
@@ -175,9 +182,9 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
           {/* Tombol Pengaturan */}
           <button 
             className="topnav-icon-btn" 
-            title="Pengaturan Akun" 
+            title="Pengaturan Platform & Preferensi" 
             aria-label="Pengaturan"
-            onClick={() => navigate(profilePath)}
+            onClick={() => navigate(settingsPath)}
           >
             <span className="material-symbols-outlined">settings</span>
           </button>

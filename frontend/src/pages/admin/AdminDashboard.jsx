@@ -7,31 +7,35 @@ import Card from '../../shared/components/UI/Card';
 const AdminDashboard = () => {
     const [stats, setStats] = useState(null);
     const [recentCompanies, setRecentCompanies] = useState([]);
+    const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch stats and companies concurrently
-                const [statsRes, companiesRes] = await Promise.all([
+                // Fetch stats, companies, and activities concurrently
+                const [statsRes, companiesRes, activitiesRes] = await Promise.allSettled([
                     api.get('/admin/dashboard/stats'),
-                    api.get('/admin/companies')
+                    api.get('/admin/companies'),
+                    api.get('/admin/activities')
                 ]);
 
-                if (statsRes.data.success) {
-                    setStats(statsRes.data.data);
+                if (statsRes.status === 'fulfilled' && statsRes.value?.data?.success) {
+                    setStats(statsRes.value.data.data);
                 }
                 
-                if (companiesRes.data.success) {
-                    // Get only the 5 most recent companies
-                    setRecentCompanies(companiesRes.data.data.slice(0, 5));
+                if (companiesRes.status === 'fulfilled' && companiesRes.value?.data?.success) {
+                    setRecentCompanies(companiesRes.value.data.data.slice(0, 5));
+                }
+
+                if (activitiesRes.status === 'fulfilled' && activitiesRes.value?.data?.success) {
+                    setActivities(activitiesRes.value.data.data);
                 }
             } catch (error) {
                 console.error("Gagal mengambil data dashboard", error);
             } finally {
-                // Simulate network delay for skeleton loading
-                setTimeout(() => setLoading(false), 800);
+                setTimeout(() => setLoading(false), 500);
             }
         };
 
@@ -136,7 +140,9 @@ const AdminDashboard = () => {
                                                     </span>
                                                 </td>
                                                 <td style={{ color: 'var(--color-text-muted)' }}>{company.subscription_plan}</td>
-                                                <td style={{ color: 'var(--color-text-muted)' }}>{new Date(company.created_at).toLocaleDateString('id-ID')}</td>
+                                                <td style={{ color: 'var(--color-text-muted)' }}>
+                                                    {company.created_at ? new Date(company.created_at).toLocaleDateString('id-ID') : '-'}
+                                                </td>
                                             </tr>
                                         ))
                                     ) : (
@@ -159,29 +165,30 @@ const AdminDashboard = () => {
                                 <div className="skeleton-text" style={{ width: '100%', height: '40px' }}></div>
                                 <div className="skeleton-text" style={{ width: '100%', height: '40px' }}></div>
                             </div>
+                        ) : activities.length === 0 ? (
+                            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', textAlign: 'center', padding: '12px 0' }}>
+                                Belum ada aktivitas tercatat.
+                            </p>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                <div style={{ display: 'flex', gap: '12px' }}>
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-text-main)' }}>domain_add</span>
+                                {activities.slice(0,5).map((act) => (
+                                    <div key={act.id} style={{ display: 'flex', gap: '12px' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-text-main)' }}>{act.icon}</span>
+                                        </div>
+                                        <div>
+                                            <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--color-text-main)', fontWeight: 600 }}>{act.text}</p>
+                                            <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>{act.subtext}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--color-text-main)', fontWeight: 600 }}>Perusahaan baru terdaftar.</p>
-                                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>Sistem • 2 jam yang lalu</p>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '12px' }}>
-                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-text-main)' }}>group_add</span>
-                                    </div>
-                                    <div>
-                                        <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--color-text-main)', fontWeight: 600 }}>15 user ditambahkan.</p>
-                                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>Agri Nusantara • Kemarin</p>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
                         )}
-                        <button className="btn btn-ghost w-full" style={{ marginTop: '16px', justifyContent: 'center' }}>
+                        <button 
+                            className="btn btn-ghost w-full" 
+                            style={{ marginTop: '16px', justifyContent: 'center' }}
+                            onClick={() => navigate('/admin/activities')}
+                        >
                             Lihat Semua Aktivitas
                         </button>
                     </Card>

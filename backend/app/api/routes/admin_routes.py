@@ -8,7 +8,7 @@ from app.db.database import db
 
 admin_bp = Blueprint('admin_bp', __name__)
 
-@admin_bp.route('dashboard/stats', methods=['GET'])
+@admin_bp.route('/dashboard/stats', methods=['GET'])
 @token_required
 @role_required('super_admin')
 def dashboard_stats(current_user):
@@ -16,7 +16,7 @@ def dashboard_stats(current_user):
     return jsonify(result), 200
 
 
-@admin_bp.route('companies', methods=['GET'])
+@admin_bp.route('/companies', methods=['GET'])
 @token_required
 @role_required('super_admin')
 def get_companies(current_user):
@@ -24,7 +24,7 @@ def get_companies(current_user):
     return jsonify(result), 200
 
 
-@admin_bp.route('companies', methods=['POST'])
+@admin_bp.route('/companies', methods=['POST'])
 @token_required
 @role_required('super_admin')
 def add_company(current_user):
@@ -34,11 +34,19 @@ def add_company(current_user):
         return jsonify({"success": False, "message": "Nama company wajib diisi"}), 400
     
     result = create_company(data)
+    if result.get('success'):
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='CREATE_COMPANY',
+            entity_type='Company',
+            details=f"Mendaftarkan perusahaan klien baru '{data.get('name')}'"
+        )
     status_code = 201 if result.get('success') else 500
     return jsonify(result), status_code
 
 
-@admin_bp.route('companies/<company_id>', methods=['PUT'])
+@admin_bp.route('/companies/<company_id>', methods=['PUT'])
 @token_required
 @role_required('super_admin')
 def edit_company(current_user, company_id):
@@ -50,6 +58,13 @@ def edit_company(current_user, company_id):
     result = update_company(company_id, data)
 
     if result.get('success'):
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='UPDATE_COMPANY',
+            entity_type='Company',
+            details=f"Memperbarui informasi perusahaan '{data.get('name', 'klien')}'"
+        )
         status_code = 200
     elif "ditemukan" in result.get('message'):
         status_code = 404
@@ -67,8 +82,17 @@ def delete_company(current_user, company_id):
         if not company:
             return jsonify({'success': False, 'message': 'Perusahaan tidak ditemukan'}), 404
             
+        company_name = company.name
         db.session.delete(company)
         db.session.commit()
+
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='DELETE_COMPANY',
+            entity_type='Company',
+            details=f"Menghapus perusahaan '{company_name}'"
+        )
         return jsonify({'success': True, 'message': 'Perusahaan berhasil dihapus'}), 200
     except Exception as e:
         db.session.rollback()
@@ -121,6 +145,15 @@ def manage_project_permissions(current_user, project_id):
             if 'can_access_soilnpk' in data: perms.can_access_soilnpk = data['can_access_soilnpk']
             
             db.session.commit()
+
+            from app.services.activity_service import log_activity
+            log_activity(
+                user_id=current_user.id,
+                action='UPDATE_PERMISSION',
+                entity_type='ProjectPermission',
+                details="Pengaturan izin modul & paket berlangganan diperbarui"
+            )
+
             return jsonify({'success': True, 'message': 'Izin dan Modul berlangganan berhasil diperbarui'}), 200
             
     except Exception as e:
@@ -148,10 +181,17 @@ def add_company_user(current_user, company_id):
     
     if not data or not data.get('username') or not data.get('password'):
         return jsonify({"success": False, "message": "Username dan password wajib diisi"}), 400
-        
+
     result = create_company_user(company_id, data)
-    status_code = 201 if result.get('success') else 400
-    return jsonify(result), status_code
+    if result.get('success'):
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='ADD_USER',
+            entity_type='User',
+            details=f"Menambahkan pengguna baru '{data.get('full_name', data.get('username'))}'"
+        )
+    return jsonify(result), 201 if result.get('success') else 400
 
 
 @admin_bp.route('/users/<user_id>/reset-password', methods=['POST'])
@@ -174,6 +214,14 @@ def edit_user(current_user, user_id):
         return jsonify({"success": False, "message": "Data body tidak boleh kosong"}), 400
         
     result = update_user(user_id, data)
+    if result.get('success'):
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='UPDATE_USER',
+            entity_type='User',
+            details=f"Memperbarui informasi akun pengguna '{data.get('full_name', data.get('username', 'user'))}'"
+        )
     status_code = 200 if result.get('success') else 400
     return jsonify(result), status_code
 
@@ -183,6 +231,14 @@ def edit_user(current_user, user_id):
 @role_required('super_admin')
 def remove_user(current_user, user_id):
     result = delete_user(user_id)
+    if result.get('success'):
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='DELETE_USER',
+            entity_type='User',
+            details="Menghapus akun pengguna dari sistem"
+        )
     status_code = 200 if result.get('success') else 400
     return jsonify(result), status_code
 
@@ -224,6 +280,15 @@ def create_farm(current_user):
         
         db.session.add(new_farm)
         db.session.commit()
+
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='CREATE_FARM',
+            entity_type='Farm',
+            entity_id=new_farm.id,
+            details=f"Menambahkan lokasi lahan baru '{new_farm.name}'"
+        )
         
         return jsonify({'success': True, 'message': 'Lahan berhasil disimpan dan diassign!'}), 201
     except Exception as e:
@@ -247,6 +312,14 @@ def add_project(current_user, company_id):
         return jsonify({"success": False, "message": "Nama project wajib diisi"}), 400
             
     result = create_project(company_id, data)
+    if result.get('success'):
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='CREATE_PROJECT',
+            entity_type='Project',
+            details=f"Menambahkan proyek baru '{data.get('name')}'"
+        )
     status_code = 201 if result.get('success') else 400
     return jsonify(result), status_code
 
@@ -305,5 +378,45 @@ def get_admin_farm_map(current_user, farm_id):
                 'html': map_html
             }
         }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/activities', methods=['GET'])
+@token_required
+@role_required('super_admin')
+def get_admin_activities(current_user):
+    try:
+        from app.db.models import ActivityLog, User
+        from app.services.activity_service import format_time_ago
+
+        limit_val = request.args.get('limit', default=50, type=int)
+        logs = ActivityLog.query.order_by(ActivityLog.created_at.desc()).limit(limit_val).all()
+
+        data = []
+        for log in logs:
+            user = User.query.get(log.user_id) if log.user_id else None
+            user_name = (user.full_name or user.username) if user else 'Sistem'
+
+            icon = 'info'
+            act = log.action.upper()
+            if 'COMPANY' in act or 'CREATE' in act:
+                icon = 'domain_add'
+            elif 'USER' in act or 'FARMER' in act:
+                icon = 'group_add'
+            elif 'UPDATE' in act or 'FARM' in act:
+                icon = 'edit_note'
+            elif 'LOGIN' in act:
+                icon = 'login'
+
+            data.append({
+                'id': str(log.id),
+                'icon': icon,
+                'text': log.details or f"{log.action} {log.entity_type}",
+                'subtext': f"{user_name} • {format_time_ago(log.created_at)}",
+                'created_at': log.created_at.isoformat()
+            })
+
+        return jsonify({'success': True, 'data': data}), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

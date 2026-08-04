@@ -24,6 +24,18 @@ def authenticate_user(username, password):
         }
         token = jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
 
+        try:
+            from app.services.activity_service import log_activity
+            log_activity(
+                user_id=user.id,
+                action='LOGIN',
+                entity_type='User',
+                entity_id=user.id,
+                details=f"User {user.full_name or user.username} berhasil login ke sistem"
+            )
+        except Exception as e:
+            print("Error logging login activity:", e)
+
         return {
             "success": True,
             "token": token,

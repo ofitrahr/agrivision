@@ -126,6 +126,8 @@ const ManagerDashboard = () => {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
+    const [activities, setActivities] = useState([]);
+
     const formatCurrency = (value) => {
         if (value === undefined || value === null) return 'Rp 0';
         return `Rp ${value.toLocaleString('id-ID')}`;
@@ -137,20 +139,23 @@ const ManagerDashboard = () => {
                 setLoading(true);
                 setError(null);
                 
-                const [statsRes, farmsRes] = await Promise.all([
+                const [statsRes, farmsRes, activitiesRes] = await Promise.allSettled([
                     api.get('/manager/dashboard/stats'),
-                    api.get('/manager/farms')
+                    api.get('/manager/farms'),
+                    api.get('/manager/activities')
                 ]);
 
-                if (statsRes.data.success) {
-                    setStats(statsRes.data.data);
+                if (statsRes.status === 'fulfilled' && statsRes.value?.data?.success) {
+                    setStats(statsRes.value.data.data);
                 }
-                if (farmsRes.data.success) {
-                    setRecentFarms(farmsRes.data.data.slice(0, 5));
+                if (farmsRes.status === 'fulfilled' && farmsRes.value?.data?.success) {
+                    setRecentFarms(farmsRes.value.data.data.slice(0, 5));
+                }
+                if (activitiesRes.status === 'fulfilled' && activitiesRes.value?.data?.success) {
+                    setActivities(activitiesRes.value.data.data);
                 }
             } catch (err) {
                 console.error("Gagal mengambil data dashboard", err);
-                setError("Gagal memuat data dashboard. Silakan coba lagi.");
             } finally {
                 setTimeout(() => setLoading(false), 500);
             }
@@ -185,7 +190,7 @@ const ManagerDashboard = () => {
                 <div style={{ display: 'flex', gap: '12px' }}>
                     <button 
                         className="btn btn-ghost" 
-                        onClick={() => navigate('/manager/profile')}
+                        onClick={() => navigate('/manager/profile')}    
                     >
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>settings</span> 
                         Pengaturan
@@ -231,7 +236,7 @@ const ManagerDashboard = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 'var(--gutter)' }}>
                 {/* Recent Projects Section */}
-                <section aria-label="Daftar Lahan Perusahaan">
+                <section aria-label="Daftar Lahan Project">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
                         <h2 className="text-headline-lg" style={{ fontSize: '20px', margin: 0 }}>Daftar Lahan Perusahaan</h2>
                     </div>
@@ -269,26 +274,27 @@ const ManagerDashboard = () => {
                                 <div className="skeleton-text w-full" style={{ height: '40px' }}></div>
                                 <div className="skeleton-text w-full" style={{ height: '40px' }}></div>
                             </div>
+                        ) : activities.length === 0 ? (
+                            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', textAlign: 'center', padding: '12px 0' }}>
+                                Belum ada aktivitas tercatat.
+                            </p>
                         ) : (
                             <div>
-                                <ActivityItem 
-                                    icon="map" 
-                                    text="Peta lahan baru ditambahkan." 
-                                    subtext="Oleh Budi • 1 jam yang lalu" 
-                                />
-                                <ActivityItem 
-                                    icon="description" 
-                                    text="Laporan panen Q2 selesai." 
-                                    subtext="Oleh Andi • Kemarin" 
-                                />
-                                <ActivityItem 
-                                    icon="group_add" 
-                                    text="Petani baru didaftarkan." 
-                                    subtext="Oleh Anda • 2 hari yang lalu" 
-                                />
+                                {activities.slice(0,5).map((act) => (
+                                    <ActivityItem
+                                        key={act.id}
+                                        icon={act.icon}
+                                        text={act.text}
+                                        subtext={act.subtext}
+                                    />
+                                ))}
                             </div>
                         )}
-                        <button className="btn btn-ghost w-full" style={{ marginTop: '8px', justifyContent: 'center' }}>
+                        <button 
+                            className="btn btn-ghost w-full" 
+                            style={{ marginTop: '8px', justifyContent: 'center' }}
+                            onClick={() => navigate('/manager/activities')}
+                        >
                             Lihat Semua Aktivitas
                         </button>
                     </Card>

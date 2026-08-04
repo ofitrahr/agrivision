@@ -72,6 +72,21 @@ def seed_super_admin():
 
         print("Berhasil! Akun login: 'superadmin' | Password: 'password123'")
 
+        # 4. Buat sampel ActivityLog awal
+        from app.db.models import ActivityLog
+        from datetime import datetime, timedelta, timezone
+        if ActivityLog.query.count() == 0:
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            logs = [
+                ActivityLog(user_id=admin.id, action='CREATE', entity_type='Company', details='Perusahaan utama Agrivision Master didaftarkan', created_at=now - timedelta(hours=5)),
+                ActivityLog(user_id=admin.id, action='CREATE', entity_type='Project', details='Proyek Utama berhasil dikonfigurasi', created_at=now - timedelta(hours=3)),
+                ActivityLog(user_id=admin.id, action='UPDATE', entity_type='Permission', details='Pengaturan izin modul geospasial & agronomi diperbarui', created_at=now - timedelta(hours=1)),
+                ActivityLog(user_id=admin.id, action='LOGIN', entity_type='User', details='User superadmin berhasil login ke sistem', created_at=now - timedelta(minutes=15)),
+            ]
+            db.session.add_all(logs)
+            db.session.commit()
+            print("Berhasil menanam sampel data Log Aktivitas awal.")
+
 
 if __name__ == "__main__":
     seed_super_admin()
