@@ -292,6 +292,8 @@ def get_company_sdg_assessment_data(company_id):
             return {"success": False, "message": "Company tidak ditemukan"}, 404
 
         sdg_catalog = Sdg.query.order_by(Sdg.code).all()
+        sdg_catalog.sort(key=lambda s: int(s.code))
+        sdg_catalog.sort(key=lambda s: int(s.code))
         selected = CompanySdg.query.filter_by(company_id=company_id).all()
         selected_map = {cs.sdg_id: cs for cs in selected}
         verification = CompanySdgVerification.query.filter_by(company_id=company_id).first()
