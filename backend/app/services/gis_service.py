@@ -182,4 +182,37 @@ class GISService:
             bounds_layer.add_to(m)
             m.fit_bounds(bounds_layer.get_bounds())
 
+        m.get_root().html.add_child(folium.Element("<style>.leaflet-control-attribution { display: none !important; }</style>"))
+
+        js_code = """
+        <script>
+            setTimeout(function() {
+                var mapInstance = null;
+                for (var key in window) {
+                    if (key.startsWith('map_')) {
+                        mapInstance = window[key];
+                        break;
+                    }
+                }
+                
+                if (mapInstance) {
+                    window.addEventListener('message', function(event) {
+                        if (event.data && event.data.type === 'SET_LAYER_OPACITY') {
+                            var targetOpacity = event.data.opacity / 100;
+                            mapInstance.eachLayer(function(layer) {
+                                if (layer.setStyle && typeof layer.setStyle === 'function') {
+                                    layer.setStyle({
+                                        fillOpacity: targetOpacity * 0.7,
+                                        opacity: targetOpacity
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            }, 500);
+        </script>
+        """
+        m.get_root().html.add_child(folium.Element(js_code))
+
         return m.get_root().render()

@@ -24,6 +24,11 @@ def token_required(f):
 
             if not current_user or not current_user.is_active:
                 raise Exception("User tidak valid atau tidak aktif")
+
+            if current_user.role != 'superadmin' and current_user.project and current_user.project.company:
+                if not current_user.project.company.is_active:
+                    raise Exception("Company tidak aktif")
+                
         except jwt.ExpiredSignatureError:
             return jsonify({'success': False, 'message': 'Token Expired, silahkan login ulang!'}), 401
         except Exception as e:

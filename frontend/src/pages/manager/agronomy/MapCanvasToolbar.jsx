@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import { Layers, Clock, Eye } from 'lucide-react';
 
 const PERIODS = [
@@ -19,6 +20,20 @@ const MapCanvasToolbar = ({
   permissions,
   loading,
 }) => {
+  const iframeRef = useRef(null);
+
+  useEffect(() => {
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        {
+          type: 'SET_LAYER_OPACITY',
+          opacity: opacity,
+        },
+        '*'
+      );
+    }
+  }, [opacity]);
+
   const fallbackHtml =
     '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:Poppins,sans-serif;color:#5C7A6D;background:#f4f6f5;">Peta belum tersedia</div>';
 
@@ -36,9 +51,21 @@ const MapCanvasToolbar = ({
 
       {/* Map iframe */}
       <iframe
+        ref={iframeRef}
         srcDoc={mapHtml || fallbackHtml}
         className="agro-map-frame"
         title="Peta Agronomi"
+        onLoad={() => {
+          if (iframeRef.current && iframeRef.current.contentWindow) {
+            iframeRef.current.contentWindow.postMessage(
+              {
+                type: 'SET_LAYER_OPACITY',
+                opacity: opacity,
+              },
+              '*'
+            );
+          }
+        }}
       />
 
       {/* Floating Toolbar */}

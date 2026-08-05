@@ -265,16 +265,27 @@ def create_farm(current_user):
     data = request.json
     try:
         geometry = data.get('geometry')
-        coords = geometry['coordinates'][0]
-        wkt_coords = ", ".join([f"{c[0]} {c[1]}" for c in coords])
-        wkt_polygon = f"SRID=4326;POLYGON(({wkt_coords}))"
+        geom_type = geometry.get('type')
+        if geom_type == 'Polygon':
+            coords = geometry['coordinates'][0]
+            wkt_coords = ", ".join([f"{c[0]} {c[1]}" for c in coords])
+            wkt_geom = f"SRID=4326;POLYGON(({wkt_coords}))"
+        elif geom_type == 'MultiPolygon':
+            polys = []
+            for poly in geometry['coordinates']:
+                coords = poly[0]
+                wkt_coords = ", ".join([f"{c[0]} {c[1]}" for c in coords])
+                polys.append(f"(({wkt_coords}))")
+            wkt_geom = f"SRID=4326;MULTIPOLYGON({','.join(polys)})"
+        else:
+            raise Exception("Tipe geometri tidak didukung. Harap gunakan Polygon atau MultiPolygon.")
 
         new_farm = Farm(
             project_id=data.get('project_id'),
             name=data.get('name'),
             crop_variety=data.get('crop_variety'),
             total_area_ha=data.get('total_area_ha') or 0,
-            boundary=wkt_polygon,
+            boundary=wkt_geom,
             created_by=current_user.id
         )
         

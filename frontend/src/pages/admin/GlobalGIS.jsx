@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Map } from 'lucide-react';
+import { Plus, Map, Upload, FileCode, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
 
 const GlobalGIS = () => {
     // State for grid view
@@ -9,30 +9,21 @@ const GlobalGIS = () => {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    // State for creating farm (map view)
+    // State for creating farm (GeoJSON input view)
     const [isCreatingFarm, setIsCreatingFarm] = useState(false);
-    const [mapHtml, setMapHtml] = useState('');
     const [companies, setCompanies] = useState([]);
     const [projects, setProjects] = useState([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [drawnGeometry, setDrawnGeometry] = useState(null);
     const [formData, setFormData] = useState({ name: '', project_id: '', crop_variety: '', total_area_ha: '' });
+    const [geoJsonText, setGeoJsonText] = useState('');
+    const [dragActive, setDragActive] = useState(false);
+    const [geoJsonStatus, setGeoJsonStatus] = useState(null);
 
     useEffect(() => {
         fetchFarms();
-        fetchMap();
         fetchCompanies();
-
-        const handleMessage = (event) => {
-            if (event.data && event.data.type === 'GIS_DRAW_CREATED') {
-                setDrawnGeometry(event.data.geometry);
-                setIsModalOpen(true);
-            }
-        };
-        window.addEventListener('message', handleMessage);
-        
-        return () => window.removeEventListener('message', handleMessage);
     }, []);
 
     useEffect(() => {
@@ -57,15 +48,6 @@ const GlobalGIS = () => {
         }
     };
 
-    const fetchMap = async () => {
-        try {
-            const response = await api.get('/admin/gis/map');
-            if (response.data.success) setMapHtml(response.data.data.html);
-        } catch (error) {
-            console.error("Gagal mengambil Peta Global", error);
-        }
-    };
-
     const fetchCompanies = async () => {
         try {
             const response = await api.get('/admin/companies');
@@ -84,6 +66,64 @@ const GlobalGIS = () => {
         }
     };
 
+    const processGeoJsonString = (jsonStr) => {
+        setGeoJsonStatus(null);
+        if (!jsonStr.trim()) {
+            setGeoJsonStatus({ success: false, message: 'Harap masukkan data GeoJSON atau unggah file.' });
+            return;
+        }
+        try {
+            const data = JSON.parse(jsonStr);
+            let geom = data;
+
+            if (data.type === 'FeatureCollection' && data.features && data.features.length > 0) {
+                geom = data.features[0].geometry;
+            } else if (data.type === 'Feature' && data.geometry) {
+                geom = data.geometry;
+            }
+
+            if (geom && (geom.type === 'Polygon' || geom.type === 'MultiPolygon')) {
+                setDrawnGeometry(geom);
+                setGeoJsonStatus({ success: true, message: `Geometri valid: ${geom.type}` });
+                setIsModalOpen(true);
+            } else {
+                setGeoJsonStatus({ success: false, message: 'Format GeoJSON tidak valid. Pastikan data mengandung Polygon atau MultiPolygon.' });
+            }
+        } catch (error) {
+            setGeoJsonStatus({ success: false, message: 'Format JSON tidak valid. Periksa sintaks teks JSON Anda.' });
+        }
+    };
+
+    const handleFileUpload = (file) => {
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            setGeoJsonText(event.target.result);
+            processGeoJsonString(event.target.result);
+        };
+        reader.readAsText(file);
+    };
+
+    const handleDrag = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setDragActive(true);
+        } else if (e.type === "dragleave") {
+            setDragActive(false);
+        }
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFileUpload(e.dataTransfer.files[0]);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -95,9 +135,10 @@ const GlobalGIS = () => {
             setIsModalOpen(false);
             setFormData({ name: '', project_id: '', crop_variety: '', total_area_ha: '' });
             setSelectedCompanyId('');
+            setGeoJsonText('');
+            setGeoJsonStatus(null);
             setIsCreatingFarm(false);
-            fetchFarms(); // Refresh grid
-            fetchMap();   // Refresh map
+            fetchFarms();
         } catch (error) {
             alert(error.response?.data?.message || "Terjadi kesalahan saat menyimpan!");
         }
@@ -108,21 +149,119 @@ const GlobalGIS = () => {
 
     if (isCreatingFarm) {
         return (
-            <div style={{ padding: '30px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h1 style={{ color: '#1B4332', margin: 0 }}>Buat Lahan Baru (Global GIS)</h1>
-                    <button className="secondary-btn" onClick={() => setIsCreatingFarm(false)}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
-                        Batal
+            <div style={{ padding: '24px 30px', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <div>
+                        <h1 style={{ color: '#1B4332', fontSize: '24px', margin: '0 0 6px 0', fontWeight: '700' }}>Buat Lahan Baru (Input GeoJSON)</h1>
+                        <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>Unggah file .geojson atau masukkan raw JSON untuk menentukan batas area lahan.</p>
+                    </div>
+                    <button className="secondary-btn" onClick={() => { setIsCreatingFarm(false); setGeoJsonStatus(null); }} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <ArrowLeft size={16} />
+                        Kembali
                     </button>
                 </div>
+
+                {geoJsonStatus && (
+                    <div style={{
+                        padding: '14px 18px',
+                        borderRadius: '8px',
+                        marginBottom: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        fontSize: '14px',
+                        backgroundColor: geoJsonStatus.success ? '#f0fdf4' : '#fef2f2',
+                        border: `1px solid ${geoJsonStatus.success ? '#bbf7d0' : '#fecaca'}`,
+                        color: geoJsonStatus.success ? '#15803d' : '#b91c1c'
+                    }}>
+                        {geoJsonStatus.success ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                        <span>{geoJsonStatus.message}</span>
+                    </div>
+                )}
                 
-                <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', border: '2px solid #2D6A4F', position: 'relative' }}>
-                    {mapHtml ? (
-                        <iframe title="Agrivision Global GIS" srcDoc={mapHtml} style={{ width: '100%', height: '100%', border: 'none' }} />
-                    ) : (
-                        <div style={{ padding: '30px' }}>Memuat Peta...</div>
-                    )}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+                    {/* Opsi 1: Upload File */}
+                    <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                            <div style={{ padding: '8px', backgroundColor: '#e6f4eb', borderRadius: '8px', color: '#1B4332' }}>
+                                <Upload size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, color: '#1B4332', fontSize: '16px', fontWeight: '600' }}>Upload File GeoJSON</h3>
+                                <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>Pilih atau seret file .geojson / .json ke area ini</p>
+                            </div>
+                        </div>
+
+                        <div 
+                            onDragEnter={handleDrag}
+                            onDragLeave={handleDrag}
+                            onDragOver={handleDrag}
+                            onDrop={handleDrop}
+                            style={{
+                                border: `2px dashed ${dragActive ? '#1B4332' : '#cbd5e1'}`,
+                                backgroundColor: dragActive ? '#f0fdf4' : '#fafafa',
+                                borderRadius: '10px',
+                                padding: '40px 20px',
+                                textAlign: 'center',
+                                transition: 'all 0.2s ease',
+                                cursor: 'pointer'
+                            }}
+                            onClick={() => document.getElementById('geojson-file-input').click()}
+                        >
+                            <Upload size={36} color="#64748b" style={{ marginBottom: '12px' }} />
+                            <p style={{ margin: '0 0 6px 0', fontSize: '14px', fontWeight: '500', color: '#334155' }}>
+                                Klik untuk mengunggah atau drag & drop
+                            </p>
+                            <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Format yang didukung: .geojson, .json</p>
+                            <input 
+                                id="geojson-file-input"
+                                type="file" 
+                                accept=".geojson, .json" 
+                                onChange={(e) => handleFileUpload(e.target.files[0])} 
+                                style={{ display: 'none' }} 
+                            />
+                        </div>
+                    </div>
+
+                    {/* Opsi 2: Paste Raw JSON */}
+                    <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                            <div style={{ padding: '8px', backgroundColor: '#e6f4eb', borderRadius: '8px', color: '#1B4332' }}>
+                                <FileCode size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, color: '#1B4332', fontSize: '16px', fontWeight: '600' }}>Tempelkan Raw GeoJSON</h3>
+                                <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>Salin dan tempelkan teks GeoJSON dari perangkat Anda</p>
+                            </div>
+                        </div>
+
+                        <textarea 
+                            rows="9" 
+                            style={{ 
+                                width: '100%', 
+                                padding: '14px', 
+                                borderRadius: '8px', 
+                                border: '1px solid #cbd5e1', 
+                                fontFamily: 'Fira Code, monospace, sans-serif', 
+                                fontSize: '13px',
+                                color: '#1e293b',
+                                backgroundColor: '#f8fafc',
+                                marginBottom: '16px',
+                                resize: 'vertical'
+                            }} 
+                            placeholder='{\n  "type": "Feature",\n  "geometry": {\n    "type": "Polygon",\n    "coordinates": [[[106.8, -6.2], ...]]\n  }\n}'
+                            value={geoJsonText}
+                            onChange={(e) => setGeoJsonText(e.target.value)}
+                        />
+                        <button 
+                            className="primary-btn" 
+                            onClick={() => processGeoJsonString(geoJsonText)}
+                            style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
+                        >
+                            <CheckCircle2 size={16} />
+                            Proses & Lanjutkan
+                        </button>
+                    </div>
                 </div>
 
                 {isModalOpen && (
