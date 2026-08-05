@@ -1,9 +1,41 @@
 from app import create_app
 from app.db.database import db
-from app.db.models import User, Company, Project, ProjectPermission
+from app.db.models import User, Company, Project, ProjectPermission, Sdg
 import bcrypt
 
 app = create_app()
+
+SDG_CATALOG = [
+    (1, "No Poverty", "Mengakhiri kemiskinan dalam segala bentuknya di mana pun."),
+    (2, "Zero Hunger", "Mengakhiri kelaparan, mencapai ketahanan pangan dan gizi yang lebih baik, serta mendukung pertanian berkelanjutan."),
+    (3, "Good Health and Well-being", "Memastikan kehidupan yang sehat dan mendukung kesejahteraan bagi semua orang di segala usia."),
+    (4, "Quality Education", "Memastikan pendidikan yang inklusif dan bermutu serta mendukung kesempatan belajar sepanjang hayat."),
+    (5, "Gender Equality", "Mencapai kesetaraan gender dan memberdayakan semua perempuan dan anak perempuan."),
+    (6, "Clean Water and Sanitation", "Memastikan ketersediaan dan pengelolaan air bersih serta sanitasi yang berkelanjutan."),
+    (7, "Affordable and Clean Energy", "Memastikan akses terhadap energi yang terjangkau, andal, berkelanjutan, dan modern."),
+    (8, "Decent Work and Economic Growth", "Mendukung pertumbuhan ekonomi yang inklusif dan berkelanjutan serta pekerjaan layak bagi semua."),
+    (9, "Industry, Innovation and Infrastructure", "Membangun infrastruktur yang tangguh, mendukung industrialisasi inklusif, dan mendorong inovasi."),
+    (10, "Reduced Inequalities", "Mengurangi ketimpangan di dalam dan antar negara."),
+    (11, "Sustainable Cities and Communities", "Membangun kota dan pemukiman yang inklusif, aman, tangguh, dan berkelanjutan."),
+    (12, "Responsible Consumption and Production", "Mendukung pola konsumsi dan produksi yang bertanggung jawab."),
+    (13, "Climate Action", "Mengambil tindakan segera untuk memerangi perubahan iklim dan dampaknya."),
+    (14, "Life Below Water", "Melestarikan dan memanfaatkan samudera, laut, dan sumber daya kelautan secara berkelanjutan."),
+    (15, "Life on Land", "Melindungi, memulihkan, dan mendukung pemanfaatan ekosistem daratan secara berkelanjutan."),
+    (16, "Peace, Justice and Strong Institutions", "Mendukung masyarakat yang damai dan inklusif serta institusi yang kuat."),
+    (17, "Partnerships for the Goals", "Memperkuat sarana pelaksanaan dan menghidupkan kembali kemitraan global untuk pembangunan berkelanjutan."),
+]
+
+
+def seed_sdgs():
+    with app.app_context():
+        if Sdg.query.count() > 0:
+            print("Katalog SDG sudah ada di database! Melewati proses seed.")
+            return
+
+        for num, title, goal in SDG_CATALOG:
+            db.session.add(Sdg(code=str(num), title=title, goal=goal))
+        db.session.commit()
+        print(f"Berhasil menanam {len(SDG_CATALOG)} data SDG ke database.")
 
 
 def seed_super_admin():
@@ -89,4 +121,5 @@ def seed_super_admin():
 
 
 if __name__ == "__main__":
+    seed_sdgs()
     seed_super_admin()

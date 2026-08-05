@@ -3,8 +3,8 @@ import {
   ChevronRight, CircleDollarSign, UtensilsCrossed, Heart,
   BookOpen, UserCheck, Droplets, Zap, Briefcase, Cog, Scale,
   Building2, Recycle, Globe, Fish, TreePine, Gavel, Handshake,
-  Send, Info, Save, CheckCircle, MapPin, Sprout,
-  Search, ChevronDown, X, ArrowLeftRight, Upload, FileText, Trash2, User, ShieldCheck
+  Send, Info, CheckCircle, MapPin,
+  Search, ChevronDown, X, Upload, FileText, Trash2, User, ShieldCheck
 } from 'lucide-react';
 import api from '../../shared/api/axios';
 
@@ -31,23 +31,26 @@ const SDG_LIST = [
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/api$/, '') || '';
 
+const getSdgMeta = (code) => {
+  const num = parseInt(code, 10);
+  const meta = SDG_LIST.find(s => s.number === num);
+  if (meta) return { ...meta, code };
+  return { number: num, title: code, color: '#6C757D', icon: Building2, code };
+};
+
 const AdminTraceability = () => {
   const [companies, setCompanies] = useState([]);
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [selectedCompanyId, setSelectedCompanyId] = useState(null);
   const [company, setCompany] = useState(null);
-  const [projects, setProjects] = useState([]);
-  const [projectsLoading, setProjectsLoading] = useState(false);
-  const [project, setProject] = useState(null);
-  const [assessmentLoading, setAssessmentLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
+  const [sdgs, setSdgs] = useState([]);
   const [selectedSdgs, setSelectedSdgs] = useState([]);
   const [assessedBy, setAssessedBy] = useState('');
-  const [status, setStatus] = useState('draft');
-  const [evidence, setEvidence] = useState([]);
+  const [verification, setVerification] = useState(null);
 
   const [saving, setSaving] = useState(false);
-  const [saveType, setSaveType] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,78 +84,57 @@ const AdminTraceability = () => {
   const handleSelectCompany = async (companyId) => {
     setSelectedCompanyId(companyId);
     setCompany(companies.find(c => c.id === companyId) || null);
-    setProject(null);
-    resetAssessment();
-    setProjects([]);
     setDropdownOpen(false);
     setSearchQuery('');
     setFeedback(null);
-    setProjectsLoading(true);
+    setLoading(true);
     try {
-      const res = await api.get(`/admin/companies/${companyId}/projects`);
-      if (res.data.success) setProjects(res.data.data);
-    } catch (error) {
-      console.error('Gagal mengambil project', error);
-    } finally {
-      setProjectsLoading(false);
-    }
-  };
-
-  const resetAssessment = () => {
-    setSelectedSdgs([]);
-    setAssessedBy('');
-    setStatus('draft');
-    setEvidence([]);
-  };
-
-  const handleSelectProject = async (projectId) => {
-    const p = projects.find(x => x.id === projectId) || null;
-    setProject(p);
-    setAssessmentLoading(true);
-    resetAssessment();
-    try {
-      const res = await api.get(`/admin/traceability/${projectId}`);
+      const res = await api.get(`/admin/companies/${companyId}/sdgs`);
       if (res.data.success) {
         const d = res.data.data;
-        setSelectedSdgs(d.sdgs || []);
-        setAssessedBy(d.assessment?.assessed_by || '');
-        setStatus(d.assessment?.status || 'draft');
-        setEvidence(d.assessment?.evidence || []);
+        setSdgs(d.sdgs || []);
+        setSelectedSdgs((d.sdgs || []).filter(s => s.selected).map(s => s.id));
+        setAssessedBy(d.verification?.assessed_by || '');
+        setVerification(d.verification || null);
       } else {
         setFeedback({ type: 'error', text: res.data.message });
       }
     } catch (error) {
-      setFeedback({ type: 'error', text: error.response?.data?.message || 'Gagal memuat assessment' });
+      setFeedback({ type: 'error', text: error.response?.data?.message || 'Gagal memuat data SDG' });
     } finally {
-      setAssessmentLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleChangeProject = () => {
-    setProject(null);
-    resetAssessment();
+  const handleClearCompany = () => {
+    setSelectedCompanyId(null);
+    setCompany(null);
+    setSdgs([]);
+    setSelectedSdgs([]);
+    setAssessedBy('');
+    setVerification(null);
     setFeedback(null);
   };
 
-  const handleToggleSdg = (number) => {
+  const handleToggleSdg = (sdgId) => {
     setSelectedSdgs(prev =>
-      prev.includes(number)
-        ? prev.filter(n => n !== number)
-        : [...prev, number]
+      prev.includes(sdgId)
+        ? prev.filter(id => id !== sdgId)
+        : [...prev, sdgId]
     );
   };
 
   const handleUploadEvidence = async (file) => {
-    if (!file || !project) return;
+    if (!file || !company) return;
     setUploading(true);
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await api.post(`/admin/traceability/${project.id}/evidence`, formData, {
+      const res = await api.post(`/admin/companies/${company.id}/sdgs/verification/evidence`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (res.data.success) {
-        setEvidence(prev => [...prev, res.data.data]);
+        setVerification(res.data.data);
         setFeedback({ type: 'success', text: res.data.message });
       } else {
         setFeedback({ type: 'error', text: res.data.message });
@@ -164,11 +146,12 @@ const AdminTraceability = () => {
     }
   };
 
-  const handleDeleteEvidence = async (evId) => {
+  const handleDeleteEvidence = async () => {
+    if (!company) return;
     try {
-      const res = await api.delete(`/admin/traceability/evidence/${evId}`);
+      const res = await api.delete(`/admin/companies/${company.id}/sdgs/verification/evidence`);
       if (res.data.success) {
-        setEvidence(prev => prev.filter(e => e.id !== evId));
+        setVerification(prev => prev ? { ...prev, evidence_file_url: null, evidence_file_type: null } : prev);
         setFeedback({ type: 'success', text: res.data.message });
       } else {
         setFeedback({ type: 'error', text: res.data.message });
@@ -178,20 +161,15 @@ const AdminTraceability = () => {
     }
   };
 
-  const handleSave = async (type) => {
-    if (!project) return;
+  const handleSave = async () => {
+    if (!company) return;
     setSaving(true);
-    setSaveType(type);
     try {
-      const res = await api.put(`/admin/traceability/${project.id}`, {
-        sdg_numbers: selectedSdgs,
-        assessed_by: assessedBy,
-        status: type
+      const res = await api.put(`/admin/companies/${company.id}/sdgs`, {
+        sdgs: selectedSdgs.map((sdgId, index) => ({ sdg_id: sdgId, display_order: index })),
+        assessed_by: assessedBy
       });
       if (res.data.success) {
-        const d = res.data.data;
-        setStatus(d.assessment?.status || type);
-        setEvidence(d.assessment?.evidence || []);
         setFeedback({ type: 'success', text: res.data.message });
       } else {
         setFeedback({ type: 'error', text: res.data.message });
@@ -200,7 +178,6 @@ const AdminTraceability = () => {
       setFeedback({ type: 'error', text: error.response?.data?.message || 'Gagal menyimpan assessment' });
     } finally {
       setSaving(false);
-      setSaveType(null);
     }
   };
 
@@ -214,6 +191,10 @@ const AdminTraceability = () => {
     </div>
   );
 
+  const evidenceFile = verification?.evidence_file_url
+    ? { file_url: verification.evidence_file_url, file_type: verification.evidence_file_type }
+    : null;
+
   return (
     <div style={{ paddingBottom: 100 }}>
       <div className="page-header">
@@ -226,7 +207,7 @@ const AdminTraceability = () => {
             <span style={{ color: '#012d1d' }}>SDG Assessment</span>
           </div>
           <h1 className="page-title" style={{ margin: 0 }}>SDGs Framework Assessment</h1>
-          <p className="page-description">Centang SDG yang dikontribusikan project, lalu isi asesor dan lampirkan bukti.</p>
+          <p className="page-description">Centang SDG yang dikontribusikan perusahaan, isi asesor, lalu lampirkan bukti.</p>
         </div>
       </div>
 
@@ -274,7 +255,7 @@ const AdminTraceability = () => {
           </div>
           {company && (
             <button
-              onClick={(e) => { e.stopPropagation(); setSelectedCompanyId(null); setCompany(null); setProject(null); setProjects([]); resetAssessment(); }}
+              onClick={(e) => { e.stopPropagation(); handleClearCompany(); }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#6C757D' }}
             >
               <X size={16} />
@@ -346,7 +327,7 @@ const AdminTraceability = () => {
         )}
       </div>
 
-      {/* Company Detail (when selected) */}
+      {/* Company Detail */}
       {company && (
         <div className="stat-card" style={{
           padding: 24, marginBottom: 28,
@@ -368,117 +349,35 @@ const AdminTraceability = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: '#6C757D' }}>
                 <span>{company.subscription_plan || 'Tidak ada paket'}</span>
               </div>
-              {project && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    fontSize: 13, fontWeight: 600, color: '#116c4a',
-                    background: '#a1f4c8', padding: '4px 12px', borderRadius: 9999
-                  }}>
-                    <Sprout size={14} /> Project: {project.name}
-                  </span>
-                  <button
-                    onClick={handleChangeProject}
-                    title="Kembali ke daftar project"
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '4px 12px', border: '1px solid #E9ECEF', borderRadius: 9999,
-                      fontSize: 12, fontWeight: 600, color: '#414844', background: '#ffffff',
-                      cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <ArrowLeftRight size={13} /> Ganti Project
-                  </button>
+              {company.address && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#6C757D', marginTop: 4 }}>
+                  <MapPin size={13} /> {company.address}
                 </div>
               )}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 32 }}>
-            {project && project.commodity && (
-              <>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', color: '#6C757D', textTransform: 'uppercase', margin: '0 0 4px 0' }}>
-                    Commodity
-                  </p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: '#191c1d', margin: 0 }}>
-                    {project.commodity}
-                  </p>
-                </div>
-                <div style={{ width: 1, background: '#E9ECEF', alignSelf: 'stretch' }} />
-              </>
-            )}
-            {project && project.location && (
-              <>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', color: '#6C757D', textTransform: 'uppercase', margin: '0 0 4px 0' }}>
-                    Location
-                  </p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: '#191c1d', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <MapPin size={14} /> {project.location}
-                  </p>
-                </div>
-                <div style={{ width: 1, background: '#E9ECEF', alignSelf: 'stretch' }} />
-              </>
-            )}
             <div style={{ textAlign: 'right' }}>
               <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', color: '#6C757D', textTransform: 'uppercase', margin: '0 0 4px 0' }}>
-                Status
+                SDG Terpilih
+              </p>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#191c1d', margin: 0 }}>
+                {selectedSdgs.length} dari {sdgs.length}
+              </p>
+            </div>
+            <div style={{ width: 1, background: '#E9ECEF', alignSelf: 'stretch' }} />
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', color: '#6C757D', textTransform: 'uppercase', margin: '0 0 4px 0' }}>
+                Verifikasi
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
-                <CheckCircle size={14} style={{ color: status === 'published' ? '#2D6A4F' : '#6C757D' }} />
-                <span style={{ fontSize: 14, fontWeight: 700, color: status === 'published' ? '#2D6A4F' : '#6C757D' }}>
-                  {status === 'published' ? 'Published' : 'Draft'}
+                <CheckCircle size={14} style={{ color: verification?.assessed_by && verification?.evidence_file_url ? '#2D6A4F' : '#6C757D' }} />
+                <span style={{ fontSize: 14, fontWeight: 700, color: verification?.assessed_by && verification?.evidence_file_url ? '#2D6A4F' : '#6C757D' }}>
+                  {verification?.assessed_by && verification?.evidence_file_url ? 'Lengkap' : 'Belum Lengkap'}
                 </span>
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Project Selector */}
-      {company && !project && (
-        <div style={{ marginBottom: 24 }}>
-          <h4 style={{ fontSize: 18, fontWeight: 700, color: '#012d1d', margin: '0 0 12px 0' }}>
-            Pilih Project
-          </h4>
-
-          {projectsLoading ? (
-            <div style={{ padding: '24px', color: '#6C757D' }}>Memuat project...</div>
-          ) : projects.length === 0 ? (
-            <div style={{
-              textAlign: 'center', padding: '48px 24px',
-              border: '2px dashed #E9ECEF', borderRadius: 12, color: '#6C757D'
-            }}>
-              Belum ada project untuk perusahaan ini.
-            </div>
-          ) : (
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-              gap: 16
-            }}>
-              {projects.map(p => (
-                <div
-                  key={p.id}
-                  onClick={() => handleSelectProject(p.id)}
-                  style={{
-                    background: '#ffffff', border: '1px solid #E9ECEF', borderRadius: 12,
-                    padding: 16, cursor: 'pointer', transition: 'all 0.2s ease',
-                    display: 'flex', flexDirection: 'column', gap: 8
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2D6A4F'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E9ECEF'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Sprout size={18} style={{ color: '#2D6A4F' }} />
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#191c1d' }}>{p.name}</div>
-                  <div style={{ fontSize: 12, color: '#6C757D' }}>
-                    {[p.commodity, p.location].filter(Boolean).join(' · ') || '—'}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
@@ -494,23 +393,10 @@ const AdminTraceability = () => {
             Pilih Perusahaan
           </h3>
           <p style={{ fontSize: 14, color: '#6C757D', margin: 0 }}>
-            Gunakan pencarian di atas untuk memilih perusahaan, lalu project yang akan dinilai SDGs-nya.
+            Gunakan pencarian di atas untuk memilih perusahaan yang akan dinilai SDGs-nya.
           </p>
         </div>
-      ) : !project ? (
-        <div style={{
-          textAlign: 'center', padding: '60px 24px', marginBottom: 24,
-          border: '2px dashed #E9ECEF', borderRadius: 12, color: '#6C757D'
-        }}>
-          <Sprout size={40} style={{ color: '#c1c8c2', marginBottom: 12 }} />
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#414844', margin: '0 0 8px 0' }}>
-            Pilih Project
-          </h3>
-          <p style={{ fontSize: 14, color: '#6C757D', margin: 0 }}>
-            Setelah memilih perusahaan, pilih project untuk menilai SDGs-nya.
-          </p>
-        </div>
-      ) : assessmentLoading ? (
+      ) : loading ? (
         <div style={{
           textAlign: 'center', padding: '60px 24px', marginBottom: 24,
           color: '#6C757D'
@@ -525,7 +411,7 @@ const AdminTraceability = () => {
                 SDGs Framework Alignment
               </h4>
               <p style={{ fontSize: 14, color: '#414844', margin: 0 }}>
-                Centang SDG yang dikontribusikan oleh project ini.
+                Centang SDG yang dikontribusikan oleh perusahaan ini.
               </p>
             </div>
             <span style={{
@@ -541,13 +427,14 @@ const AdminTraceability = () => {
             gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
             gap: 16
           }}>
-            {SDG_LIST.map(sdg => {
-              const isActive = selectedSdgs.includes(sdg.number);
-              const Icon = sdg.icon;
+            {sdgs.map(sdg => {
+              const meta = getSdgMeta(sdg.code);
+              const isActive = selectedSdgs.includes(sdg.id);
+              const Icon = meta.icon;
               return (
                 <div
-                  key={sdg.number}
-                  onClick={() => handleToggleSdg(sdg.number)}
+                  key={sdg.id}
+                  onClick={() => handleToggleSdg(sdg.id)}
                   style={{
                     position: 'relative',
                     background: isActive ? 'rgba(161, 244, 200, 0.2)' : '#ffffff',
@@ -569,31 +456,31 @@ const AdminTraceability = () => {
                   />
                   <div style={{
                     width: 48, height: 48, borderRadius: 8,
-                    background: isActive ? sdg.color : `${sdg.color}1A`,
+                    background: isActive ? meta.color : `${meta.color}1A`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     marginBottom: 12, transition: 'all 0.2s ease'
                   }}>
-                    <Icon size={24} style={{ color: isActive ? '#ffffff' : sdg.color }} />
+                    <Icon size={24} style={{ color: isActive ? '#ffffff' : meta.color }} />
                   </div>
                   <p style={{
                     fontSize: 12, fontWeight: 700, letterSpacing: '0.03em',
                     color: isActive ? '#116c4a' : '#414844',
                     margin: '0 0 4px 0', textTransform: 'uppercase'
                   }}>
-                    GOAL {String(sdg.number).padStart(2, '0')}
+                    GOAL {String(meta.number).padStart(2, '0')}
                   </p>
                   <p style={{
                     fontSize: 14, color: '#191c1d', margin: 0,
                     lineHeight: '18px'
                   }}>
-                    {sdg.title}
+                    {meta.title}
                   </p>
                 </div>
               );
             })}
           </div>
 
-          {/* Assessment: Assessor + Evidence (di atas tombol save/publish) */}
+          {/* Assessment: Assessor + Evidence */}
           <div className="stat-card" style={{
             marginTop: 24, padding: 24,
             border: '2px solid #2D6A4F'
@@ -618,7 +505,7 @@ const AdminTraceability = () => {
                   type="text"
                   value={assessedBy}
                   onChange={(e) => setAssessedBy(e.target.value)}
-                  placeholder="Nama orang yang mengurus/menilai SDGs ini"
+                  placeholder="Nama orang yang mengurus/menilai SDGs perusahaan ini"
                   style={{
                     width: '100%', padding: '12px 14px', border: '1px solid #E9ECEF',
                     borderRadius: 8, fontSize: 14, outline: 'none', fontFamily: 'inherit',
@@ -652,45 +539,40 @@ const AdminTraceability = () => {
                   background: 'rgba(255,255,255,0.6)'
                 }}>
                   <Upload size={16} />
-                  {uploading ? 'Uploading...' : 'Upload Bukti (gambar/Word)'}
+                  {uploading ? 'Uploading...' : evidenceFile ? 'Ganti Bukti (gambar/Word)' : 'Upload Bukti (gambar/Word)'}
                 </label>
               </div>
             </div>
 
-            {evidence.length > 0 && (
+            {evidenceFile && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
-                {evidence.map(ev => {
-                  const isImg = IMAGE_EXTENSIONS.includes(ev.file_type);
-                  return (
-                    <div key={ev.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '8px 12px', background: '#f8f9fa',
-                      border: '1px solid #E9ECEF', borderRadius: 8
-                    }}>
-                      {isImg ? (
-                        <img src={`${BASE_URL}${ev.file_url}`} alt={ev.file_name}
-                          style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
-                      ) : (
-                        <FileText size={28} style={{ color: '#2D6A4F', flexShrink: 0 }} />
-                      )}
-                      <a
-                        href={`${BASE_URL}${ev.file_url}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ flex: 1, minWidth: 0, textDecoration: 'none', color: '#191c1d', fontSize: 13, fontWeight: 500 }}
-                      >
-                        {ev.file_name}
-                      </a>
-                      <button
-                        onClick={() => handleDeleteEvidence(ev.id)}
-                        title="Hapus bukti"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D90429', padding: 4, flexShrink: 0 }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  );
-                })}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 12px', background: '#f8f9fa',
+                  border: '1px solid #E9ECEF', borderRadius: 8
+                }}>
+                  {IMAGE_EXTENSIONS.includes(evidenceFile.file_type) ? (
+                    <img src={`${BASE_URL}${evidenceFile.file_url}`} alt="bukti"
+                      style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+                  ) : (
+                    <FileText size={28} style={{ color: '#2D6A4F', flexShrink: 0 }} />
+                  )}
+                  <a
+                    href={`${BASE_URL}${evidenceFile.file_url}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ flex: 1, minWidth: 0, textDecoration: 'none', color: '#191c1d', fontSize: 13, fontWeight: 500 }}
+                  >
+                    Bukti Assessment
+                  </a>
+                  <button
+                    onClick={handleDeleteEvidence}
+                    title="Hapus bukti"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D90429', padding: 4, flexShrink: 0 }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -698,7 +580,7 @@ const AdminTraceability = () => {
       )}
 
       {/* Sticky Bottom Actions */}
-      {company && project && (
+      {company && (
         <div className="stat-card" style={{
           padding: '16px 24px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -706,40 +588,23 @@ const AdminTraceability = () => {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#2D6A4F', fontSize: 12 }}>
             <Info size={16} />
-            <span>{selectedSdgs.length} SDG dipilih untuk project ini.</span>
+            <span>{selectedSdgs.length} SDG dipilih untuk perusahaan ini.</span>
           </div>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button
-              onClick={() => handleSave('draft')}
-              disabled={saving}
-              style={{
-                padding: '12px 32px', border: '1px solid #012d1d', borderRadius: 8,
-                fontSize: 12, fontWeight: 700, letterSpacing: '0.05em',
-                color: '#012d1d', background: '#ffffff', cursor: 'pointer',
-                fontFamily: 'inherit', transition: 'all 0.2s ease',
-                display: 'flex', alignItems: 'center', gap: 8
-              }}
-            >
-              {saving && saveType === 'draft' ? 'Saving...' : (
-                <><Save size={16} /> SAVE DRAFT</>
-              )}
-            </button>
-            <button
-              onClick={() => handleSave('publish')}
-              disabled={saving}
-              style={{
-                padding: '12px 32px', border: 'none', borderRadius: 8,
-                fontSize: 12, fontWeight: 700, letterSpacing: '0.05em',
-                color: '#ffffff', background: '#012d1d', cursor: 'pointer',
-                fontFamily: 'inherit', transition: 'all 0.2s ease',
-                display: 'flex', alignItems: 'center', gap: 8
-              }}
-            >
-              {saving && saveType === 'publish' ? 'Publishing...' : (
-                <><Send size={16} /> PUBLISH ASSESSMENT</>
-              )}
-            </button>
-          </div>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              padding: '12px 32px', border: 'none', borderRadius: 8,
+              fontSize: 12, fontWeight: 700, letterSpacing: '0.05em',
+              color: '#ffffff', background: '#012d1d', cursor: 'pointer',
+              fontFamily: 'inherit', transition: 'all 0.2s ease',
+              display: 'flex', alignItems: 'center', gap: 8
+            }}
+          >
+            {saving ? 'Saving...' : (
+              <><Send size={16} /> SAVE ASSESSMENT</>
+            )}
+          </button>
         </div>
       )}
     </div>

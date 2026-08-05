@@ -348,42 +348,59 @@ def admin_get_farms(current_user):
 
 
 # ==========================================
-# TRACEABILITY - SDG ASSESSMENT
+# TRACEABILITY - SDG ASSESSMENT (COMPANY LEVEL)
 # ==========================================
+
+@admin_bp.route('/companies/<company_id>/sdgs', methods=['GET'])
+@token_required
+@role_required('super_admin')
+def api_get_company_sdg_assessment(current_user, company_id):
+    result, status_code = get_company_sdg_assessment_data(company_id)
+    return jsonify(result), status_code
+
+
+@admin_bp.route('/companies/<company_id>/sdgs', methods=['PUT'])
+@token_required
+@role_required('super_admin')
+def api_save_company_sdg_assessment(current_user, company_id):
+    data = request.get_json(silent=True) or {}
+    result, status_code = save_company_sdg_assessment(company_id, data)
+    return jsonify(result), status_code
+
+
+@admin_bp.route('/companies/<company_id>/sdgs/verification/evidence', methods=['POST'])
+@token_required
+@role_required('super_admin')
+def api_upload_company_sdg_verification(current_user, company_id):
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'File tidak ditemukan pada request'}), 400
+
+    result, status_code = upload_company_sdg_verification(company_id, request.files['file'], current_user)
+    return jsonify(result), status_code
+
+
+@admin_bp.route('/companies/<company_id>/sdgs/verification/evidence', methods=['DELETE'])
+@token_required
+@role_required('super_admin')
+def api_remove_company_sdg_verification(current_user, company_id):
+    result, status_code = delete_company_sdg_verification(company_id)
+    return jsonify(result), status_code
+
 
 @admin_bp.route('/traceability/<project_id>', methods=['GET'])
 @token_required
 @role_required('super_admin')
-def get_traceability_assessment(current_user, project_id):
-    result, status_code = get_traceability_assessment_data(project_id)
+def api_get_project_traceability(current_user, project_id):
+    result, status_code = get_project_traceability_data(project_id)
     return jsonify(result), status_code
 
 
 @admin_bp.route('/traceability/<project_id>', methods=['PUT'])
 @token_required
 @role_required('super_admin')
-def save_traceability_assessment(current_user, project_id):
+def api_save_project_traceability(current_user, project_id):
     data = request.get_json(silent=True) or {}
-    result, status_code = save_traceability_sdgs(project_id, data)
-    return jsonify(result), status_code
-
-
-@admin_bp.route('/traceability/<project_id>/evidence', methods=['POST'])
-@token_required
-@role_required('super_admin')
-def upload_sdg_evidence(current_user, project_id):
-    if 'file' not in request.files:
-        return jsonify({'success': False, 'message': 'File tidak ditemukan pada request'}), 400
-
-    result, status_code = add_sdg_evidence(project_id, request.files['file'], current_user)
-    return jsonify(result), status_code
-
-
-@admin_bp.route('/traceability/evidence/<evidence_id>', methods=['DELETE'])
-@token_required
-@role_required('super_admin')
-def remove_sdg_evidence(current_user, evidence_id):
-    result, status_code = delete_sdg_evidence(evidence_id)
+    result, status_code = save_project_traceability(project_id, data)
     return jsonify(result), status_code
 
 
