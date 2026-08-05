@@ -107,7 +107,7 @@ const LandingPage = () => {
 
       {/* STATS COUNTER */}
       <section className="stats-section">
-        <div className="stats-grid">
+        <div className="landing-stats-grid">
           <div className="stat-item">
             <div className="stat-number" data-target="2500">0</div>
             <div className="stat-suffix">Ha+</div>

@@ -145,7 +145,10 @@ const GIS = () => {
             <div style={{ padding: '30px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h1 style={{ color: '#1B4332', margin: 0 }}>Buat Lahan Baru (Global GIS)</h1>
-                    <button className="secondary-btn" onClick={() => setIsCreatingFarm(false)}>Batal</button>
+                    <button className="secondary-btn" onClick={() => setIsCreatingFarm(false)}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+                        Batal
+                    </button>
                 </div>
                 
                 <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', border: '2px solid #2D6A4F', position: 'relative' }}>
@@ -213,7 +216,7 @@ const GIS = () => {
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h1 className="page-title" style={{ fontSize: '24px', margin: 0 }}>Global GIS & Lahan</h1>
                 <button className="primary-btn" onClick={() => setIsCreatingFarm(true)}>
-                    <Plus size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
                     Add New Farm
                 </button>
             </div>
@@ -238,16 +241,6 @@ const GIS = () => {
                         <div className="skeleton-text" style={{ width: '60px', height: '30px' }}></div>
                     ) : (
                         <p className="stat-value" style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{totalArea.toFixed(2)} ha</p>
-                    )}
-                </div>
-                <div className="stat-card" style={{ flex: 1, padding: '20px', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-                    <h3 style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Sprout size={16} color="#10b981" /> Total Crops
-                    </h3>
-                    {loading ? (
-                        <div className="skeleton-text" style={{ width: '60px', height: '30px' }}></div>
-                    ) : (
-                        <p className="stat-value" style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{totalCrops}</p>
                     )}
                 </div>
                 <div style={{ flex: 1 }}></div>

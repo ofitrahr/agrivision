@@ -126,6 +126,7 @@ class Farm(db.Model):
     crop_variety = db.Column(db.String(255))
     total_area_ha = db.Column(db.Numeric(10, 2))
     altitude = db.Column(db.String(50))
+    agroforestry_system = db.Column(db.String(100))
     boundary = db.Column(Geometry(geometry_type='POLYGON', srid=4326))
     created_by = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id', ondelete='SET NULL'))
     status = db.Column(db.String(20), nullable=False, default='active')

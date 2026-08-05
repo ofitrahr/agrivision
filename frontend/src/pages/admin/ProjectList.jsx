@@ -58,13 +58,17 @@ const ProjectList = () => {
     return (
         <div style={{ padding: '30px' }}>
             <div style={{ marginBottom: '30px', display: 'flex', gap: '15px' }}>
-                <button className="action-btn view-btn" onClick={() => navigate('/admin/companies')}> Kembali ke Daftar Company</button>
+                <button className="action-btn view-btn" onClick={() => navigate('/admin/companies')}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_back</span>
+                    Kembali ke Daftar Company
+                </button>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h1 style={{ color: '#1B4332', margin: 0 }}>Kelola Project</h1>
                 <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
-                    + Tambah Project
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                    Tambah Project
                 </button>
             </div>
 
@@ -96,7 +100,10 @@ const ProjectList = () => {
                                     <td>{p.location || '-'}</td>
                                     <td>{new Date(p.created_at).toLocaleDateString('id-ID')}</td>
                                     <td>
-                                        <button className="action-btn primary-btn" onClick={() => navigate(`/admin/projects/${p.id}/permissions`)} style={{ padding: '6px 12px', fontSize: '12px' }}>Modul SaaS</button>
+                                        <button className="action-btn primary-btn" onClick={() => navigate(`/admin/projects/${p.id}/permissions`)} style={{ padding: '6px 12px', fontSize: '12px' }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>tune</span>
+                                            Modul SaaS
+                                        </button>
                                     </td>
                                 </tr>
                             ))

@@ -239,15 +239,19 @@ def manager_farms(current_user):
             'crop_variety': f.crop_variety,
             'farmers': [farmer.name for farmer in farm_farmers],
             'crops': [crop.crop_type for crop in farm_crops],
-            'total_area_ha': float(f.total_area_ha) if f.total_area_ha else 0
+            'total_area_ha': float(f.total_area_ha) if f.total_area_ha else 0,
+            'altitude': f.altitude if f.altitude else None,
+            'established_year': f.created_at.strftime('%Y') if f.created_at else None,
+            'agroforestry_system': getattr(f, 'agroforestry_system', None)
         })
     from app.db.models import ProjectPermission
     perms = ProjectPermission.query.filter_by(project_id=project_id).first()
     perms_data = {
-        'can_access_ndvi': perms.can_access_ndvi if perms else False,
-        'can_access_soc': perms.can_access_soc if perms else False,
-        'can_access_biomass': perms.can_access_biomass if perms else False,
-        'can_access_yield': perms.can_access_yield if perms else False
+        'can_access_ndvi': perms.can_access_ndvi if perms else True,
+        'can_access_soc': perms.can_access_soc if perms else True,
+        'can_access_biomass': perms.can_access_biomass if perms else True,
+        'can_access_yield': perms.can_access_yield if perms else True,
+        'can_access_soilnpk': perms.can_access_soilnpk if perms else True,
     }
     return jsonify({'success': True, 'data': data, 'permissions': perms_data}), 200
 
@@ -268,6 +272,11 @@ def manager_farm_details(current_user, farm_id):
         'data': {
             'id': farm.id,
             'name': farm.name,
+            'total_area_ha': float(farm.total_area_ha) if farm.total_area_ha else 0,
+            'crop_variety': farm.crop_variety or '',
+            'altitude': farm.altitude or '',
+            'established_year': farm.created_at.strftime('%Y') if farm.created_at else '',
+            'agroforestry_system': getattr(farm, 'agroforestry_system', None) or 'Agroforestri Organik',
             'farmers': [{'id': f.id, 'name': f.name} for f in farmers],
             'crops': [c.crop_type for c in crops]
         }
@@ -284,6 +293,18 @@ def manager_update_farm_details(current_user, farm_id):
     try:
         from app.db.models import Farmer, FarmCrop
         data = request.json
+
+        if 'name' in data and data['name']:
+            farm.name = data['name']
+        if 'total_area_ha' in data:
+            farm.total_area_ha = data['total_area_ha']
+        if 'crop_variety' in data:
+            farm.crop_variety = data['crop_variety']
+        if 'altitude' in data:
+            farm.altitude = data['altitude']
+        if 'agroforestry_system' in data and hasattr(farm, 'agroforestry_system'):
+            setattr(farm, 'agroforestry_system', data['agroforestry_system'])
+        
         farmer_ids = data.get('farmer_ids', [])
         crop_types = data.get('crop_types', [])
         
@@ -298,6 +319,16 @@ def manager_update_farm_details(current_user, farm_id):
             db.session.add(new_crop)
             
         db.session.commit()
+
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='UPDATE_FARM',
+            entity_type='Farm',
+            entity_id=farm.id,
+            details=f"Memperbarui informasi & penugasan lahan '{farm.name}'"
+        )
+
         return jsonify({'success': True, 'message': 'Informasi lahan berhasil diperbarui'}), 200
     except Exception as e:
         db.session.rollback()
@@ -400,11 +431,15 @@ def get_agronomy_farm_map(current_user, farm_id):
     layer_type = request.args.get('layer', 'ndvi')
     
     if layer_type == 'soc':
-        has_access = perms.can_access_soc
+        has_access = perms.can_access_soc if perms else True
     elif layer_type == 'biomass':
-        has_access = perms.can_access_biomass
+        has_access = perms.can_access_biomass if perms else True
+    elif layer_type == 'yield':
+        has_access = perms.can_access_yield if perms else True
+    elif layer_type == 'soilnpk':
+        has_access = perms.can_access_soilnpk if perms else True
     else:
-        has_access = perms.can_access_ndvi
+        has_access = perms.can_access_ndvi if perms else True
 
     farm = Farm.query.filter_by(id=farm_id, project_id=current_user.project_id).first()
     if not farm:
@@ -479,4 +514,55 @@ def manager_farm_harvests(current_user, farm_id):
 
     except Exception as e:
         db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@manager_bp.route('/activities', methods=['GET'])
+@token_required
+@role_required('manager')
+def get_manager_activities(current_user):
+    try:
+        from app.db.models import ActivityLog, User, Project
+        from app.services.activity_service import format_time_ago
+
+        company_id = current_user.project.company_id if current_user.project else None
+        if company_id:
+            company_users = User.query.join(Project).filter(Project.company_id == company_id).all()
+            user_ids = [u.id for u in company_users]
+        else:
+            user_ids = [current_user.id]
+
+        limit_val = request.args.get('limit', default=50, type=int)
+        logs = ActivityLog.query.filter(ActivityLog.user_id.in_(user_ids))\
+                                .order_by(ActivityLog.created_at.desc())\
+                                .limit(limit_val).all()
+
+        data = []
+        for log in logs:
+            user = User.query.get(log.user_id) if log.user_id else None
+            user_name = (user.full_name or user.username) if user else 'Sistem'
+
+            icon = 'info'
+            act = log.action.upper()
+            if 'FARMER' in act or 'USER' in act or 'CREATE' in act:
+                icon = 'group_add'
+            elif 'MAP' in act or 'FARM' in act or 'GIS' in act:
+                icon = 'map'
+            elif 'FINANCIAL' in act or 'PAYMENT' in act:
+                icon = 'payments'
+            elif 'HARVEST' in act or 'CROP' in act:
+                icon = 'description'
+            elif 'LOGIN' in act:
+                icon = 'login'
+
+            data.append({
+                'id': str(log.id),
+                'icon': icon,
+                'text': log.details or f"{log.action} {log.entity_type}",
+                'subtext': f"Oleh {user_name} • {format_time_ago(log.created_at)}",
+                'created_at': log.created_at.isoformat()
+            })
+
+        return jsonify({'success': True, 'data': data}), 200
+    except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

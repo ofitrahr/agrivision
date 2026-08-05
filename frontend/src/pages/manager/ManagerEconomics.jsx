@@ -152,7 +152,10 @@ const ManagerEconomics = () => {
 
     return (
         <div style={{ padding: '30px', maxWidth: '1000px', margin: '0 auto' }}>
-            <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')} style={{ marginBottom: '20px' }}> Kembali ke Dashboard</button>
+            <button className="action-btn view-btn" onClick={() => navigate('/manager/dashboard')} style={{ marginBottom: '20px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_back</span>
+                Kembali ke Dashboard
+            </button>
             <h1 style={{ color: '#1B4332' }}>Laporan & Analitik Panen</h1>
             
             {/* Tabs */}
@@ -212,6 +215,7 @@ const ManagerEconomics = () => {
                                 <textarea value={notes} onChange={e => setNotes(e.target.value)} style={{ width: '100%', padding: '8px', minHeight: '60px' }} />
                             </div>
                             <button type="submit" className="primary-btn" disabled={saving}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span>
                                 {saving ? 'Menyimpan...' : 'Simpan Laporan'}
                             </button>
                         </form>
@@ -272,6 +276,7 @@ const ManagerEconomics = () => {
                                     <textarea value={analyticsNotes} onChange={e => setAnalyticsNotes(e.target.value)} style={{ width: '100%', padding: '8px', minHeight: '60px' }} />
                                 </div>
                                 <button type="submit" className="primary-btn" disabled={analyticsSaving}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span>
                                     {analyticsSaving ? 'Menyimpan...' : 'Simpan Data Panen'}
                                 </button>
                             </form>

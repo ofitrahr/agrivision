@@ -39,7 +39,7 @@ def get_all_companies():
             "max_farms" : c.max_farms,
             "max_users" : c.max_users,
             "is_active" : c.is_active,
-            "created_at" : c.created_at,
+            "created_at" : c.created_at.isoformat() if c.created_at else None,
         })
     
     return ({"success": True, "data" : result})

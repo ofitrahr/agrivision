@@ -61,7 +61,10 @@ const CompanyPermissions = () => {
 
     return (
         <div style={{ padding: '30px', maxWidth: '800px', margin: '0 auto' }}>
-            <button className="action-btn view-btn" onClick={() => navigate(-1)} style={{ marginBottom: '20px' }}> Kembali</button>
+            <button className="action-btn view-btn" onClick={() => navigate(-1)} style={{ marginBottom: '20px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_back</span>
+                Kembali
+            </button>
             <h1 style={{ color: '#1B4332' }}>Konfigurasi Modul & Langganan SaaS Project</h1>
             <p style={{ color: '#6b7280', marginBottom: '30px' }}>Atur fitur-fitur apa saja yang dapat diakses oleh manajer pada project ini.</p>
 
@@ -85,6 +88,7 @@ const CompanyPermissions = () => {
 
             <div style={{ marginTop: '30px', textAlign: 'right' }}>
                 <button className="primary-btn" onClick={handleSave} disabled={saving} style={{ padding: '12px 30px', fontSize: '16px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span>
                     {saving ? 'Menyimpan...' : 'Simpan Konfigurasi'}
                 </button>
             </div>

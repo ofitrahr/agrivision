@@ -143,13 +143,17 @@ const CompanyUsers = () => {
     return (
         <div style={{ padding: '30px' }}>
             <div style={{ marginBottom: '30px', display: 'flex', gap: '15px' }}>
-                <button className="action-btn view-btn" onClick={() => navigate('/admin/companies')}> Kembali ke Daftar Company</button>
+                <button className="action-btn view-btn" onClick={() => navigate('/admin/companies')}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_back</span>
+                    Kembali ke Daftar Company
+                </button>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h1 style={{ color: '#1B4332', margin: 0 }}>Kelola Akun Klien</h1>
                 <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
-                    + Tambah User
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                    Tambah User
                 </button>
             </div>
 
@@ -185,22 +189,24 @@ const CompanyUsers = () => {
                                     <td>
                                         <div style={{ display: 'flex', gap: '5px' }}>
                                             <button
-                                                className="action-btn view-btn"
+                                                className="action-btn edit-btn"
                                                 onClick={() => handleEditClick(u)}
                                             >
+                                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
                                                 Edit
                                             </button>
                                             <button
-                                                className="action-btn edit-btn"
+                                                className="action-btn view-btn"
                                                 onClick={() => confirmResetPassword(u.id, u.username)}
                                             >
+                                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>key</span>
                                                 Reset Password
                                             </button>
                                             <button
                                                 className="action-btn delete-btn"
-                                                style={{ backgroundColor: '#e11d48', color: 'white' }}
                                                 onClick={() => confirmDeleteUser(u.id, u.username)}
                                             >
+                                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
                                                 Hapus
                                             </button>
                                         </div>

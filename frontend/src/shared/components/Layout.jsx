@@ -1,28 +1,30 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../features/auth/AuthContext';
-import { 
-  LayoutDashboard, Users, Shield, Map, Activity, 
-  Settings, LogOut, FileText, Bell, Search 
-} from 'lucide-react';
 
-const Sidebar = ({ role }) => {
+const Sidebar = ({ role, user }) => {
+  const navigate = useNavigate();
+  const { logout } = useContext(AuthContext);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   const adminLinks = [
-    { to: '/admin/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-    { to: '/admin/companies', icon: <Users size={20} />, label: 'Companies' },
-    { to: '/admin/gis', icon: <Map size={20} />, label: 'GIS' },
-    { to: '/admin/traceability', icon: <Activity size={20} />, label: 'Traceability' },
+    { to: '/admin/dashboard', icon: 'dashboard', label: 'Platform Overview' },
+    { to: '/admin/companies', icon: 'business', label: 'Daftar Klien' },
+    { to: '/admin/gis', icon: 'map', label: 'GIS & Pemetaan' },
+    { to: '/admin/traceability', icon: 'qr_code_scanner', label: 'Traceability' },
   ];
 
   const managerLinks = [
-    { to: '/manager/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-    { to: '/manager/farmers', icon: <Users size={20} />, label: 'Farmers' },
-    { to: '/manager/economics', icon: <Activity size={20} />, label: 'Economics' },
-    { to: '/manager/traceability', icon: <Shield size={20} />, label: 'Traceability' },
+    { to: '/manager/dashboard', icon: 'dashboard', label: 'Dashboard' },
+    { to: '/manager/farmers', icon: 'group', label: 'Data Petani' },
+    { to: '/manager/farm-management', icon: 'landscape', label: 'Manajemen Lahan' },
+    { to: '/manager/agronomy', icon: 'eco', label: 'Agronomi' },
+    { to: '/manager/economics', icon: 'payments', label: 'Ekonomi' },
+    { to: '/manager/traceability', icon: 'verified', label: 'Traceability' },
   ];
   
   const boardLinks = [
-    { to: '/board/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
+    { to: '/board/dashboard', icon: 'analytics', label: 'Dashboard Eksekutif' },
   ];
 
   let links = [];
@@ -30,38 +32,13 @@ const Sidebar = ({ role }) => {
   else if (role === 'manager') links = managerLinks;
   else if (role === 'board') links = boardLinks;
 
-  return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
-        <div className="logo-box">A</div>
-        <h2 className="brand-name">Agrivision</h2>
-      </div>
-      <nav className="sidebar-nav">
-        {links.map((link) => (
-          <NavLink 
-            key={link.to} 
-            to={link.to} 
-            className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}
-          >
-            {link.icon}
-            <span>{link.label}</span>
-          </NavLink>
-        ))}
-      </nav>
-      <div className="sidebar-footer">
-        <div className="nav-item" style={{cursor: 'pointer'}}>
-          <Settings size={20} />
-          <span>Settings</span>
-        </div>
-      </div>
-    </aside>
-  );
-};
+  const roleLabel = role === 'super_admin' ? 'Super Admin' : (role === 'manager' ? 'Manager' : 'Board');
 
-const Header = () => {
-  const { user, logout } = useContext(AuthContext);
-  const navigate = useNavigate();
-  const [showLogoutModal, setShowLogoutModal] = React.useState(false);
+  const profilePath = role === 'super_admin'
+    ? '/admin/profile'
+    : role === 'manager'
+      ? '/manager/profile-user'
+      : '/board/profile';
 
   const handleLogout = () => {
     logout();
@@ -70,33 +47,72 @@ const Header = () => {
 
   return (
     <>
-      <header className="top-header">
-        <div className="header-search">
-          .......................
-        </div>
-        <div className="header-right">
-          <Bell size={20} className="icon-btn" />
-          <div className="user-profile">
-            <div className="user-info">
-              <div className="user-name">{user?.username || 'User'}</div>
-              <div className="user-role">{user?.role || 'Guest'}</div>
+      <aside className="sidebar">
+        <div className="sidebar-brand" style={{ justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="sidebar-logo">
+              <img src="/assets/images/logo_icon.png" alt="Agrivision Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <div className="user-avatar">
-              {user?.username?.charAt(0).toUpperCase() || 'U'}
+            <div>
+              <div className="sidebar-brand-name">Agrivision</div>
             </div>
-            <LogOut size={20} className="icon-btn text-error" onClick={() => setShowLogoutModal(true)} title="Logout" />
           </div>
         </div>
-      </header>
 
-      {showLogoutModal && (
+        <nav className="sidebar-nav">
+          <div className="sidebar-section-label">Menu Utama</div>
+          {links.map((link) => (
+            <NavLink 
+              key={link.to} 
+              to={link.to} 
+              className={({isActive}) => isActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'}
+            >
+              <span className="material-symbols-outlined">{link.icon}</span>
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
+
+
+
+        <div className="sidebar-footer">
+          <div className="sidebar-user">
+            <div className="sidebar-avatar">
+              {(user?.full_name || user?.user || 'U').charAt(0).toUpperCase()}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="sidebar-user-name">{user?.full_name || user?.user || 'Pengguna'}</div>
+              <div className="sidebar-user-role">{roleLabel}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="sidebar-footer-btn" onClick={() => navigate(profilePath)} title="Profil">
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person</span>
+              Profil
+            </button>
+            <button className="sidebar-footer-btn sidebar-footer-btn-danger" onClick={() => setShowLogoutConfirm(true)} title="Keluar">
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
+              Keluar
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {showLogoutConfirm && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center' }}>
-            <h2 style={{ margin: '0 0 16px 0', color: 'var(--text-main)', fontSize: '20px' }}>Konfirmasi Logout</h2>
-            <p style={{ margin: '0 0 24px 0', color: 'var(--text-muted)' }}>Apakah Anda yakin ingin keluar dari sesi ini?</p>
-            <div className="modal-actions" style={{ justifyContent: 'center' }}>
-              <button className="secondary-btn" onClick={() => setShowLogoutModal(false)}>Batal</button>
-              <button className="danger-btn" onClick={handleLogout}>Ya, Keluar</button>
+            <div style={{ marginBottom: '16px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--color-error)' }}>logout</span>
+            </div>
+            <h2 style={{ margin: '0 0 8px 0', color: 'var(--color-text-main)', fontSize: '20px', fontFamily: 'var(--font-display)' }}>
+              Konfirmasi Keluar
+            </h2>
+            <p style={{ margin: '0 0 24px 0', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+              Apakah Anda yakin ingin keluar dari sesi ini?
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button className="btn btn-ghost" onClick={() => setShowLogoutConfirm(false)}>Batal</button>
+              <button className="btn btn-primary" style={{ background: 'var(--color-error)' }} onClick={handleLogout}>Ya, Keluar</button>
             </div>
           </div>
         </div>
@@ -105,15 +121,143 @@ const Header = () => {
   );
 };
 
-const Layout = () => {
+const Header = ({ onToggleSidebar, isSidebarOpen }) => {
+  const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const profilePath = user?.role === 'super_admin'
+    ? '/admin/profile'
+    : user?.role === 'manager'
+      ? '/manager/profile-user'
+      : '/board/profile';
+
+  const settingsPath = user?.role === 'super_admin'
+    ? '/admin/settings'
+    : user?.role === 'manager'
+      ? '/manager/settings'
+      : '/board/settings';
+
+  const mockNotifications = [
+    { id: 1, title: 'Sistem Operasional Normal', time: 'Baru saja', icon: 'check_circle', color: '#10b981' },
+    { id: 2, title: 'Pembaruan Data Lahan & Petani', time: '1 jam yang lalu', icon: 'landscape', color: '#3b82f6' },
+    { id: 3, title: 'Laporan Traceability Siap', time: 'Hari ini', icon: 'verified', color: '#f59e0b' },
+  ];
+
   return (
-    <div className="app-layout">
-      <Sidebar role={JSON.parse(localStorage.getItem('user'))?.role || 'guest'} />
-      <main className="main-content">
-        <Header />
-        <div className="page-content">
-          <Outlet />
+    <>
+      <header className="topnav">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button 
+            className="topnav-toggle-btn"
+            onClick={onToggleSidebar}
+            title={isSidebarOpen ? "Sembunyikan Sidebar" : "Tampilkan Sidebar"}
+            aria-label="Toggle Sidebar"
+          >
+            <span className="material-symbols-outlined">menu</span>
+          </button>
+          <div className="search-input-wrap">
+            <span className="material-symbols-outlined">search</span>
+            <input type="text" className="search-input" placeholder="Cari data..." aria-label="Pencarian global" />
+          </div>
         </div>
+        <div className="topnav-actions" style={{ position: 'relative' }}>
+
+
+          {/* Tombol Notifikasi */}
+          <button 
+            className="topnav-icon-btn" 
+            title="Notifikasi" 
+            aria-label="Notifikasi"
+            onClick={() => setShowNotifications(!showNotifications)}
+            style={{ position: 'relative' }}
+          >
+            <span className="material-symbols-outlined">notifications</span>
+            <span style={{
+              position: 'absolute', top: '2px', right: '2px', width: '8px', height: '8px',
+              borderRadius: '50%', background: 'var(--color-main-gold)'
+            }} />
+          </button>
+
+          {/* Tombol Pengaturan */}
+          <button 
+            className="topnav-icon-btn" 
+            title="Pengaturan Platform & Preferensi" 
+            aria-label="Pengaturan"
+            onClick={() => navigate(settingsPath)}
+          >
+            <span className="material-symbols-outlined">settings</span>
+          </button>
+
+          {/* Avatar User -> Ke Profil */}
+          <div 
+            className="topnav-avatar" 
+            onClick={() => navigate(profilePath)} 
+            title="Lihat Profil Akun"
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            {(user?.full_name || user?.user || user?.username || 'U').charAt(0).toUpperCase()}
+          </div>
+          {/* Dropdown Notifikasi */}
+          {showNotifications && (
+            <div style={{
+              position: 'absolute', top: '48px', right: '0', width: '320px',
+              background: 'var(--color-surface-white)', border: '1px solid var(--color-border-muted)',
+              borderRadius: 'var(--radius-md)', boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+              zIndex: 100, overflow: 'hidden'
+            }}>
+              <div style={{
+                padding: '12px 16px', borderBottom: '1px solid var(--color-border-muted)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+                <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--color-text-main)' }}>Notifikasi</span>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>3 Baru</span>
+              </div>
+              <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                {mockNotifications.map(n => (
+                  <div key={n.id} style={{
+                    padding: '12px 16px', borderBottom: '1px solid var(--color-surface-container-high)',
+                    display: 'flex', gap: '12px', alignItems: 'flex-start', cursor: 'pointer',
+                    transition: 'background var(--transition)'
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: n.color, marginTop: '2px' }}>{n.icon}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-main)' }}>{n.title}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>{n.time}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ padding: '8px 16px', textAlign: 'center', background: 'var(--color-surface-container-low)' }}>
+                <button 
+                  onClick={() => setShowNotifications(false)}
+                  style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+    </>
+  );
+};
+
+const Layout = () => {
+  const { user } = useContext(AuthContext);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(prev => !prev);
+  };
+  
+  return (
+    <div className={`app-layout ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
+      <Sidebar role={user?.role || 'guest'} user={user} />
+      <Header onToggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
+      <main className="main-content">
+        <Outlet />
       </main>
     </div>
   );
