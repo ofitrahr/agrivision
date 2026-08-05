@@ -12,6 +12,10 @@ def authenticate_user(username, password):
     
     if not user.is_active:
         return {"success": False, "message": "Akun tidak aktif", "status": 403}
+
+    if user.role != 'superadmin' and user.project and user.project.company:
+        if not user.project.company.is_active:
+            return {"success": False, "message": "Akun / Perusahaan sudah tidak aktif", "status": 403}
     
     if bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8')):
         payload = {

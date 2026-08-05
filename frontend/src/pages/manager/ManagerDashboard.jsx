@@ -238,7 +238,7 @@ const ManagerDashboard = () => {
                 {/* Recent Projects Section */}
                 <section aria-label="Daftar Lahan Project">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
-                        <h2 className="text-headline-lg" style={{ fontSize: '20px', margin: 0 }}>Daftar Lahan Perusahaan</h2>
+                        <h2 className="text-headline-lg" style={{ fontSize: '20px', margin: 0 }}>Daftar Lahan Project</h2>
                     </div>
                     
                     <div className="stats-grid-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
