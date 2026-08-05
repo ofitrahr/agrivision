@@ -2,7 +2,8 @@ import bcrypt
 import string
 import random
 from app.db.database import db
-from app.db.models import Company, User, Farm, Batch, ProjectPermission, Project
+from app.db.models import Company, User, Farm, Batch, ProjectPermission, Project, ProjectSdg, ProjectSdgEvidence, ProjectTraceability
+from app.services.upload_service import save_file_locally
 
 def get_dashboard_stats():
     total_companies = Company.query.count() 
@@ -230,6 +231,7 @@ def get_company_projects(company_id):
             "company_id": str(p.company_id),
             "name": p.name,
             "description": p.description,
+            "commodity": p.commodity,
             "location": p.location,
             "created_at": p.created_at.isoformat() if p.created_at  else None
         })
@@ -245,6 +247,7 @@ def create_project(company_id, data):
             company_id = company_id,
             name = data.get('name'),
             description = data.get('description'),
+            commodity = data.get('commodity'),
             location = data.get('location')
         )
 
@@ -260,6 +263,158 @@ def create_project(company_id, data):
         db.session.rollback()
         return {"success": False, "message": f"Gagal membuat project: {str(e)}"}    
 
+
+# ==========================================
+# TRACEABILITY - SDG ASSESSMENT
+# ==========================================
+
+def _serialize_traceability(trace):
+    return {
+        "id": str(trace.id) if trace else None,
+        "assessed_by": trace.assessed_by if trace else None,
+        "status": trace.status if trace else 'draft',
+        "evidence": [
+            {
+                "id": str(ev.id),
+                "file_url": ev.file_url,
+                "file_name": ev.file_name,
+                "file_type": ev.file_type
+            }
+            for ev in trace.evidence
+        ] if trace else []
+    }
+
+def _get_or_create_traceability(project):
+    trace = ProjectTraceability.query.filter_by(project_id=project.id).first()
+    if not trace:
+        trace = ProjectTraceability(project_id=project.id)
+        db.session.add(trace)
+        db.session.flush()
+    return trace
+
+def get_traceability_assessment_data(project_id):
+    try:
+        project = Project.query.get(project_id)
+        if not project:
+            return {"success": False, "message": "Project tidak ditemukan"}, 404
+
+        trace = ProjectTraceability.query.filter_by(project_id=project_id).first()
+        sdg_numbers = [s.sdg_number for s in ProjectSdg.query.filter_by(project_id=project_id).order_by(ProjectSdg.sdg_number).all()]
+
+        return {
+            "success": True,
+            "data": {
+                "project": {
+                    "id": str(project.id),
+                    "name": project.name,
+                    "description": project.description,
+                    "commodity": project.commodity,
+                    "location": project.location,
+                    "company_id": str(project.company_id),
+                    "company_name": project.company.name if project.company else None
+                },
+                "assessment": _serialize_traceability(trace),
+                "sdgs": sdg_numbers
+            }
+        }, 200
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": str(e)}, 500
+
+def save_traceability_sdgs(project_id, data):
+    try:
+        project = Project.query.get(project_id)
+        if not project:
+            return {"success": False, "message": "Project tidak ditemukan"}, 404
+
+        trace = _get_or_create_traceability(project)
+        trace.assessed_by = (data.get('assessed_by') or '').strip() or None
+        trace.status = data.get('status', 'draft') if data.get('status') in ('draft', 'published') else 'draft'
+
+        # Sinkronisasi seleksi SDG
+        submitted = data.get('sdg_numbers', [])
+        submitted_set = set()
+        for num in submitted:
+            n = int(num)
+            if not (1 <= n <= 17):
+                return {"success": False, "message": f"SDG number tidak valid: {num}"}, 400
+            submitted_set.add(n)
+            if not ProjectSdg.query.filter_by(project_id=project_id, sdg_number=n).first():
+                db.session.add(ProjectSdg(project_id=project_id, sdg_number=n))
+
+        removed = ProjectSdg.query.filter(
+            ProjectSdg.project_id == project_id,
+            ~ProjectSdg.sdg_number.in_(submitted_set)
+        ).all()
+        for r in removed:
+            db.session.delete(r)
+
+        db.session.commit()
+
+        sdg_numbers = [s.sdg_number for s in ProjectSdg.query.filter_by(project_id=project_id).order_by(ProjectSdg.sdg_number).all()]
+        return {
+            "success": True,
+            "message": "Assessment SDG berhasil disimpan",
+            "data": {"assessment": _serialize_traceability(trace), "sdgs": sdg_numbers}
+        }, 200
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": str(e)}, 500
+
+def add_sdg_evidence(project_id, file, current_user):
+    try:
+        project = Project.query.get(project_id)
+        if not project:
+            return {"success": False, "message": "Project tidak ditemukan"}, 404
+
+        if not file or not file.filename:
+            return {"success": False, "message": "File tidak ditemukan"}, 400
+
+        trace = _get_or_create_traceability(project)
+        file_url = save_file_locally(file, subfolder='evidence')
+
+        original_name = file.filename
+        ext = original_name.rsplit('.', 1)[1].lower() if '.' in original_name else ''
+
+        evidence = ProjectSdgEvidence(
+            traceability_id=trace.id,
+            file_url=file_url,
+            file_name=original_name,
+            file_type=ext,
+            uploaded_by=current_user.id if current_user else None
+        )
+        db.session.add(evidence)
+        db.session.commit()
+
+        return {
+            "success": True,
+            "message": "Bukti berhasil diupload",
+            "data": {
+                "id": str(evidence.id),
+                "file_url": evidence.file_url,
+                "file_name": evidence.file_name,
+                "file_type": evidence.file_type
+            }
+        }, 200
+    except ValueError as e:
+        db.session.rollback()
+        return {"success": False, "message": str(e)}, 400
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": str(e)}, 500
+
+def delete_sdg_evidence(evidence_id):
+    try:
+        evidence = ProjectSdgEvidence.query.get(evidence_id)
+        if not evidence:
+            return {"success": False, "message": "Bukti tidak ditemukan"}, 404
+
+        db.session.delete(evidence)
+        db.session.commit()
+        return {"success": True, "message": "Bukti berhasil dihapus"}, 200
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": str(e)}, 500
         
 
         

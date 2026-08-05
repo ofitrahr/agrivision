@@ -37,6 +37,7 @@ class Project(db.Model):
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='CASCADE'), nullable=False)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
+    commodity = db.Column(db.String(100))
     location = db.Column(db.Text)
     status = db.Column(db.String(20), nullable=False, default='active')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
@@ -46,6 +47,8 @@ class Project(db.Model):
     farms = db.relationship('Farm', backref='project', cascade='all, delete-orphan')
     users = db.relationship('User', backref='project', cascade='all, delete-orphan')
     permissions = db.relationship('ProjectPermission', backref='project', uselist=False, cascade='all, delete-orphan')
+    sdg_assessments = db.relationship('ProjectSdg', backref='project', cascade='all, delete-orphan')
+    traceability = db.relationship('ProjectTraceability', backref='project', uselist=False, cascade='all, delete-orphan')
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -79,6 +82,40 @@ class ProjectPermission(db.Model):
     can_access_biomass = db.Column(db.Boolean, nullable=False, default=False)
     can_access_soilnpk = db.Column(db.Boolean, nullable=False, default=False)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class ProjectTraceability(db.Model):
+    __tablename__ = 'project_traceabilities'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, unique=True)
+    assessed_by = db.Column(db.String(255))
+    status = db.Column(db.String(20), nullable=False, default='draft')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    evidence = db.relationship('ProjectSdgEvidence', backref='assessment', cascade='all, delete-orphan')
+
+class ProjectSdg(db.Model):
+    __tablename__ = 'project_sdgs'
+    __table_args__ = (
+        db.UniqueConstraint('project_id', 'sdg_number', name='uq_project_sdg_number'),
+    )
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False)
+    sdg_number = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+class ProjectSdgEvidence(db.Model):
+    __tablename__ = 'project_sdg_evidences'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    traceability_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project_traceabilities.id', ondelete='CASCADE'), nullable=False)
+    file_url = db.Column(db.Text, nullable=False)
+    file_name = db.Column(db.String(255))
+    file_type = db.Column(db.String(20))
+    uploaded_by = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id', ondelete='SET NULL'))
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 class Farm(db.Model):
     __tablename__ = 'farms'

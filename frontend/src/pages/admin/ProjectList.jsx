@@ -5,6 +5,7 @@ import api from '../../shared/api/axios';
 const initialFormData = {
     name: '',
     description: '',
+    commodity: '',
     location: ''
 };
 
@@ -73,6 +74,7 @@ const ProjectList = () => {
                         <tr>
                             <th>Nama Project</th>
                             <th>Deskripsi</th>
+                            <th>Commodity</th>
                             <th>Lokasi</th>
                             <th>Tanggal Dibuat</th>
                             <th>Aksi</th>
@@ -81,7 +83,7 @@ const ProjectList = () => {
                     <tbody>
                         {projects.length === 0 ? (
                             <tr>
-                                <td colSpan="5" style={{ textAlign: 'center', padding: '30px' }}>
+                                <td colSpan="6" style={{ textAlign: 'center', padding: '30px' }}>
                                     Belum ada project di company ini.
                                 </td>
                             </tr>
@@ -90,6 +92,7 @@ const ProjectList = () => {
                                 <tr key={p.id}>
                                     <td style={{ fontWeight: '600' }}>{p.name}</td>
                                     <td>{p.description || '-'}</td>
+                                    <td>{p.commodity || '-'}</td>
                                     <td>{p.location || '-'}</td>
                                     <td>{new Date(p.created_at).toLocaleDateString('id-ID')}</td>
                                     <td>
@@ -119,6 +122,10 @@ const ProjectList = () => {
                             <div className="form-group">
                                 <label>Deskripsi</label>
                                 <textarea name="description" value={formData.description} onChange={handleInputChange} rows="3" />
+                            </div>
+                            <div className="form-group">
+                                <label>Commodity</label>
+                                <input type="text" name="commodity" value={formData.commodity} onChange={handleInputChange} placeholder="Contoh: Coffee, Rice, Horticulture" />
                             </div>
                             <div className="form-group">
                                 <label>Lokasi</label>
