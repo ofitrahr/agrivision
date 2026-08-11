@@ -33,6 +33,7 @@ services:
       - FLASK_APP=run.py
       - FLASK_ENV=production
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASS:-password}@db:5432/${DB_NAME:-agrivision}
+      - SECRET_KEY=${SECRET_KEY:-${JWT_SECRET:-super-secret-jwt-key}}
       - JWT_SECRET_KEY=${JWT_SECRET:-agrivision_jwt_secret_key_98765}
       - USE_MINIO=${USE_MINIO:-true}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT:-http://localhost:9000}
