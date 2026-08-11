@@ -32,34 +32,47 @@ from app.db.models import (
 # ---------------------------------------------------------------
 # SDG MASTER
 # ---------------------------------------------------------------
+# Katalog lengkap 17 SDG (goal_number, name, description) sebagai satu sumber.
+SDG_CATALOG = [
+    (1, "No Poverty", "Mengakhiri kemiskinan dalam segala bentuknya di mana pun. Project mendukung peningkatan pendapatan dan kesejahteraan petani."),
+    (2, "Zero Hunger", "Mengakhiri kelaparan, mencapai ketahanan pangan dan gizi yang lebih baik, serta mendukung pertanian berkelanjutan."),
+    (3, "Good Health and Well-being", "Memastikan kehidupan yang sehat dan mendukung kesejahteraan bagi semua orang di segala usia."),
+    (4, "Quality Education", "Memastikan pendidikan yang inklusif dan bermutu serta mendukung kesempatan belajar sepanjang hayat."),
+    (5, "Gender Equality", "Mencapai kesetaraan gender dan memberdayakan semua perempuan dan anak perempuan."),
+    (6, "Clean Water and Sanitation", "Memastikan ketersediaan dan pengelolaan air bersih serta sanitasi yang berkelanjutan."),
+    (7, "Affordable and Clean Energy", "Memastikan akses terhadap energi yang terjangkau, andal, berkelanjutan, dan modern."),
+    (8, "Decent Work and Economic Growth", "Mendukung pertumbuhan ekonomi yang inklusif dan berkelanjutan serta pekerjaan layak bagi semua."),
+    (9, "Industry, Innovation and Infrastructure", "Membangun infrastruktur yang tangguh, mendukung industrialisasi inklusif, dan mendorong inovasi."),
+    (10, "Reduced Inequalities", "Mengurangi ketimpangan di dalam dan antar negara."),
+    (11, "Sustainable Cities and Communities", "Membangun kota dan pemukiman yang inklusif, aman, tangguh, dan berkelanjutan."),
+    (12, "Responsible Consumption and Production", "Mendukung pola konsumsi dan produksi yang bertanggung jawab."),
+    (13, "Climate Action", "Mengambil tindakan segera untuk memerangi perubahan iklim dan dampaknya."),
+    (14, "Life Below Water", "Melestarikan dan memanfaatkan samudera, laut, dan sumber daya kelautan secara berkelanjutan."),
+    (15, "Life on Land", "Melindungi, memulihkan, dan mendukung pemanfaatan ekosistem daratan secara berkelanjutan."),
+    (16, "Peace, Justice and Strong Institutions", "Mendukung masyarakat yang damai dan inklusif serta institusi yang kuat."),
+    (17, "Partnerships for the Goals", "Memperkuat sarana pelaksanaan dan menghidupkan kembali kemitraan global untuk pembangunan berkelanjutan."),
+]
+
+
 def seed_sdg_masters(threshold=70.00):
-    """Pastikan SDG Master (goal_number 1..17) tersedia. (plan.md #34)"""
-    names = {
-        1: "No Poverty",
-        2: "Zero Hunger",
-        3: "Good Health and Well-being",
-        4: "Quality Education",
-        5: "Gender Equality",
-        6: "Clean Water and Sanitation",
-        7: "Affordable and Clean Energy",
-        8: "Decent Work and Economic Growth",
-        9: "Industry, Innovation and Infrastructure",
-        10: "Reduced Inequalities",
-        11: "Sustainable Cities and Communities",
-        12: "Responsible Consumption and Production",
-        13: "Climate Action",
-        14: "Life Below Water",
-        15: "Life on Land",
-        16: "Peace, Justice and Strong Institutions",
-        17: "Partnerships for the Goals",
-    }
+    """Pastikan SDG Master (goal_number 1..17) tersedia & lengkap. (plan.md #34)
+
+    Idempoten: goal yang belum ada dibuat, goal yang sudah ada dilengkapi
+    description-nya tanpa mengubah threshold/data lain.
+    """
     created = 0
-    for num, name in names.items():
-        if not SdgMaster.query.filter_by(goal_number=num).first():
+    updated = 0
+    for num, name, description in SDG_CATALOG:
+        sdg = SdgMaster.query.filter_by(goal_number=num).first()
+        if not sdg:
             db.session.add(SdgMaster(
-                goal_number=num, name=name, threshold=threshold
+                goal_number=num, name=name, description=description, threshold=threshold
             ))
             created += 1
+        else:
+            if not sdg.description and description:
+                sdg.description = description
+                updated += 1
     db.session.commit()
     return created
 
@@ -279,20 +292,52 @@ def serialize_assessment(assessment):
 
 
 def serialize_sdg_results(assessment_id):
+    """SDG result + breakdown kontribusi per pertanyaan.
+
+    Setiap hasil menyertakan `contributions`: daftar pertanyaan yang memetakan
+    ke SDG tersebut beserta score jawaban, weight, dan kontribusinya terhadap
+    skor SDG (0-100). Digunakan UI utk menampilkan faktor yang memengaruhi score.
+    """
+    assessment = TraceAssessment.query.get(assessment_id)
     rows = AssessmentSdgResult.query.filter_by(assessment_id=assessment_id).all()
-    return [
-        {
+    results = []
+    for r in rows:
+        contributions = []
+        if assessment and assessment.questionnaire_id:
+            mappings = QuestionSdg.query.join(Question).filter(
+                QuestionSdg.sdg_id == r.sdg_id,
+                Question.questionnaire_id == assessment.questionnaire_id,
+                Question.is_active.is_(True),
+            ).all()
+            total_weight = sum(float(m.weight) for m in mappings) or 1.0
+            answers = {a.question_id: a for a in assessment.answers}
+            for m in mappings:
+                q = m.question
+                ans = answers.get(m.question_id)
+                score = float(ans.score) if ans else 0.0
+                weight = float(m.weight)
+                contributions.append({
+                    "question_id": str(m.question_id),
+                    "question_text": q.question_text if q else None,
+                    "question_type": q.question_type if q else None,
+                    "score": score,
+                    "weight": weight,
+                    "weight_pct": round(weight / total_weight * 100, 2),
+                    "contribution": round(score * weight / total_weight, 2),
+                })
+        results.append({
             "id": str(r.id),
             "sdg_id": str(r.sdg_id),
             "goal_number": r.sdg_master.goal_number if r.sdg_master else None,
             "name": r.sdg_master.name if r.sdg_master else None,
+            "description": r.sdg_master.description if r.sdg_master else None,
             "score": float(r.score),
             "threshold": float(r.threshold),
             "is_met": r.is_met,
             "calculated_at": r.calculated_at.isoformat() if r.calculated_at else None,
-        }
-        for r in rows
-    ]
+            "contributions": contributions,
+        })
+    return results
 
 
 def serialize_answers(assessment_id, questionnaire_id):
@@ -379,6 +424,7 @@ def get_assessment_detail(assessment_id):
             "questionnaire": questionnaire,
             "answers": answers,
             "sdg_results": results,
+            "all_sdgs": list_sdg_masters(active_only=False),
             "project_sdg_ids": project_sdg_ids,
         }
     }, 200
@@ -467,7 +513,9 @@ def submit_answers(assessment_id, current_user, data):
         "message": "Jawaban berhasil disimpan",
         "data": {
             "status": assessment.status,
+            "assessment": serialize_assessment(assessment),
             "sdg_results": serialize_sdg_results(assessment_id),
+            "all_sdgs": list_sdg_masters(active_only=False),
         }
     }, 200
 

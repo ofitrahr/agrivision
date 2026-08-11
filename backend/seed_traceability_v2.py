@@ -18,42 +18,37 @@ from app.db.models import (
     QuestionOption,
     QuestionSdg,
 )
+from app.services.assessment_service import SDG_CATALOG
 
 app = create_app()
 
 
 def _seed_sdg():
+    """Seed/lengkapi 17 SDG Master (nama + description). Idempoten."""
     with app.app_context():
-        if SdgMaster.query.count() > 0:
-            print("SDG Master sudah ada, lewati.")
-            return
-        names = {
-            1: "No Poverty",
-            2: "Zero Hunger",
-            4: "Quality Education",
-            5: "Gender Equality",
-            6: "Clean Water and Sanitation",
-            8: "Decent Work and Economic Growth",
-            10: "Reduced Inequalities",
-            12: "Responsible Consumption and Production",
-            13: "Climate Action",
-            15: "Life on Land",
-        }
-        # Tambahkan juga goals lain agar katalog lengkap (konsisten plan.md #34)
-        extra = {
-            3: "Good Health and Well-being",
-            7: "Affordable and Clean Energy",
-            9: "Industry, Innovation and Infrastructure",
-            11: "Sustainable Cities and Communities",
-            14: "Life Below Water",
-            16: "Peace, Justice and Strong Institutions",
-            17: "Partnerships for the Goals",
-        }
-        names.update(extra)
-        for num, name in names.items():
-            db.session.add(SdgMaster(goal_number=num, name=name, threshold=70.00))
+        created = 0
+        updated = 0
+        for num, name, description in SDG_CATALOG:
+            sdg = SdgMaster.query.filter_by(goal_number=num).first()
+            if not sdg:
+                db.session.add(SdgMaster(
+                    goal_number=num, name=name, description=description, threshold=70.00
+                ))
+                created += 1
+            else:
+                # lengkapi field yang kosong (mis. description) tanpa mengubah data lain
+                changed = False
+                if not sdg.description and description:
+                    sdg.description = description
+                    changed = True
+                if not sdg.name or sdg.name != name:
+                    sdg.name = name
+                    changed = True
+                if changed:
+                    updated += 1
         db.session.commit()
-        print(f"Berhasil seed {len(names)} SDG Master.")
+        total = SdgMaster.query.count()
+        print(f"SDG Master: {created} dibuat, {updated} dilengkapi. Total {total} dari 17.")
 
 
 # ---------------------------------------------------------------

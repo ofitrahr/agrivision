@@ -2,16 +2,96 @@ import { useEffect, useState } from 'react';
 import {
   ChevronRight, Building2, FolderOpen, Play, Scale, Send,
   CircleDollarSign, UtensilsCrossed, Heart, BookOpen, UserCheck,
-  Droplets, Briefcase, Recycle, Globe, TreePine, CheckCircle2, XCircle, Loader2
+  Droplets, Zap, Briefcase, Cog, Recycle, Globe, Fish, TreePine,
+  Gavel, Handshake, CheckCircle2, XCircle, MinusCircle, ChevronDown,
+  Loader2, Info, FileText, CalendarDays, User, BadgeCheck
 } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import api from '../../shared/api/axios';
 
-const SDG_COLORS = {
-  1: '#E5243B', 2: '#DDA63A', 3: '#4C9F38', 4: '#C5192D', 5: '#FF3A21',
-  6: '#26BDE2', 8: '#A21942', 10: '#DD1367', 12: '#BF8B2E', 13: '#3F7E44', 15: '#56C02B'
+const SDG_META = [
+  { goal_number: 1, name: 'No Poverty', color: '#E5243B', icon: CircleDollarSign },
+  { goal_number: 2, name: 'Zero Hunger', color: '#DDA63A', icon: UtensilsCrossed },
+  { goal_number: 3, name: 'Good Health & Well-being', color: '#4C9F38', icon: Heart },
+  { goal_number: 4, name: 'Quality Education', color: '#C5192D', icon: BookOpen },
+  { goal_number: 5, name: 'Gender Equality', color: '#FF3A21', icon: UserCheck },
+  { goal_number: 6, name: 'Clean Water & Sanitation', color: '#26BDE2', icon: Droplets },
+  { goal_number: 7, name: 'Affordable & Clean Energy', color: '#FCC30B', icon: Zap },
+  { goal_number: 8, name: 'Decent Work & Economic Growth', color: '#A21942', icon: Briefcase },
+  { goal_number: 9, name: 'Industry, Innovation & Infrastructure', color: '#FD6925', icon: Cog },
+  { goal_number: 10, name: 'Reduced Inequalities', color: '#DD1367', icon: Scale },
+  { goal_number: 11, name: 'Sustainable Cities & Communities', color: '#FD9D24', icon: Building2 },
+  { goal_number: 12, name: 'Responsible Consumption & Production', color: '#BF8B2E', icon: Recycle },
+  { goal_number: 13, name: 'Climate Action', color: '#3F7E44', icon: Globe },
+  { goal_number: 14, name: 'Life Below Water', color: '#0A97D9', icon: Fish },
+  { goal_number: 15, name: 'Life on Land', color: '#56C02B', icon: TreePine },
+  { goal_number: 16, name: 'Peace, Justice & Strong Institutions', color: '#00689D', icon: Gavel },
+  { goal_number: 17, name: 'Partnerships for the Goals', color: '#19486A', icon: Handshake },
+];
+
+const getSdgMeta = (goalNumber) => SDG_META.find(m => m.goal_number === goalNumber)
+  || { goal_number: goalNumber, name: `Goal ${goalNumber}`, color: '#6C757D', icon: Building2 };
+
+const STATUS_META = {
+  'Terpenuhi': { text: 'Terpenuhi', bg: '#116c4a', icon: CheckCircle2 },
+  'Belum Terpenuhi': { text: 'Belum Terpenuhi', bg: '#D90429', icon: XCircle },
+  'Tidak Dinilai': { text: 'Tidak Dinilai', bg: '#6C757D', icon: MinusCircle },
 };
-const SDG_ICONS = { 1: CircleDollarSign, 2: UtensilsCrossed, 3: Heart, 4: BookOpen, 5: UserCheck, 6: Droplets, 8: Briefcase, 10: Scale, 12: Recycle, 13: Globe, 15: TreePine };
-const BASE_COLOR = '#6C757D';
+
+const StatusBadge = ({ status }) => {
+  const m = STATUS_META[status] || STATUS_META['Tidak Dinilai'];
+  const Icon = m.icon;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px',
+      borderRadius: 9999, background: m.bg, color: '#ffffff',
+      fontSize: 11, fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap'
+    }}>
+      <Icon size={12} /> {m.text}
+    </span>
+  );
+};
+
+const InfoField = ({ icon, label, value }) => (
+  <div>
+    <div style={{
+      fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', color: '#6C757D',
+      textTransform: 'uppercase', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4
+    }}>
+      {icon} {label}
+    </div>
+    <div style={{ fontSize: 14, fontWeight: 600, color: '#191c1d' }}>{value}</div>
+  </div>
+);
+
+const StatCard = ({ label, value, sub, color }) => (
+  <div className="stat-card" style={{ borderTop: `3px solid ${color}` }}>
+    <div style={{
+      fontSize: 12, fontWeight: 600, color: '#6C757D', letterSpacing: '0.05em',
+      textTransform: 'uppercase', marginBottom: 6
+    }}>
+      {label}
+    </div>
+    <div style={{ fontSize: 28, fontWeight: 700, color, lineHeight: 1.2, marginBottom: 4 }}>{value}</div>
+    <div style={{ fontSize: 12, color: '#6C757D', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>
+  </div>
+);
+
+const fmtDate = (iso) => {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const statusText = (status) => {
+  const map = {
+    completed: 'Selesai',
+    in_progress: 'Berlangsung',
+    draft: 'Draf',
+    cancelled: 'Dibatalkan',
+  };
+  return map[status] || status || '-';
+};
 
 const AssessmentFlowPage = ({ role = 'manager' }) => {
   const [companies, setCompanies] = useState([]);
@@ -24,6 +104,11 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
   const [assessmentId, setAssessmentId] = useState(null);
   const [answers, setAnswers] = useState({});
   const [sdgResults, setSdgResults] = useState([]);
+  const [allSdgs, setAllSdgs] = useState([]);
+  const [assessmentMeta, setAssessmentMeta] = useState(null);
+  const [expandedGoals, setExpandedGoals] = useState([]);
+  const [answersDetail, setAnswersDetail] = useState(null);
+  const [showAnswers, setShowAnswers] = useState(false);
   const [step, setStep] = useState('project'); // project | form | result
 
   const [loading, setLoading] = useState(false);
@@ -82,6 +167,8 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
         setAssessmentId(r.data.data.id);
         setAnswers({});
         setSdgResults([]);
+        setAllSdgs([]);
+        setAssessmentMeta(null);
         setStep('form');
       } else {
         setFeedback({ type: 'error', text: r.data.message });
@@ -91,7 +178,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
     } finally { setLoading(false); }
   };
 
-  const handleAnswer = (questionId, type, optionId, optionText, optionScore) => {
+  const handleAnswer = (questionId, type, optionId) => {
     setAnswers(prev => {
       if (type === 'multiple_choice') {
         const existing = prev[questionId] || { option_ids: [] };
@@ -105,7 +192,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
           }
         };
       }
-      return { ...prev, [questionId]: { option_id: optionId, option_text: optionText, option_score: optionScore } };
+      return { ...prev, [questionId]: { option_id: optionId } };
     });
   };
 
@@ -124,6 +211,8 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
       const res = await api.post(`/assessment/assessments/${assessmentId}/answers`, payload);
       if (res.data.success) {
         setSdgResults(res.data.data.sdg_results || []);
+        setAllSdgs(res.data.data.all_sdgs || []);
+        setAssessmentMeta(res.data.data.assessment || null);
         if (finalize) setStep('result');
         else setFeedback({ type: 'success', text: 'Draf jawaban tersimpan' });
       } else {
@@ -140,7 +229,58 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
     setAssessmentId(null);
     setAnswers({});
     setSdgResults([]);
+    setAllSdgs([]);
+    setAssessmentMeta(null);
+    setExpandedGoals([]);
+    setAnswersDetail(null);
+    setShowAnswers(false);
     setFeedback(null);
+  };
+
+  const buildResultRows = () => {
+    const byGoal = {};
+    (sdgResults || []).forEach(r => { byGoal[r.goal_number] = r; });
+    const rows = (allSdgs && allSdgs.length ? allSdgs : Object.values(byGoal)).map(s => {
+      const res = byGoal[s.goal_number];
+      const meta = getSdgMeta(s.goal_number);
+      return {
+        goal_number: s.goal_number,
+        name: s.name || meta.name,
+        description: s.description || null,
+        meta,
+        result: res || null,
+        score: res ? res.score : null,
+        threshold: res ? res.threshold : (s.threshold != null ? s.threshold : 70),
+        is_met: res ? res.is_met : false,
+        is_assessed: !!res,
+      };
+    });
+    const assessed = rows.filter(r => r.is_assessed).sort((a, b) => (b.score - a.score) || (a.goal_number - b.goal_number));
+    const unassessed = rows.filter(r => !r.is_assessed).sort((a, b) => a.goal_number - b.goal_number);
+    return {
+      rows: [...assessed, ...unassessed],
+      assessed,
+      unassessed,
+      assessedCount: assessed.length,
+      unassessedCount: unassessed.length,
+    };
+  };
+
+  const toggleExpand = (goal) => {
+    setExpandedGoals(prev => prev.includes(goal) ? prev.filter(g => g !== goal) : [...prev, goal]);
+  };
+
+  const loadAnswers = async () => {
+    if (answersDetail) { setShowAnswers(!showAnswers); return; }
+    try {
+      const r = await api.get(`/assessment/assessments/${assessmentId}`);
+      if (r.data.success) {
+        setAnswersDetail(r.data.data.answers || []);
+        setShowAnswers(true);
+      }
+    } catch (e) {
+      setFeedback({ type: 'error', text: e.response?.data?.message || 'Gagal memuat jawaban' });
+    }
   };
 
   const crumbs = (
@@ -238,12 +378,12 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
               <strong style={{ fontSize: 13, color: '#414844' }}>SDG Project (hasil assessment):</strong>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                 {projectInfo.project_sdgs.map(ps => {
-                  const Icon = SDG_ICONS[ps.goal_number] || Building2;
-                  const color = SDG_COLORS[ps.goal_number] || BASE_COLOR;
+                  const meta = getSdgMeta(ps.goal_number);
+                  const Icon = meta.icon;
                   return (
                     <span key={ps.id} style={{
                       display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
-                      background: `${color}14`, color, borderRadius: 9999, fontSize: 12, fontWeight: 600
+                      background: `${meta.color}14`, color: meta.color, borderRadius: 9999, fontSize: 12, fontWeight: 600
                     }}>
                       <Icon size={14} /> GOAL {String(ps.goal_number).padStart(2, '0')} • {ps.name}
                     </span>
@@ -264,7 +404,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
             </h4>
             <div style={{ fontSize: 13, color: '#6C757D' }}>Versi {questionnaire.version} • {questionnaire.description}</div>
             <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
-              <div>
+              <div style={{ flex: 1 }}>
                 <label style={{ fontSize: 11, fontWeight: 600, color: '#6C757D', display: 'block', marginBottom: 4 }}>
                   ASSESSOR (ADMIN)
                 </label>
@@ -300,15 +440,17 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
                       </span>
                       {question.sdg_mappings?.length > 0 && (
                         <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                          {question.sdg_mappings.map(m => (
-                            <span key={m.sdg_id} style={{
-                              fontSize: 10, padding: '2px 8px', borderRadius: 9999,
-                              background:`${SDG_COLORS[m.goal_number] || BASE_COLOR}18`,
-                              color: SDG_COLORS[m.goal_number] || BASE_COLOR, fontWeight: 600
-                            }}>
-                              SDG {String(m.goal_number).padStart(2, '0')} {Math.round(m.weight)}%
-                            </span>
-                          ))}
+                          {question.sdg_mappings.map(m => {
+                            const meta = getSdgMeta(m.goal_number);
+                            return (
+                              <span key={m.sdg_id} style={{
+                                fontSize: 10, padding: '2px 8px', borderRadius: 9999,
+                                background: `${meta.color}18`, color: meta.color, fontWeight: 600
+                              }}>
+                                SDG {String(m.goal_number).padStart(2, '0')} {Math.round(m.weight)}%
+                              </span>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -328,7 +470,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
                             <input
                               type={isMulti ? 'checkbox' : 'radio'}
                               checked={isSelected}
-                              onChange={() => handleAnswer(question.id, question.question_type, opt.id, opt.option_text, opt.score)}
+                              onChange={() => handleAnswer(question.id, question.question_type, opt.id)}
                               style={{ accentColor: '#116c4a', width: 16, height: 16 }}
                             />
                             <span style={{ flex: 1, fontSize: 14, color: '#191c1d' }}>{opt.option_text}</span>
@@ -362,67 +504,268 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
         </div>
       )}
 
-      {/* -------- STEP: SDG RESULT -------- */}
-      {step === 'result' && (
-        <div>
-          <div className="stat-card" style={{ padding: 24, marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-              <CheckCircle2 size={20} style={{ color: '#116c4a' }} />
-              <h4 style={{ fontSize: 18, fontWeight: 700, color: '#012d1d', margin: 0 }}>Hasil Assessment SDG</h4>
+      {/* -------- STEP: SDG ASSESSMENT RESULT -------- */}
+      {step === 'result' && (() => {
+        const { rows, assessed, assessedCount, unassessedCount } = buildResultRows();
+        const metCount = assessed.filter(r => r.is_met).length;
+        const notMetCount = assessedCount - metCount;
+        const avgScore = assessedCount ? Math.round(assessed.reduce((a, r) => a + r.score, 0) / assessedCount) : 0;
+        const top = assessed.length ? assessed[0] : null;
+        const meta = assessmentMeta || {};
+        const defaultThreshold = assessed[0]?.threshold ?? 70;
+        const donutData = [
+          { name: 'Terpenuhi', value: metCount, color: '#116c4a' },
+          { name: 'Belum Terpenuhi', value: notMetCount, color: '#D90429' },
+        ];
+        const hasDonut = metCount + notMetCount > 0;
+        const metSdgs = assessed.filter(r => r.is_met);
+
+        return (
+          <div>
+            {/* Assessment Info */}
+            <div className="stat-card" style={{ padding: 24, marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                <CheckCircle2 size={20} style={{ color: '#116c4a' }} />
+                <h4 style={{ fontSize: 18, fontWeight: 700, color: '#012d1d', margin: 0 }}>Hasil Assessment SDG</h4>
+                <span style={{ marginLeft: 'auto', padding: '5px 10px', borderRadius: 9999, background: '#012d1d14', color: '#012d1d', fontSize: 11, fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
+                  {statusText(meta.status)}
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                <InfoField icon={<FolderOpen size={14} />} label="Project" value={projectInfo?.project?.name || meta.project_name || '-'} />
+                <InfoField icon={<Building2 size={14} />} label="Perusahaan" value={projectInfo?.project?.company_name || '-'} />
+                <InfoField icon={<FileText size={14} />} label="Questionnaire" value={meta.questionnaire_name ? `${meta.questionnaire_name} (v${meta.questionnaire_version})` : (questionnaire ? `${questionnaire.name} (v${questionnaire.version})` : '-')} />
+                <InfoField icon={<CalendarDays size={14} />} label="Tanggal Selesai" value={fmtDate(meta.completed_at)} />
+                <InfoField icon={<User size={14} />} label="Assessor" value={meta.assessor_name || respondentName || '-'} />
+                <InfoField icon={<BadgeCheck size={14} />} label="Status" value={statusText(meta.status)} />
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
-              {sdgResults.map(r => {
-                const Icon = SDG_ICONS[r.goal_number] || Building2;
-                const color = SDG_COLORS[r.goal_number] || BASE_COLOR;
+
+            {/* Summary */}
+            <div className="stats-grid" style={{ marginBottom: 20 }}>
+              <StatCard label="SDG Terpenuhi" value={`${metCount}/${assessedCount}`} sub={`${unassessedCount} SDG tidak dinilai`} color="#116c4a" />
+              <StatCard label="Belum Terpenuhi" value={`${notMetCount}`} sub={`dari ${assessedCount} SDG dinilai`} color="#D90429" />
+              <StatCard label="Rata-rata Score" value={`${avgScore}%`} sub="SDG yang dinilai" color="#012d1d" />
+              <StatCard label="Score Tertinggi" value={top ? `${Math.round(top.score)}%` : '-'} sub={top ? `GOAL ${String(top.goal_number).padStart(2, '0')} ${top.name}` : '-'} color={top ? top.meta.color : '#6C757D'} />
+            </div>
+
+            {/* SDG Score Overview */}
+            <div className="stat-card" style={{ padding: 24, marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 16 }}>
+                <div>
+                  <h4 style={{ fontSize: 18, fontWeight: 700, color: '#012d1d', margin: '0 0 4px 0' }}>Score SDG</h4>
+                  <p style={{ fontSize: 13, color: '#6C757D', margin: 0 }}>
+                    Diurutkan dari skor tertinggi. Garis vertikal di bar = threshold ({Math.round(defaultThreshold)}%).
+                  </p>
+                </div>
+                {hasDonut && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 84, height: 84 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={donutData} dataKey="value" innerRadius={26} outerRadius={40} paddingAngle={2} strokeWidth={0}>
+                            {donutData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: '#191c1d', lineHeight: 1.1 }}>{metCount}/{assessedCount}</div>
+                      <div style={{ fontSize: 12, color: '#6C757D' }}>SDG terpenuhi</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {rows.map(r => {
+                const Icon = r.meta.icon;
                 return (
-                  <div key={r.id} style={{
-                    border: r.is_met ? '2px solid #116c4a' : '1px solid #E9ECEF',
-                    borderRadius: 12, padding: 16, background: r.is_met ? 'rgba(161,244,200,0.15)' : '#ffffff'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <span style={{
-                        width: 40, height: 40, borderRadius: 8, background: `${color}1A`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                      }}>
-                        <Icon size={20} style={{ color }} />
+                  <div key={r.goal_number} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: '1px solid #E9ECEF' }}>
+                    <div style={{ width: 230, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <span style={{ width: 34, height: 34, borderRadius: 8, background: `${r.meta.color}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon size={18} style={{ color: r.meta.color }} />
                       </span>
-                      {r.is_met
-                        ? <CheckCircle2 size={20} style={{ color: '#116c4a' }} />
-                        : <XCircle size={20} style={{ color: '#D90429' }} />}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#414844', letterSpacing: '0.03em' }}>GOAL {String(r.goal_number).padStart(2, '0')}</div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#191c1d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#414844', letterSpacing: '0.03em' }}>
-                      GOAL {String(r.goal_number).padStart(2, '0')}
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ position: 'relative', height: 18, background: '#EDF0F2', borderRadius: 9999 }}>
+                        {r.is_assessed && (
+                          <div style={{ width: `${Math.min(r.score, 100)}%`, height: '100%', background: r.meta.color, borderRadius: 9999 }} />
+                        )}
+                        {r.is_assessed && (
+                          <div style={{ position: 'absolute', left: `${r.threshold}%`, top: -3, bottom: -3, width: 2, background: '#191c1d', borderRadius: 1, transform: 'translateX(-1px)' }} title={`Threshold ${Math.round(r.threshold)}%`} />
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#9aa0a6', marginTop: 2 }}>
+                        <span>0%</span><span>50%</span><span>100%</span>
+                      </div>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#191c1d', marginBottom: 8 }}>{r.name}</div>
-                    <div style={{ height: 8, background: '#E9ECEF', borderRadius: 9999, overflow: 'hidden' }}>
-                      <div style={{
-                        height: '100%', borderRadius: 9999,
-                        background: r.is_met ? '#116c4a' : '#D90429',
-                        width: `${Math.min(r.score, 100)}%`
-                      }} />
+
+                    <div style={{ width: 120, flexShrink: 0, textAlign: 'right' }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: r.is_assessed ? '#191c1d' : '#9aa0a6' }}>
+                        {r.is_assessed ? `${Math.round(r.score)}%` : '—'}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#6C757D' }}>
+                        {r.is_assessed ? `Threshold ${Math.round(r.threshold)}%` : 'belum dinilai'}
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 12, color: '#6C757D' }}>
-                      <span>Score {Math.round(r.score)}%</span>
-                      <span>Threshold {Math.round(r.threshold)}%</span>
-                    </div>
-                    <div style={{
-                      marginTop: 10, textAlign: 'center', padding: '6px 0', borderRadius: 6,
-                      fontSize: 12, fontWeight: 700,
-                      background: r.is_met ? '#116c4a' : '#D90429', color: '#ffffff'
-                    }}>
-                      {r.is_met ? 'TERPENUHI' : 'BELUM TERPENUHI'}
+
+                    <div style={{ width: 140, flexShrink: 0, display: 'flex', justifyContent: 'flex-end' }}>
+                      <StatusBadge status={r.is_assessed ? (r.is_met ? 'Terpenuhi' : 'Belum Terpenuhi') : 'Tidak Dinilai'} />
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
 
-          <button onClick={resetFlow} style={{ ...secondaryBtn, padding: '12px 24px' }}>
-            Assessment Baru / Project Lain
-          </button>
-        </div>
-      )}
+            {/* Detail SDG Result */}
+            <div className="stat-card" style={{ padding: 24, marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <Info size={20} style={{ color: '#012d1d' }} />
+                <h4 style={{ fontSize: 18, fontWeight: 700, color: '#012d1d', margin: 0 }}>Detail Hasil SDG</h4>
+              </div>
+              <p style={{ fontSize: 13, color: '#6C757D', margin: '0 0 16px 0' }}>
+                Klik baris untuk melihat faktor/pertanyaan yang memengaruhi score.
+              </p>
+
+              {rows.map(r => {
+                const Icon = r.meta.icon;
+                const expanded = expandedGoals.includes(r.goal_number);
+                return (
+                  <div key={r.goal_number} style={{ border: '1px solid #E9ECEF', borderRadius: 10, marginBottom: 10, overflow: 'hidden' }}>
+                    <div
+                      onClick={() => toggleExpand(r.goal_number)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', background: expanded ? '#f8faf9' : '#ffffff', transition: 'background 0.15s ease' }}
+                    >
+                      <span style={{ width: 36, height: 36, borderRadius: 8, background: `${r.meta.color}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon size={18} style={{ color: r.meta.color }} />
+                      </span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#191c1d' }}>
+                          GOAL {String(r.goal_number).padStart(2, '0')} — {r.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#6C757D' }}>
+                          {r.is_assessed ? `Score ${Math.round(r.score)}% • Threshold ${Math.round(r.threshold)}%` : 'Belum ada pertanyaan yang memetakan SDG ini pada questionnaire.'}
+                        </div>
+                      </div>
+                      <div style={{ flexShrink: 0 }}>
+                        <StatusBadge status={r.is_assessed ? (r.is_met ? 'Terpenuhi' : 'Belum Terpenuhi') : 'Tidak Dinilai'} />
+                      </div>
+                      <ChevronDown size={18} style={{ color: '#6C757D', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease', flexShrink: 0 }} />
+                    </div>
+
+                    {expanded && (
+                      <div style={{ padding: '16px 18px', borderTop: '1px solid #E9ECEF', background: '#ffffff' }}>
+                        {r.description && <p style={{ fontSize: 13, color: '#414844', margin: '0 0 14px 0', lineHeight: 1.5 }}>{r.description}</p>}
+
+                        <div style={{ marginBottom: 14 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: '#414844' }}>Score vs Threshold</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: r.is_assessed ? '#191c1d' : '#9aa0a6' }}>
+                              {r.is_assessed ? `${Math.round(r.score)}% / ${Math.round(r.threshold)}%` : '—'}
+                            </span>
+                          </div>
+                          <div style={{ position: 'relative', height: 14, background: '#EDF0F2', borderRadius: 9999 }}>
+                            {r.is_assessed && <div style={{ width: `${Math.min(r.score, 100)}%`, height: '100%', background: r.meta.color, borderRadius: 9999 }} />}
+                            {r.is_assessed && <div style={{ position: 'absolute', left: `${r.threshold}%`, top: -2, bottom: -2, width: 2, background: '#191c1d' }} />}
+                          </div>
+                          {r.is_assessed && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                              <span style={{ fontSize: 11, color: '#6C757D' }}>
+                                Delta: {r.score >= r.threshold ? '+' : ''}{Math.round(r.score - r.threshold)}% terhadap threshold
+                              </span>
+                              <span style={{ fontSize: 11, color: '#6C757D' }}>Threshold {Math.round(r.threshold)}%</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {r.is_assessed && (
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: '#414844', marginBottom: 8 }}>Faktor yang memengaruhi score:</div>
+                            {r.result?.contributions?.length ? (
+                              r.result.contributions.map((c, i) => (
+                                <div key={c.question_id} style={{ display: 'flex', gap: 10, padding: '8px 0', borderTop: '1px solid #F1F3F5', alignItems: 'center' }}>
+                                  <span style={{ width: 26, height: 26, borderRadius: 6, background: '#012d1d14', color: '#012d1d', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>Q{i + 1}</span>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, color: '#191c1d', lineHeight: 1.4 }}>{c.question_text}</div>
+                                    <div style={{ fontSize: 11, color: '#6C757D', marginTop: 2 }}>
+                                      Jawaban score {Math.round(c.score)}% • Weight {Math.round(c.weight_pct)}%
+                                    </div>
+                                  </div>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: '#012d1d', flexShrink: 0 }}>+{Math.round(c.contribution)} poin</span>
+                                </div>
+                              ))
+                            ) : (
+                              <div style={{ fontSize: 12, color: '#9aa0a6' }}>Tidak ada kontribusi tercatat.</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Project SDG */}
+            <div className="stat-card" style={{ padding: 24, marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <BadgeCheck size={20} style={{ color: '#116c4a' }} />
+                <h4 style={{ fontSize: 18, fontWeight: 700, color: '#012d1d', margin: 0 }}>SDG Project</h4>
+              </div>
+              <p style={{ fontSize: 13, color: '#6C757D', margin: '0 0 16px 0' }}>
+                SDG yang otomatis dianggap terpenuhi karena score ≥ threshold ({Math.round(defaultThreshold)}%).
+              </p>
+              {metSdgs.length ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  {metSdgs.map(r => {
+                    const Icon = r.meta.icon;
+                    return (
+                      <span key={r.goal_number} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px',
+                        borderRadius: 9999, background: `${r.meta.color}14`, border: `1px solid ${r.meta.color}40`,
+                        color: r.meta.color, fontSize: 12, fontWeight: 700
+                      }}>
+                        <Icon size={16} /> GOAL {String(r.goal_number).padStart(2, '0')} • {r.name} <span style={{ color: '#6C757D', fontWeight: 600 }}>({Math.round(r.score)}%)</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: '#9aa0a6' }}>Belum ada SDG yang terpenuhi (score ≥ threshold).</div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button onClick={resetFlow} style={{ ...secondaryBtn, padding: '12px 24px' }}>
+                Assessment Baru / Project Lain
+              </button>
+              <button onClick={loadAnswers} style={{ ...secondaryBtn, padding: '12px 24px' }}>
+                <FileText size={16} /> {showAnswers ? 'Sembunyikan Jawaban' : 'Lihat Jawaban'}
+              </button>
+            </div>
+
+            {showAnswers && answersDetail && (
+              <div className="stat-card" style={{ padding: 24, marginTop: 20 }}>
+                <h4 style={{ fontSize: 16, fontWeight: 700, color: '#012d1d', margin: '0 0 12px 0' }}>Jawaban Questionnaire</h4>
+                {answersDetail.map((a, i) => (
+                  <div key={a.question_id} style={{ padding: '10px 0', borderBottom: '1px solid #E9ECEF' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#191c1d' }}>Q{i + 1}. {a.question_text}</div>
+                    <div style={{ fontSize: 12, color: '#6C757D', marginTop: 2 }}>
+                      Jawaban: {a.answer_text || '—'} • Score: {a.score != null ? `${Math.round(a.score)}%` : '—'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 };
