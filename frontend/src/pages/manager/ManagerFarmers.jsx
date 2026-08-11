@@ -29,6 +29,12 @@ const ManagerFarmers = () => {
     const navigate = useNavigate();
     const baseURL = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/api\/?$/, '') : window.location.origin;
 
+    const formatUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        return `${baseURL}${url}`;
+    };
+
     const fetchFarmers = async () => {
         setLoading(true);
         try {
@@ -68,7 +74,7 @@ const ManagerFarmers = () => {
             age: farmer.age || '',
             join_year: farmer.join_year || '',
             farm_info: farmer.farm_info || '',
-            existingPhotoUrl: farmer.photo_url ? `${baseURL}${farmer.photo_url}` : ''
+            existingPhotoUrl: formatUrl(farmer.photo_url)
         });
         if (fileInputRef.current) fileInputRef.current.value = "";
         setEditModalOpen(true);
@@ -180,7 +186,7 @@ const ManagerFarmers = () => {
                                     flexShrink: 0, background: '#eaefec', border: '1px solid #E0EBE4'
                                 }}>
                                     {farmer.photo_url ? (
-                                        <img src={`${baseURL}${farmer.photo_url}`} alt={farmer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={formatUrl(farmer.photo_url)} alt={farmer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
                                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5C7A6D', fontSize: 24, fontWeight: 700 }}>
                                             {farmer.name ? farmer.name.charAt(0).toUpperCase() : 'P'}

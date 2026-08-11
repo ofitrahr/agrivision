@@ -12,6 +12,20 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  minio:
+    image: minio/minio
+    container_name: agrivision_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-admin_utama}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-password_sangat_kuat_32karakter}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
   backend:
     build: ./backend
     container_name: agrivision_backend
@@ -20,10 +34,16 @@ services:
       - FLASK_ENV=production
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASS:-password}@db:5432/${DB_NAME:-agrivision}
       - JWT_SECRET_KEY=${JWT_SECRET:-agrivision_jwt_secret_key_98765}
+      - USE_MINIO=${USE_MINIO:-true}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-http://localhost:9000}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-admin_utama}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-password_sangat_kuat_32karakter}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-agrivision-uploads}
     ports:
       - "8000:8000"
     depends_on:
       - db
+      - minio
     volumes:
       - ./backend/uploads:/app/uploads
     restart: unless-stopped
@@ -39,3 +59,4 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:

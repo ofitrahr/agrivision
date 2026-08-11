@@ -30,6 +30,12 @@ const SDG_LIST = [
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/api$/, '') || '';
+const formatUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${BASE_URL}${url}`;
+};
+
 
 const getSdgMeta = (code) => {
   const num = parseInt(code, 10);
@@ -552,15 +558,16 @@ const AdminTraceability = () => {
                   border: '1px solid #E9ECEF', borderRadius: 8
                 }}>
                   {IMAGE_EXTENSIONS.includes(evidenceFile.file_type) ? (
-                    <img src={`${BASE_URL}${evidenceFile.file_url}`} alt="bukti"
+                    <img src={formatUrl(evidenceFile.file_url)} alt="bukti"
                       style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
                   ) : (
                     <FileText size={28} style={{ color: '#2D6A4F', flexShrink: 0 }} />
                   )}
                   <a
-                    href={`${BASE_URL}${evidenceFile.file_url}`}
+                    href={formatUrl(evidenceFile.file_url)}
                     target="_blank"
                     rel="noreferrer"
+
                     style={{ flex: 1, minWidth: 0, textDecoration: 'none', color: '#191c1d', fontSize: 13, fontWeight: 500 }}
                   >
                     Bukti Assessment
