@@ -28,4 +28,7 @@ def create_app():
     from app.api.routes.board_routes import board_bp
     app.register_blueprint(board_bp, url_prefix='/api/board')
 
+    from app.api.routes.assessment_routes import assessment_bp
+    app.register_blueprint(assessment_bp, url_prefix='/api/assessment')
+
     return app

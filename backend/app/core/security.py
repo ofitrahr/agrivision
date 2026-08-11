@@ -25,7 +25,7 @@ def token_required(f):
             if not current_user or not current_user.is_active:
                 raise Exception("User tidak valid atau tidak aktif")
 
-            if current_user.role != 'superadmin' and current_user.project and current_user.project.company:
+            if current_user.role != 'super_admin' and current_user.project and current_user.project.company:
                 if not current_user.project.company.is_active:
                     raise Exception("Company tidak aktif")
                 
@@ -43,6 +43,17 @@ def role_required(required_role):
         def decorated(current_user, *args, **kwargs):
             if current_user.role != required_role:
                 return jsonify({'success': False, 'message': 'Akses ditolak. Fitur ini hanya untuk role tententu.'}), 403
+            return f(current_user, *args, **kwargs)
+        return decorated
+    return decorated
+
+def roles_required(*allowed_roles):
+    """Memungkinkan banyak role (mis. super_admin & manager). (Arsitektur baru)"""
+    def decorated(f):
+        @wraps(f)
+        def decorated(current_user, *args, **kwargs):
+            if current_user.role not in allowed_roles:
+                return jsonify({'success': False, 'message': 'Akses ditolak. Fitur ini hanya untuk role tertentu.'}), 403
             return f(current_user, *args, **kwargs)
         return decorated
     return decorated

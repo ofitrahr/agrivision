@@ -27,6 +27,7 @@ import BoardDashboard from './pages/board/BoardDashboard';
 
 import UserProfile from './pages/shared/UserProfile';
 import PlatformSettings from './pages/shared/PlatformSettings';
+import AssessmentFlowPage from './pages/shared/AssessmentFlowPage';
 
 function App() {
   return (
@@ -53,6 +54,7 @@ function App() {
             <Route path="/admin/projects/:projectId/permissions" element={<CompanyPermissions />} />
             <Route path="/admin/gis" element={<GIS />} />
             <Route path="/admin/traceability" element={<AdminTraceability />} />
+            <Route path="/admin/traceability/assessment" element={<AssessmentFlowPage role="admin" />} />
             <Route path="/admin/profile" element={<UserProfile />} />
         </Route>
 
@@ -69,6 +71,7 @@ function App() {
             <Route path="/manager/agronomy" element={<ManagerAgronomy />} />
             <Route path="/manager/economics" element={<ManagerEconomics />} />
             <Route path="/manager/traceability" element={<ManagerTraceability />} />
+            <Route path="/manager/traceability/assessment" element={<AssessmentFlowPage role="manager" />} />
             <Route path="/manager/profile-user" element={<UserProfile />} />
         </Route>
 

@@ -123,3 +123,11 @@ def seed_super_admin():
 if __name__ == "__main__":
     seed_sdgs()
     seed_super_admin()
+
+    # ==========================================
+    # Arsitektur traceability BARU (paralel).
+    # Tanam SDG Master + Questionnaire v1 (16 soal).
+    # ==========================================
+    from seed_traceability_v2 import _seed_sdg, seed_questionnaire
+    _seed_sdg()
+    seed_questionnaire()

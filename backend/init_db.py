@@ -20,6 +20,21 @@ def setup_database():
 
         db.create_all()
 
+        # VIEW agregasi Company SDG untuk arsitektur traceability baru (plan.md #8)
+        db.session.execute(text("""
+            CREATE OR REPLACE VIEW company_sdg_summary AS
+            SELECT DISTINCT
+                p.company_id AS company_id,
+                sm.id AS sdg_id,
+                sm.goal_number,
+                sm.name AS sdg_name
+            FROM projects p
+            JOIN project_traceability_profiles ptp ON ptp.project_id = p.id
+            JOIN project_sdgs_new ps ON ps.project_traceability_id = ptp.id
+            JOIN sdg_masters sm ON sm.id = ps.sdg_id;
+        """))
+        db.session.commit()
+
         print("Selesai.")
 
 

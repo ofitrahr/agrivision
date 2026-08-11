@@ -50,6 +50,7 @@ class Project(db.Model):
     users = db.relationship('User', backref='project', cascade='all, delete-orphan')
     permissions = db.relationship('ProjectPermission', backref='project', uselist=False, cascade='all, delete-orphan')
     traceability = db.relationship('ProjectTraceability', backref='project', uselist=False, cascade='all, delete-orphan')
+    traceability_profile = db.relationship('ProjectTraceabilityProfile', backref='project', uselist=False, cascade='all, delete-orphan')
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -355,3 +356,203 @@ class ActivityLog(db.Model):
     details = db.Column(db.Text)
     ip_address = db.Column(db.String(45))
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+
+# =======================================================================
+# ARSITEKTUR TRACEABILITY BARU (Project-based Questionnaire -> SDG)
+# Digunakan paralel dengan arsitektur lama. Jangan dihapus.
+# =======================================================================
+
+class SdgMaster(db.Model):
+    """SDG Master (plan.md #6). berpasangan dengan projects via project_traceability."""
+    __tablename__ = 'sdg_masters'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    goal_number = db.Column(db.Integer, nullable=False, unique=True)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    threshold = db.Column(db.Numeric(5, 2), nullable=False, default=70.00)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    project_sdgs = db.relationship('ProjectSdg', backref='sdg_master', cascade='all, delete-orphan')
+    question_sdgs = db.relationship('QuestionSdg', backref='sdg_master', cascade='all, delete-orphan')
+
+
+class ProjectTraceabilityProfile(db.Model):
+    """project_traceability (plan.md #4). 1 project -> 1 traceability."""
+    __tablename__ = 'project_traceability_profiles'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, unique=True)
+    title = db.Column(db.String(255))
+    tagline = db.Column(db.String(255))
+    origin_story = db.Column(db.Text)
+    description = db.Column(db.Text)
+    status = db.Column(db.String(20), nullable=False, default='draft')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    assessments = db.relationship('TraceAssessment', backref='project_traceability', cascade='all, delete-orphan')
+    project_sdgs = db.relationship('ProjectSdg', backref='project_traceability', cascade='all, delete-orphan')
+
+
+class Questionnaire(db.Model):
+    """Questionnaire master (plan.md #10)."""
+    __tablename__ = 'questionnaires'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    version = db.Column(db.String(20), nullable=False, default='1.0')
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    sections = db.relationship('QuestionSection', backref='questionnaire', cascade='all, delete-orphan')
+    questions = db.relationship('Question', backref='questionnaire', cascade='all, delete-orphan')
+    assessments = db.relationship('TraceAssessment', backref='questionnaire')
+
+
+class QuestionSection(db.Model):
+    """Question section / grouping (plan.md #12)."""
+    __tablename__ = 'question_sections'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    questionnaire_id = db.Column(UUID(as_uuid=True), db.ForeignKey('questionnaires.id', ondelete='CASCADE'), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    section_order = db.Column(db.Integer, nullable=False, default=0)
+
+    questions = db.relationship('Question', backref='section', cascade='all, delete-orphan')
+
+
+class Question(db.Model):
+    """Question (plan.md #13)."""
+    __tablename__ = 'questions'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    questionnaire_id = db.Column(UUID(as_uuid=True), db.ForeignKey('questionnaires.id', ondelete='CASCADE'), nullable=False)
+    section_id = db.Column(UUID(as_uuid=True), db.ForeignKey('question_sections.id', ondelete='CASCADE'))
+    question_text = db.Column(db.Text, nullable=False)
+    question_type = db.Column(db.String(20), nullable=False, default='single_choice')
+    question_order = db.Column(db.Integer, nullable=False, default=0)
+    is_required = db.Column(db.Boolean, nullable=False, default=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    options = db.relationship('QuestionOption', backref='question', cascade='all, delete-orphan')
+    sdg_mappings = db.relationship('QuestionSdg', backref='question', cascade='all, delete-orphan')
+    assessment_answers = db.relationship('AssessmentAnswer', backref='question')
+
+
+class QuestionOption(db.Model):
+    """Question option / answer choice (plan.md #14)."""
+    __tablename__ = 'question_options'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    question_id = db.Column(UUID(as_uuid=True), db.ForeignKey('questions.id', ondelete='CASCADE'), nullable=False)
+    option_text = db.Column(db.Text, nullable=False)
+    score = db.Column(db.Numeric(5, 2), nullable=False, default=0)
+    option_order = db.Column(db.Integer, nullable=False, default=0)
+    is_exclusive = db.Column(db.Boolean, nullable=False, default=False)
+
+
+class QuestionSdg(db.Model):
+    """Question -> SDG mapping dengan weight (plan.md #17, #18, #19)."""
+    __tablename__ = 'question_sdgs'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    question_id = db.Column(UUID(as_uuid=True), db.ForeignKey('questions.id', ondelete='CASCADE'), nullable=False)
+    sdg_id = db.Column(UUID(as_uuid=True), db.ForeignKey('sdg_masters.id', ondelete='CASCADE'), nullable=False)
+    weight = db.Column(db.Numeric(5, 2), nullable=False, default=0)
+
+    __table_args__ = (
+        db.UniqueConstraint('question_id', 'sdg_id', name='uq_question_sdg'),
+    )
+
+
+class TraceAssessment(db.Model):
+    """Assessment / satu pelaksanaan questionnaire utk satu project (plan.md #20-#23)."""
+    __tablename__ = 'trace_assessments'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_traceability_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project_traceability_profiles.id', ondelete='CASCADE'), nullable=False)
+    questionnaire_id = db.Column(UUID(as_uuid=True), db.ForeignKey('questionnaires.id', ondelete='SET NULL'))
+    assessor_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id', ondelete='SET NULL'))
+    respondent_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id', ondelete='SET NULL'))
+    status = db.Column(db.String(20), nullable=False, default='draft')
+    started_at = db.Column(db.DateTime)
+    completed_at = db.Column(db.DateTime)
+    notes = db.Column(db.Text)
+    evidence_url = db.Column(db.Text)
+    assessor_name = db.Column(db.String(255))
+    assessed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    answers = db.relationship('AssessmentAnswer', backref='assessment', cascade='all, delete-orphan')
+    sdg_results = db.relationship('AssessmentSdgResult', backref='assessment', cascade='all, delete-orphan')
+
+
+class AssessmentAnswer(db.Model):
+    """Assessment answer (plan.md #24)."""
+    __tablename__ = 'assessment_answers'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    assessment_id = db.Column(UUID(as_uuid=True), db.ForeignKey('trace_assessments.id', ondelete='CASCADE'), nullable=False)
+    question_id = db.Column(UUID(as_uuid=True), db.ForeignKey('questions.id', ondelete='CASCADE'), nullable=False)
+    answer_text = db.Column(db.Text)
+    score = db.Column(db.Numeric(5, 2), nullable=False, default=0)
+    answered_at = db.Column(db.DateTime)
+
+    selected_options = db.relationship('AssessmentAnswerOption', backref='answer', cascade='all, delete-orphan')
+
+
+class AssessmentAnswerOption(db.Model):
+    """Selected options for multiple-choice answer (plan.md #25)."""
+    __tablename__ = 'assessment_answer_options'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    answer_id = db.Column(UUID(as_uuid=True), db.ForeignKey('assessment_answers.id', ondelete='CASCADE'), nullable=False)
+    option_id = db.Column(UUID(as_uuid=True), db.ForeignKey('question_options.id', ondelete='CASCADE'), nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint('answer_id', 'option_id', name='uq_answer_option'),
+    )
+
+
+class AssessmentSdgResult(db.Model):
+    """Result kalkulasi SDG utk assessment (plan.md #27-#28)."""
+    __tablename__ = 'assessment_sdg_results'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    assessment_id = db.Column(UUID(as_uuid=True), db.ForeignKey('trace_assessments.id', ondelete='CASCADE'), nullable=False)
+    sdg_id = db.Column(UUID(as_uuid=True), db.ForeignKey('sdg_masters.id', ondelete='CASCADE'), nullable=False)
+    score = db.Column(db.Numeric(5, 2), nullable=False, default=0)
+    threshold = db.Column(db.Numeric(5, 2), nullable=False, default=70.00)
+    is_met = db.Column(db.Boolean, nullable=False, default=False)
+    calculated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('assessment_id', 'sdg_id', name='uq_assessment_sdg_result'),
+    )
+
+    sdg_master = db.relationship('SdgMaster', backref='assessment_sdg_results')
+
+
+class ProjectSdg(db.Model):
+    """Project SDG terpenuhi (plan.md #7, #29). hasil sistem dari assessment."""
+    __tablename__ = 'project_sdgs_new'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_traceability_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project_traceability_profiles.id', ondelete='CASCADE'), nullable=False)
+    assessment_sdg_result_id = db.Column(UUID(as_uuid=True), db.ForeignKey('assessment_sdg_results.id', ondelete='SET NULL'))
+    sdg_id = db.Column(UUID(as_uuid=True), db.ForeignKey('sdg_masters.id', ondelete='CASCADE'), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('project_traceability_id', 'sdg_id', name='uq_project_sdg'),
+    )
