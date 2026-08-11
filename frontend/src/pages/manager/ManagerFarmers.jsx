@@ -22,7 +22,7 @@ const ManagerFarmers = () => {
     // Form data state
     const [formData, setFormData] = useState({ 
         name: '', phone: '', photo: null,
-        gender: 'Laki-laki', age: '', join_year: '', farm_info: '',
+        gender: 'Laki-laki', birth_year: '', join_year: '', farm_info: '',
         existingPhotoUrl: ''
     });
 
@@ -57,7 +57,7 @@ const ManagerFarmers = () => {
         setEditId(null);
         setFormData({
             name: '', phone: '', photo: null,
-            gender: 'Laki-laki', age: '', join_year: '', farm_info: '',
+            gender: 'Laki-laki', birth_year: '', join_year: '', farm_info: '',
             existingPhotoUrl: ''
         });
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -71,7 +71,7 @@ const ManagerFarmers = () => {
             phone: farmer.phone || '',
             photo: null,
             gender: farmer.gender || 'Laki-laki',
-            age: farmer.age || '',
+            birth_year: farmer.birth_year || (farmer.age ? (new Date().getFullYear() - farmer.age) : ''),
             join_year: farmer.join_year || '',
             farm_info: farmer.farm_info || '',
             existingPhotoUrl: formatUrl(farmer.photo_url)
@@ -83,7 +83,7 @@ const ManagerFarmers = () => {
     const handleCloseEditModal = () => {
         setEditModalOpen(false);
         setEditId(null);
-        setFormData({ name: '', phone: '', photo: null, gender: 'Laki-laki', age: '', join_year: '', farm_info: '', existingPhotoUrl: '' });
+        setFormData({ name: '', phone: '', photo: null, gender: 'Laki-laki', birth_year: '', join_year: '', farm_info: '', existingPhotoUrl: '' });
     };
 
     const handleOpenDeleteModal = (farmer) => {
@@ -105,7 +105,7 @@ const ManagerFarmers = () => {
             data.append('name', formData.name);
             data.append('phone', formData.phone);
             data.append('gender', formData.gender);
-            data.append('age', formData.age);
+            data.append('birth_year', formData.birth_year);
             data.append('join_year', formData.join_year);
             data.append('farm_info', formData.farm_info);
             if (formData.photo) {
@@ -215,7 +215,7 @@ const ManagerFarmers = () => {
                                             padding: '3px 12px', background: '#eaefec', color: '#053B26',
                                             borderRadius: 9999, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em'
                                         }}>
-                                            {farmer.age ? `${farmer.age} TAHUN` : '- TAHUN'}
+                                            {farmer.birth_year ? `${farmer.birth_year} (${farmer.age ? `${farmer.age} THN` : `${new Date().getFullYear() - farmer.birth_year} THN`})` : (farmer.age ? `${farmer.age} TAHUN` : '- TAHUN')}
                                         </span>
                                     </div>
                                 </div>
@@ -366,18 +366,20 @@ const ManagerFarmers = () => {
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', marginBottom: 6 }}>
-                                            Usia
+                                            Tahun Lahir
                                         </label>
                                         <input
                                             type="number"
-                                            value={formData.age}
-                                            onChange={e => setFormData({ ...formData, age: e.target.value })}
+                                            min="1920"
+                                            max={new Date().getFullYear()}
+                                            value={formData.birth_year}
+                                            onChange={e => setFormData({ ...formData, birth_year: e.target.value })}
                                             style={{
                                                 width: '100%', padding: '10px 14px', border: '1px solid #E0EBE4',
                                                 borderRadius: 8, fontSize: 14, color: '#191c1d', outline: 'none',
                                                 boxSizing: 'border-box', fontFamily: 'inherit'
                                             }}
-                                            placeholder="Contoh: 42"
+                                            placeholder="Contoh: 1985"
                                         />
                                     </div>
 

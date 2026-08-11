@@ -37,6 +37,7 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET:-agrivision_jwt_secret_key_98765}
       - USE_MINIO=${USE_MINIO:-true}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT:-http://localhost:9000}
+      - MINIO_INTERNAL_ENDPOINT=http://minio:9000
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-admin_utama}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-password_sangat_kuat_32karakter}
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-agrivision-uploads}

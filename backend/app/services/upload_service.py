@@ -26,7 +26,7 @@ def get_minio_client():
     if not BOTO3_AVAILABLE:
         return None
 
-    endpoint = os.getenv('MINIO_ENDPOINT', 'http://localhost:9000')
+    endpoint = os.getenv('MINIO_INTERNAL_ENDPOINT', os.getenv('MINIO_ENDPOINT', 'http://localhost:9000'))
     access_key = os.getenv('MINIO_ACCESS_KEY', 'admin_utama')
     secret_key = os.getenv('MINIO_SECRET_KEY', 'password_sangat_kuat_32karakter')
     
@@ -35,7 +35,12 @@ def get_minio_client():
         endpoint_url=endpoint,
         aws_access_key_id=access_key,
         aws_secret_access_key=secret_key,
-        config=Config(signature_version='s3v4'),
+        config=Config(
+            signature_version='s3v4',
+            connect_timeout=3,
+            read_timeout=5,
+            retries={'max_attempts': 1}
+        ),
         region_name='us-east-1'
     )
 
@@ -55,6 +60,7 @@ def save_file_locally(file, subfolder="logos"):
 
     if use_minio and BOTO3_AVAILABLE:
         try:
+            file.seek(0)
             minio_client = get_minio_client()
             bucket_name = os.getenv('MINIO_BUCKET_NAME', 'agrivision-uploads')
 
@@ -78,7 +84,6 @@ def save_file_locally(file, subfolder="logos"):
                 except Exception as e:
                     current_app.logger.warning(f"Tidak dapat mengatur bucket policy: {str(e)}")
 
-
             content_type = file.content_type or 'application/octet-stream'
 
             minio_client.upload_fileobj(
@@ -88,10 +93,11 @@ def save_file_locally(file, subfolder="logos"):
                 ExtraArgs={'ContentType': content_type}
             )
 
-            endpoint = os.getenv('MINIO_ENDPOINT', 'http://localhost:9000')
-            return f"{endpoint}/{bucket_name}/{object_name}"
+            public_endpoint = os.getenv('MINIO_ENDPOINT', 'http://localhost:9000')
+            return f"{public_endpoint}/{bucket_name}/{object_name}"
         except Exception as e:
             current_app.logger.error(f"Gagal upload ke MinIO, beralih ke lokal: {str(e)}")
+            file.seek(0)
 
     upload_path = os.path.join(current_app.root_path, 'static', 'uploads', subfolder)
     os.makedirs(upload_path, exist_ok=True)

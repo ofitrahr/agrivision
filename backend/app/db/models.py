@@ -191,12 +191,18 @@ class Farmer(db.Model):
     phone = db.Column(db.String(20))
     photo_url = db.Column(db.Text)
     gender = db.Column(db.String(20))
-    age = db.Column(db.Integer)
+    birth_year = db.Column(db.Integer)
     join_year = db.Column(db.Integer)
     farm_info = db.Column(db.Text)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @property
+    def age(self):
+        if self.birth_year:
+            return datetime.utcnow().year - self.birth_year
+        return None
 
 
 

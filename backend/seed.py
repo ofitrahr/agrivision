@@ -1,6 +1,6 @@
 from app import create_app
 from app.db.database import db
-from app.db.models import User, Company, Project, ProjectPermission, Sdg
+from app.db.models import User, Company, Project, ProjectPermission, Sdg, Farm
 import bcrypt
 
 app = create_app()
@@ -120,6 +120,101 @@ def seed_super_admin():
             print("Berhasil menanam sampel data Log Aktivitas awal.")
 
 
+def seed_kopi_test():
+    with app.app_context():
+        print("Memeriksa data Kopi Test...")
+
+        company = Company.query.filter_by(name="Kopi Test").first()
+        if not company:
+            company = Company(
+                name="Kopi Test",
+                description="Perusahaan Kopi Test",
+                subscription_plan="Pro",
+                max_farms=10,
+                max_users=10
+            )
+            db.session.add(company)
+            db.session.commit()
+            print("Company 'Kopi Test' berhasil dibuat.")
+
+        project = Project.query.filter_by(name="Proyek Kopi Test", company_id=company.id).first()
+        if not project:
+            project = Project(
+                name="Proyek Kopi Test",
+                description="Proyek Lahan Kopi Test",
+                commodity="Kopi",
+                company_id=company.id
+            )
+            db.session.add(project)
+            db.session.commit()
+            print("Project 'Proyek Kopi Test' berhasil dibuat.")
+
+        perm = ProjectPermission.query.filter_by(project_id=project.id).first()
+        if not perm:
+            perm = ProjectPermission(
+                project_id=project.id,
+                module_gis=True,
+                module_traceability=True,
+                module_agronomy=True,
+                module_board_reports=True,
+                can_access_ndvi=True,
+                can_access_soc=True,
+                can_access_yield=True,
+                can_access_biomass=True,
+                can_access_soilnpk=True
+            )
+            db.session.add(perm)
+            db.session.commit()
+
+        hashed_password = bcrypt.hashpw(
+            "password123".encode("utf-8"),
+            bcrypt.gensalt()
+        ).decode("utf-8")
+
+        manager = User.query.filter_by(username="manager_kopi").first()
+        if not manager:
+            manager = User(
+                project_id=project.id,
+                username="manager_kopi",
+                password_hash=hashed_password,
+                full_name="Manager Kopi Test",
+                role="manager"
+            )
+            db.session.add(manager)
+            print("Akun Manager 'manager_kopi' berhasil dibuat.")
+
+        investor = User.query.filter_by(username="investor_kopi").first()
+        if not investor:
+            investor = User(
+                project_id=project.id,
+                username="investor_kopi",
+                password_hash=hashed_password,
+                full_name="Investor Kopi Test",
+                role="board"
+            )
+            db.session.add(investor)
+            print("Akun Investor 'investor_kopi' berhasil dibuat.")
+
+        db.session.commit()
+
+        farm = Farm.query.filter_by(name="Monumen Nasional", project_id=project.id).first()
+        if not farm:
+            wkt_geom = "SRID=4326;POLYGON((106.82605 -6.17635, 106.82665 -6.17635, 106.82665 -6.17575, 106.82605 -6.17575, 106.82605 -6.17635))"
+            
+            farm = Farm(
+                project_id=project.id,
+                name="Monumen Nasional",
+                crop_variety="Kopi Arabika",
+                total_area_ha=0.44,
+                boundary=wkt_geom,
+                created_by=manager.id if manager else None
+            )
+            db.session.add(farm)
+            db.session.commit()
+            print("Lahan 'Monumen Nasional' berhasil dibuat.")
+
+
 if __name__ == "__main__":
     seed_sdgs()
     seed_super_admin()
+    seed_kopi_test()
