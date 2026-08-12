@@ -61,6 +61,11 @@ const ManagerProfile = () => {
     );
 
     const baseURL = "http://localhost:8000";
+    const formatUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        return `${baseURL}${url}`;
+    };
 
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -90,8 +95,9 @@ const ManagerProfile = () => {
                                 justifyContent: 'center', alignItems: 'center', marginBottom: '16px' 
                             }}>
                                 {profile.logo_url ? (
-                                    <img src={`${baseURL}${profile.logo_url}`} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={formatUrl(profile.logo_url)} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
+
                                     <span style={{ color: 'var(--color-text-muted)', fontSize: '14px', fontWeight: 500 }}>No Logo</span>
                                 )}
                             </div>

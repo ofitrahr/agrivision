@@ -34,6 +34,12 @@ const getSdgMeta = (goalNumber) => SDG_META.find(m => m.goal_number === goalNumb
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/api$/, '') || '';
+const formatUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${BASE_URL}${url}`;
+};
+
 
 const fmtDate = (iso) => {
   if (!iso) return '-';
@@ -745,7 +751,7 @@ const AdminTraceability = () => {
               <Info size={16} />
               <span>{selectedSdgs.length} SDG dipilih untuk project ini.</span>
             </div>
-            <button
+<button
               onClick={handleSave}
               disabled={saving}
               style={{

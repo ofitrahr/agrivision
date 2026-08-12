@@ -96,6 +96,9 @@ def manager_farmers(current_user):
     project = current_user.project
     company_id = project.company_id if project else None
     
+    if not company_id:
+        return jsonify({'success': False, 'message': 'Akun manager belum terhubung ke perusahaan/proyek.'}), 400
+
     if request.method == 'GET':
         farmers = Farmer.query.filter_by(company_id=company_id).all()
         data = [{
@@ -104,6 +107,7 @@ def manager_farmers(current_user):
             'phone': f.phone,
             'photo_url': f.photo_url,
             'gender': f.gender,
+            'birth_year': f.birth_year,
             'age': f.age,
             'join_year': f.join_year,
             'farm_info': f.farm_info,
@@ -114,13 +118,14 @@ def manager_farmers(current_user):
     try:
         data = request.form
         name = data.get('name')
-        phone = data.get('phone', '')
+        raw_phone = data.get('phone', '')
+        phone = raw_phone.strip() if raw_phone and raw_phone.strip() else None
         gender = data.get('gender')
-        age = data.get('age')
-        join_year = data.get('join_year')
+        raw_birth_year = data.get('birth_year') or data.get('age')
+        raw_join_year = data.get('join_year')
         farm_info = data.get('farm_info')
         
-        if not name:
+        if not name or not name.strip():
             return jsonify({'success': False, 'message': 'Nama petani wajib diisi'}), 400
             
         # Cek Redundansi Data
@@ -142,14 +147,17 @@ def manager_farmers(current_user):
             if file.filename != '':
                 photo_url = save_file_locally(file, subfolder='farmers')
                 
+        parsed_birth_year = int(raw_birth_year) if raw_birth_year and str(raw_birth_year).strip().isdigit() else None
+        parsed_join_year = int(raw_join_year) if raw_join_year and str(raw_join_year).strip().isdigit() else None
+
         new_farmer = Farmer(
             company_id=company_id,
             name=name.strip(),
-            phone=phone if phone else None,
+            phone=phone,
             photo_url=photo_url,
             gender=gender,
-            age=int(age) if age else None,
-            join_year=int(join_year) if join_year else None,
+            birth_year=parsed_birth_year,
+            join_year=parsed_join_year,
             farm_info=farm_info
         )
         db.session.add(new_farmer)
@@ -184,8 +192,9 @@ def edit_farmer(current_user, farmer_id):
             farmer.phone = new_phone if new_phone else None
         if 'gender' in data:
             farmer.gender = data['gender']
-        if 'age' in data and data['age']:
-            farmer.age = int(data['age'])
+        if 'birth_year' in data or 'age' in data:
+            raw_by = data.get('birth_year') or data.get('age')
+            farmer.birth_year = int(raw_by) if raw_by and str(raw_by).strip().isdigit() else None
         if 'join_year' in data and data['join_year']:
             farmer.join_year = int(data['join_year'])
         if 'farm_info' in data:
