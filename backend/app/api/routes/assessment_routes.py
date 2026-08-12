@@ -68,6 +68,44 @@ def api_save_project_traceability(current_user, project_id):
 
 
 # ---------------------------------------------------------------
+# PROJECT SDG SELECTION (checklist admin/traceability)
+# ---------------------------------------------------------------
+@assessment_bp.route('/projects/<project_id>/project-sdgs', methods=['GET'])
+@token_required
+@roles_required(*ASSESS_ROLES)
+def api_get_project_sdg_selection(current_user, project_id):
+    result, status = svc.get_project_sdg_selection(project_id)
+    return jsonify(result), status
+
+
+@assessment_bp.route('/projects/<project_id>/project-sdgs', methods=['PUT'])
+@token_required
+@roles_required(*ASSESS_ROLES)
+def api_save_project_sdg_selection(current_user, project_id):
+    data = request.get_json(silent=True) or {}
+    result, status = svc.save_project_sdg_selection(project_id, data)
+    return jsonify(result), status
+
+
+@assessment_bp.route('/projects/<project_id>/project-sdgs/verification/evidence', methods=['POST'])
+@token_required
+@roles_required(*ASSESS_ROLES)
+def api_upload_project_sdg_evidence(current_user, project_id):
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'File tidak ditemukan pada request'}), 400
+    result, status = svc.upload_project_sdg_evidence(project_id, request.files['file'])
+    return jsonify(result), status
+
+
+@assessment_bp.route('/projects/<project_id>/project-sdgs/verification/evidence', methods=['DELETE'])
+@token_required
+@roles_required(*ASSESS_ROLES)
+def api_delete_project_sdg_evidence(current_user, project_id):
+    result, status = svc.delete_project_sdg_evidence(project_id)
+    return jsonify(result), status
+
+
+# ---------------------------------------------------------------
 # ASSESSMENT
 # ---------------------------------------------------------------
 @assessment_bp.route('/projects/<project_id>/assessments', methods=['POST'])

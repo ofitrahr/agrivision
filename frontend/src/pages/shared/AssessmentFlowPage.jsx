@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight, Building2, FolderOpen, Play, Scale, Send,
   CircleDollarSign, UtensilsCrossed, Heart, BookOpen, UserCheck,
@@ -94,6 +95,7 @@ const statusText = (status) => {
 };
 
 const AssessmentFlowPage = ({ role = 'manager' }) => {
+  const navigate = useNavigate();
   const [companies, setCompanies] = useState([]);
   const [projects, setProjects] = useState([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
@@ -283,6 +285,50 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
     }
   };
 
+  const openExistingAssessment = async (assessmentId) => {
+    setLoading(true);
+    setFeedback(null);
+    try {
+      const r = await api.get(`/assessment/assessments/${assessmentId}`);
+      if (r.data.success) {
+        const d = r.data.data;
+        setAssessmentId(assessmentId);
+        setQuestionnaire(d.questionnaire || null);
+        setSdgResults(d.sdg_results || []);
+        setAllSdgs(d.all_sdgs || []);
+        setAssessmentMeta(d.assessment || null);
+        setProjectInfo({
+          project: {
+            id: d.assessment?.project_id,
+            name: d.assessment?.project_name,
+            company_name: null,
+            company_id: null,
+          }
+        });
+        setExpandedGoals([]);
+        setAnswersDetail(null);
+        setShowAnswers(false);
+        setStep('result');
+      } else {
+        setFeedback({ type: 'error', text: r.data.message });
+      }
+    } catch (e) {
+      setFeedback({ type: 'error', text: e.response?.data?.message || 'Gagal memuat hasil assessment' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const navigateToTraceability = () => {
+    const pid = projectInfo?.project?.id || assessmentMeta?.project_id;
+    const cid = projectInfo?.project?.company_id;
+    const params = new URLSearchParams();
+    if (pid) params.set('project_id', pid);
+    if (cid) params.set('company_id', cid);
+    const qs = params.toString();
+    navigate(`/admin/traceability${qs ? `?${qs}` : ''}`);
+  };
+
   const crumbs = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#6C757D', marginBottom: 8 }}>
       <span>{role === 'admin' ? 'Admin' : 'Dashboard'}</span>
@@ -375,7 +421,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
 
           {projectInfo?.project_sdgs?.length > 0 && (
             <div style={{ marginTop: 20 }}>
-              <strong style={{ fontSize: 13, color: '#414844' }}>SDG Project (hasil assessment):</strong>
+              <strong style={{ fontSize: 13, color: '#414844' }}>SDG Project (hasil checklist traceability):</strong>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                 {projectInfo.project_sdgs.map(ps => {
                   const meta = getSdgMeta(ps.goal_number);
@@ -390,6 +436,47 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {projectInfo?.assessments?.length > 0 && (
+            <div style={{ marginTop: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <FileText size={18} style={{ color: '#012d1d' }} />
+                <strong style={{ fontSize: 14, color: '#012d1d' }}>Riwayat Assessment</strong>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {projectInfo.assessments.map(a => {
+                  const isCompleted = a.status === 'completed';
+                  return (
+                    <div key={a.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 16px', border: '1px solid #E9ECEF', borderRadius: 8,
+                      background: isCompleted ? '#ffffff' : '#f8f9fa'
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#191c1d' }}>
+                          {a.questionnaire || 'Questionnaire'} {a.questionnaire_version ? `(v${a.questionnaire_version})` : ''}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#6C757D', marginTop: 2 }}>
+                          {statusText(a.status)} • {fmtDate(a.completed_at || a.started_at)}
+                          {a.assessor_name ? ` • ${a.assessor_name}` : ''}
+                        </div>
+                      </div>
+                      {isCompleted ? (
+                        <button onClick={() => openExistingAssessment(a.id)} style={secondaryBtn}>
+                          <FileText size={14} /> Lihat Hasil
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: 12, color: '#9aa0a6', fontWeight: 600 }}>Belum selesai</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p style={{ fontSize: 12, color: '#6C757D', marginTop: 10, marginBottom: 0 }}>
+                Klik "Lihat Hasil" untuk membuka kembali informasi SDG dari assessment yang sudah selesai.
+              </p>
             </div>
           )}
         </div>
@@ -711,32 +798,43 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
               })}
             </div>
 
-            {/* Project SDG */}
-            <div className="stat-card" style={{ padding: 24, marginBottom: 20 }}>
+            {/* Next step: determine Project SDG on Traceability */}
+            <div className="stat-card" style={{ padding: 24, marginBottom: 20, border: '2px solid #2D6A4F' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <BadgeCheck size={20} style={{ color: '#116c4a' }} />
-                <h4 style={{ fontSize: 18, fontWeight: 700, color: '#012d1d', margin: 0 }}>SDG Project</h4>
+                <h4 style={{ fontSize: 18, fontWeight: 700, color: '#012d1d', margin: 0 }}>Langkah Berikutnya: Tentukan SDG Project</h4>
               </div>
-              <p style={{ fontSize: 13, color: '#6C757D', margin: '0 0 16px 0' }}>
-                SDG yang otomatis dianggap terpenuhi karena score ≥ threshold ({Math.round(defaultThreshold)}%).
+              <p style={{ fontSize: 13, color: '#6C757D', margin: '0 0 12px 0' }}>
+                Halaman ini hanya menampilkan hasil penilaian (score). SDG yang benar-benar menjadi <b>SDG Project</b> ditentukan
+                oleh Admin melalui checklist di menu Traceability berdasarkan informasi di atas.
               </p>
-              {metSdgs.length ? (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                  {metSdgs.map(r => {
-                    const Icon = r.meta.icon;
-                    return (
-                      <span key={r.goal_number} style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px',
-                        borderRadius: 9999, background: `${r.meta.color}14`, border: `1px solid ${r.meta.color}40`,
-                        color: r.meta.color, fontSize: 12, fontWeight: 700
-                      }}>
-                        <Icon size={16} /> GOAL {String(r.goal_number).padStart(2, '0')} • {r.name} <span style={{ color: '#6C757D', fontWeight: 600 }}>({Math.round(r.score)}%)</span>
-                      </span>
-                    );
-                  })}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#414844', marginBottom: 8 }}>
+                  Rekomendasi SDG (score ≥ threshold {Math.round(defaultThreshold)}%):
                 </div>
-              ) : (
-                <div style={{ fontSize: 13, color: '#9aa0a6' }}>Belum ada SDG yang terpenuhi (score ≥ threshold).</div>
+                {metSdgs.length ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                    {metSdgs.map(r => {
+                      const Icon = r.meta.icon;
+                      return (
+                        <span key={r.goal_number} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px',
+                          borderRadius: 9999, background: `${r.meta.color}14`, border: `1px solid ${r.meta.color}40`,
+                          color: r.meta.color, fontSize: 12, fontWeight: 700
+                        }}>
+                          <Icon size={16} /> GOAL {String(r.goal_number).padStart(2, '0')} • {r.name} <span style={{ color: '#6C757D', fontWeight: 600 }}>({Math.round(r.score)}%)</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 13, color: '#9aa0a6' }}>Tidak ada SDG yang mencapai threshold pada assessment ini.</div>
+                )}
+              </div>
+              {role === 'admin' && (
+                <button onClick={navigateToTraceability} style={{ ...primaryBtn, padding: '12px 24px' }}>
+                  <BadgeCheck size={16} /> Tentukan SDG Project di Traceability
+                </button>
               )}
             </div>
 

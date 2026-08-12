@@ -544,7 +544,7 @@ class AssessmentSdgResult(db.Model):
 
 
 class ProjectSdg(db.Model):
-    """Project SDG terpenuhi (plan.md #7, #29). hasil sistem dari assessment."""
+    """Project SDG terpenuhi (plan.md #7, #29). Ditentukan Admin via checklist."""
     __tablename__ = 'project_sdgs_new'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -556,3 +556,19 @@ class ProjectSdg(db.Model):
     __table_args__ = (
         db.UniqueConstraint('project_traceability_id', 'sdg_id', name='uq_project_sdg'),
     )
+
+
+class ProjectSdgVerification(db.Model):
+    """Verifikasi SDG per project (assessor + bukti). paralel company_sdg_verifications."""
+    __tablename__ = 'project_sdg_verifications'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_traceability_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project_traceability_profiles.id', ondelete='CASCADE'), nullable=False, unique=True)
+    assessed_by = db.Column(db.String(255))
+    evidence_file_url = db.Column(db.Text)
+    evidence_file_type = db.Column(db.String(20))
+    assessment_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    project_traceability = db.relationship('ProjectTraceabilityProfile', backref=db.backref('sdg_verification', uselist=False))

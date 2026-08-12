@@ -26,7 +26,9 @@ from app.db.models import (
     AssessmentAnswerOption,
     AssessmentSdgResult,
     ProjectSdg,
+    ProjectSdgVerification,
 )
+from app.services.upload_service import save_file_locally
 
 
 # ---------------------------------------------------------------
@@ -521,10 +523,14 @@ def submit_answers(assessment_id, current_user, data):
 
 
 def _calculate_sdg(assessment):
-    """Kalkulasi SDG score = sum(question_score * weight). (plan.md #26, #27, #29)"""
+    """Kalkulasi SDG score = sum(question_score * weight). (plan.md #26, #27, #29)
+
+    Catatan: fungsi ini HANYA menulis AssessmentSdgResult (hasil penilaian).
+    Penentuan Project SDG tidak dilakukan di sini — dilakukan secara manual oleh
+    Admin melalui halaman Traceability (save_project_sdg_selection).
+    """
     # delete hasil lama
     AssessmentSdgResult.query.filter_by(assessment_id=assessment.id).delete()
-    ProjectSdg.query.filter_by(project_traceability_id=assessment.project_traceability_id).delete()
 
     answers = {a.question_id: a for a in assessment.answers}
     # kumpulkan sdg ikut serta
@@ -567,14 +573,6 @@ def _calculate_sdg(assessment):
             calculated_at=datetime.utcnow(),
         )
         db.session.add(result)
-        db.session.flush()
-
-        if is_met and sdg_master:
-            db.session.add(ProjectSdg(
-                project_traceability_id=assessment.project_traceability_id,
-                assessment_sdg_result_id=result.id,
-                sdg_id=sdg_id,
-            ))
         results.append(result)
 
     return results
@@ -636,4 +634,208 @@ def get_company_sdg_summary(company_id):
             "total_sdgs_fulfilled": len(company_sdgs),
             "sdgs": company_sdgs,
         }
+    }, 200
+
+
+# ---------------------------------------------------------------
+# PROJECT SDG SELECTION (admin/traceability, per project)
+# ---------------------------------------------------------------
+def _serialize_project_verification(verification):
+    return {
+        "assessed_by": verification.assessed_by if verification else None,
+        "evidence_file_url": verification.evidence_file_url if verification else None,
+        "evidence_file_type": verification.evidence_file_type if verification else None,
+        "assessment_date": verification.assessment_date.isoformat() if verification and verification.assessment_date else None,
+    }
+
+
+def _get_or_create_project_verification(profile):
+    verification = ProjectSdgVerification.query.filter_by(project_traceability_id=profile.id).first()
+    if not verification:
+        verification = ProjectSdgVerification(project_traceability_id=profile.id)
+        db.session.add(verification)
+    return verification
+
+
+def _get_latest_completed_assessment(profile):
+    return TraceAssessment.query.filter_by(
+        project_traceability_id=profile.id,
+        status='completed',
+    ).order_by(TraceAssessment.completed_at.desc()).first()
+
+
+def get_project_sdg_selection(project_id):
+    """Data halaman admin/traceability (project-level):
+    katalog SDG + status terpilih + verifikasi + ringkasan assessment terakhir."""
+    project = Project.query.get(project_id)
+    if not project:
+        return {"success": False, "message": "Project tidak ditemukan"}, 404
+
+    profile = ProjectTraceabilityProfile.query.filter_by(project_id=project.id).first()
+    selected_rows = []
+    if profile:
+        selected_rows = ProjectSdg.query.filter_by(project_traceability_id=profile.id).all()
+    selected_map = {ps.sdg_id: ps for ps in selected_rows}
+    verification = ProjectSdgVerification.query.filter_by(project_traceability_id=profile.id).first() if profile else None
+
+    sdgs = []
+    for sdg in SdgMaster.query.order_by(SdgMaster.goal_number).all():
+        ps = selected_map.get(sdg.id)
+        sdgs.append({
+            "id": str(sdg.id),
+            "goal_number": sdg.goal_number,
+            "name": sdg.name,
+            "description": sdg.description,
+            "threshold": float(sdg.threshold),
+            "selected": ps is not None,
+            "display_order": ps.display_order if hasattr(ps, 'display_order') else 0,
+        })
+
+    latest = _get_latest_completed_assessment(profile) if profile else None
+    latest_assessment = None
+    if latest:
+        results = [
+            {
+                "goal_number": r.sdg_master.goal_number if r.sdg_master else None,
+                "name": r.sdg_master.name if r.sdg_master else None,
+                "score": float(r.score),
+                "threshold": float(r.threshold),
+                "is_met": r.is_met,
+            }
+            for r in AssessmentSdgResult.query.filter_by(assessment_id=latest.id).all()
+        ]
+        latest_assessment = {
+            "id": str(latest.id),
+            "questionnaire_name": latest.questionnaire.name if latest.questionnaire else None,
+            "completed_at": latest.completed_at.isoformat() if latest.completed_at else None,
+            "assessor_name": latest.assessor_name,
+            "results": results,
+            "assessed_count": len(results),
+            "met_count": sum(1 for r in results if r["is_met"]),
+        }
+
+    return {
+        "success": True,
+        "data": {
+            "project": {
+                "id": str(project.id),
+                "name": project.name,
+                "commodity": project.commodity,
+                "location": project.location,
+                "company_id": str(project.company_id),
+                "company_name": project.company.name if project.company else None,
+            },
+            "sdgs": sdgs,
+            "verification": _serialize_project_verification(verification),
+            "latest_assessment": latest_assessment,
+            "project_sdg_ids": [str(ps.sdg_id) for ps in selected_rows],
+        }
+    }, 200
+
+
+def save_project_sdg_selection(project_id, data):
+    """Simpan checklist SDG project + nama assessor. Menulis ProjectSdg."""
+    project = Project.query.get(project_id)
+    if not project:
+        return {"success": False, "message": "Project tidak ditemukan"}, 404
+
+    profile = ProjectTraceabilityProfile.query.filter_by(project_id=project.id).first()
+    if not profile:
+        profile = ProjectTraceabilityProfile(project_id=project.id)
+        db.session.add(profile)
+        db.session.flush()
+
+    submitted = data.get('sdgs', [])
+    submitted_ids = set()
+    latest = _get_latest_completed_assessment(profile)
+    latest_result_map = {}
+    if latest:
+        for r in AssessmentSdgResult.query.filter_by(assessment_id=latest.id).all():
+            latest_result_map[r.sdg_id] = r.id
+
+    for item in submitted:
+        sdg_id = item.get('sdg_id')
+        sdg = SdgMaster.query.get(sdg_id)
+        if not sdg:
+            return {"success": False, "message": "SDG tidak valid"}, 400
+        submitted_ids.add(sdg_id)
+
+        ps = ProjectSdg.query.filter_by(project_traceability_id=profile.id, sdg_id=sdg_id).first()
+        if not ps:
+            ps = ProjectSdg(
+                project_traceability_id=profile.id,
+                sdg_id=sdg_id,
+                assessment_sdg_result_id=latest_result_map.get(sdg_id),
+            )
+            db.session.add(ps)
+
+    removed_query = ProjectSdg.query.filter(ProjectSdg.project_traceability_id == profile.id)
+    if submitted_ids:
+        removed_query = removed_query.filter(~ProjectSdg.sdg_id.in_(submitted_ids))
+    for r in removed_query.all():
+        db.session.delete(r)
+
+    verification = _get_or_create_project_verification(profile)
+    verification.assessed_by = (data.get('assessed_by') or '').strip() or None
+
+    db.session.commit()
+
+    selected = ProjectSdg.query.filter_by(project_traceability_id=profile.id).all()
+    return {
+        "success": True,
+        "message": "SDG project berhasil disimpan",
+        "data": {
+            "project_sdg_ids": [str(ps.sdg_id) for ps in selected],
+            "verification": _serialize_project_verification(verification),
+        }
+    }, 200
+
+
+def upload_project_sdg_evidence(project_id, file):
+    project = Project.query.get(project_id)
+    if not project:
+        return {"success": False, "message": "Project tidak ditemukan"}, 404
+    if not file or not file.filename:
+        return {"success": False, "message": "File tidak ditemukan"}, 400
+
+    profile = ProjectTraceabilityProfile.query.filter_by(project_id=project.id).first()
+    if not profile:
+        profile = ProjectTraceabilityProfile(project_id=project.id)
+        db.session.add(profile)
+        db.session.flush()
+
+    file_url = save_file_locally(file, subfolder='evidence')
+    original_name = file.filename
+    ext = original_name.rsplit('.', 1)[1].lower() if '.' in original_name else ''
+
+    verification = _get_or_create_project_verification(profile)
+    verification.evidence_file_url = file_url
+    verification.evidence_file_type = ext
+    verification.assessment_date = datetime.utcnow()
+
+    db.session.commit()
+
+    return {
+        "success": True,
+        "message": "Bukti berhasil diupload",
+        "data": _serialize_project_verification(verification),
+    }, 200
+
+
+def delete_project_sdg_evidence(project_id):
+    project = Project.query.get(project_id)
+    if not project:
+        return {"success": False, "message": "Project tidak ditemukan"}, 404
+
+    profile = ProjectTraceabilityProfile.query.filter_by(project_id=project.id).first()
+    verification = ProjectSdgVerification.query.filter_by(project_traceability_id=profile.id).first() if profile else None
+    if verification:
+        verification.evidence_file_url = None
+        verification.evidence_file_type = None
+        db.session.commit()
+
+    return {
+        "success": True,
+        "message": "Bukti berhasil dihapus",
+        "data": _serialize_project_verification(verification),
     }, 200
