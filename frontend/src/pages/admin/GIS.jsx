@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Map, Leaf, Maximize, Calendar, Sprout, Upload, FileCode, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
+import InputNumber from '../../shared/components/UI/InputNumber';
+
 
 const FarmMapThumbnail = ({ farmId }) => {
     const [mapHtml, setMapHtml] = useState(null);
@@ -334,7 +336,7 @@ const GIS = () => {
                                     </div>
                                     <div className="form-group" style={{ flex: 1 }}>
                                         <label>Luas Lahan (Ha)</label>
-                                        <input type="number" step="0.01" value={formData.total_area_ha} onChange={(e) => setFormData({...formData, total_area_ha: e.target.value})} />
+                                        <InputNumber min="0.01" step="0.01" value={formData.total_area_ha} onChange={(e) => setFormData({...formData, total_area_ha: e.target.value})} />
                                     </div>
                                 </div>
                                 <div className="form-actions">

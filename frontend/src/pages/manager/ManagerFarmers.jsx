@@ -5,6 +5,8 @@ import {
   ChevronRight, Plus, Phone, Pencil, Trash2,
   X, Camera, AlertTriangle, UserCheck
 } from 'lucide-react';
+import InputNumber from '../../shared/components/UI/InputNumber';
+
 
 const ManagerFarmers = () => {
     const [farmers, setFarmers] = useState([]);
@@ -337,13 +339,22 @@ const ManagerFarmers = () => {
                                         <input
                                             type="text"
                                             value={formData.phone}
+                                            onKeyDown={(e) => {
+                                                const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'];
+                                                if (!allowedKeys.includes(e.key) && !/^[0-9]$/.test(e.key)) {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            onInput={(e) => {
+                                                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                                            }}
                                             onChange={e => setFormData({ ...formData, phone: e.target.value })}
                                             style={{
                                                 width: '100%', padding: '10px 14px', border: '1px solid #E0EBE4',
                                                 borderRadius: 8, fontSize: 14, color: '#191c1d', outline: 'none',
                                                 boxSizing: 'border-box', fontFamily: 'inherit'
                                             }}
-                                            placeholder="0812-3456-7890"
+                                            placeholder="081234567890"
                                         />
                                     </div>
 
@@ -389,6 +400,7 @@ const ManagerFarmers = () => {
                                         </label>
                                         <input
                                             type="number"
+                                            min="0"
                                             value={formData.join_year}
                                             onChange={e => setFormData({ ...formData, join_year: e.target.value })}
                                             style={{

@@ -1,25 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import '../../assets/css/main.css';
+import { Sprout, Activity, Leaf, BarChart3, TreePine, Gauge, FileSpreadsheet, CheckCheck, ArrowRight } from 'lucide-react';
+import PublicNavbar from './components/PublicNavbar';
+import PublicFooter from './components/PublicFooter';
+import useScrollReveal from '../../shared/utils/useScrollReveal';
 import '../../assets/css/landing.css';
 
 const LandingPage = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const sliderRef = useRef(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const statsRef = useScrollReveal();
+  const signalsOverviewRef = useScrollReveal();
+  const mrvOverviewRef = useScrollReveal();
+  const productRef = useScrollReveal();
+  const partnersRef = useScrollReveal();
+  const ctaRef = useScrollReveal();
 
   // For stats counter
   useEffect(() => {
@@ -55,58 +48,57 @@ const LandingPage = () => {
     };
   }, []);
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  const slideActivities = (direction) => {
-    if (sliderRef.current) {
-      const card = sliderRef.current.querySelector('.activity-card');
-      const cardWidth = card ? card.offsetWidth + 20 : 320; 
-      sliderRef.current.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
+  const signalPreviews = [
+    {
+      title: 'Soil Nutrient Intelligence',
+      tag: 'NPK Balance',
+      icon: <Sprout size={24} strokeWidth={1.75} />,
+      desc: 'Precision mapping of soil nutrient availability to eliminate fertilizer waste.'
+    },
+    {
+      title: 'Crop Health Index',
+      tag: 'Canopy NDVI',
+      icon: <Activity size={24} strokeWidth={1.75} />,
+      desc: 'Early detection of crop biological stress and foliage vigor throughout growing cycles.'
+    },
+    {
+      title: 'Soil Organic Carbon',
+      tag: 'SOC Stock',
+      icon: <Leaf size={24} strokeWidth={1.75} />,
+      desc: 'Quantified topsoil carbon accumulation supporting regenerative claims and ESG targets.'
+    },
+    {
+      title: 'Productivity Analytics',
+      tag: 'Yield Forecasting',
+      icon: <BarChart3 size={24} strokeWidth={1.75} />,
+      desc: 'Spatial analytics showing how different land zones perform and why.'
+    },
+    {
+      title: 'Biomass Carbon Estimation',
+      tag: 'Biomass Density',
+      icon: <TreePine size={24} strokeWidth={1.75} />,
+      desc: 'Vegetative biomass calculations for verified carbon and sustainability reporting.'
     }
-  };
+  ];
 
   return (
-    <div>
-      {/* NAVBAR */}
-      <nav className={`navbar ${isScrolled ? 'scrolled' : ''}`} id="navbar">
-        <div className="nav-logo">
-          <Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
-            <img src="/assets/images/agrivision.png" alt="Agrivision Logo" />
-          </Link>
-        </div>
-        <div className={`nav-menu ${isMobileMenuOpen ? 'active' : ''}`} id="navMenu">
-          <Link to="/" className="nav-link active">Home</Link>
-          <a href="#about" className="nav-link">About Us</a>
-          <a href="#solutions" className="nav-link">Solutions</a>
-          <a href="#activities" className="nav-link">Activities</a>
-          <a href="#connect" className="nav-link">Contact</a>
-        </div>
-        <div className="nav-right">
-          <Link to="/login" className="btn-login">Log In</Link>
-          <a href="#connect" className="btn-request-demo">Request Demo</a>
-          <button className={`nav-hamburger ${isMobileMenuOpen ? 'active' : ''}`} id="navHamburger" onClick={toggleMobileMenu}>
-            <span></span><span></span><span></span>
-          </button>
-        </div>
-      </nav>
+    <div className="page-wrapper">
+      <PublicNavbar />
 
       {/* 1. HERO */}
       <header className="hero" id="home">
-        <div className="hero-overlay"></div>
         <div className="hero-content">
-          <h1 className="hero-title">Climate-Smart and Regenerative Agriculture Solution</h1>
+          <h1 className="display-hero">Climate-Smart and Regenerative Agriculture Solution</h1>
           <p className="hero-subtitle">Transforming Agriculture for Food Security and Carbon Neutrality</p>
           <div className="hero-actions">
             <Link to="/login" className="btn-demo">See Product Demo</Link>
-            <a href="#connect" className="btn-demo-outline">Request a Consultation</a>
+            <Link to="/contact" className="btn-demo-outline">Request a Consultation</Link>
           </div>
         </div>
       </header>
 
-      {/* STATS COUNTER */}
-      <section className="stats-section">
+      {/* 2. STATS COUNTER */}
+      <section className="stats-section scroll-reveal" ref={statsRef}>
         <div className="landing-stats-grid">
           <div className="stat-item">
             <div className="stat-number" data-target="2500">0</div>
@@ -131,77 +123,133 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* 2. WHO WE ARE */}
-      <section className="section who-we-are" id="about">
+      {/* 3. FIVE SIGNALS OVERVIEW */}
+      <section className="landing-section scroll-reveal" ref={signalsOverviewRef}>
         <div className="section-header-centered">
-          <span className="section-label">WHO WE ARE</span>
-          <h2 className="section-title text-center">Bridging Technology &amp;<br/>Regenerative Farming</h2>
-          <p className="section-intro">By harnessing satellite data and AI power, we help businesses invest confidently in regenerative agriculture — improving crop productivity, farmer livelihoods, carbon sequestration capacity, and full supply-chain traceability.</p>
+          <span className="section-label">AGRONOMY INTELLIGENCE</span>
+          <h2 className="section-title text-center">Five Signals That Run The Farm</h2>
+          <p className="section-intro">
+            We turn satellite remote sensing and calibrated ground data into five critical metrics that drive agronomic precision and carbon verification.
+          </p>
         </div>
-        <div className="solutions-grid">
-          <div className="solution-card">
-            <img src="/assets/icons/leaf.png" alt="Regenerative Farming" />
-            <h3>Regenerative Farming</h3>
-            <p>Restoring soil health and biodiversity through sustainable farming ethics</p>
-          </div>
-          <div className="solution-card">
-            <img src="/assets/icons/carbon-footprint.png" alt="Carbon Sequestration" />
-            <h3>Carbon Sequestration Efforts</h3>
-            <p>Designing the farming system so that it can capture atmospheric carbon emission</p>
-          </div>
-          <div className="solution-card">
-            <img src="/assets/icons/wheat.png" alt="Crop Yield" />
-            <h3>Crop Yield Enhancement</h3>
-            <p>Enhancing crop output through efficient and resilient methods</p>
-          </div>
-          <div className="solution-card">
-            <img src="/assets/icons/farmer.png" alt="Farmer Livelihoods" />
-            <h3>Improvement of Farmer Livelihoods</h3>
-            <p>Empowering farmers with income stability and better opportunities</p>
-          </div>
-          <div className="solution-card">
-            <img src="/assets/icons/orbit.png" alt="Precision Agriculture" />
-            <h3>Precision Agriculture using AI &amp; Remote Sensing</h3>
-            <p>Leveraging data and technology for smarter, targeted farming</p>
-          </div>
-          <div className="solution-card">
-            <img src="/assets/icons/survey.png" alt="Multi-Stakeholder" />
-            <h3>Multi-Stakeholder Collaboration</h3>
-            <p>Building strong partnerships across the agricultural value chain</p>
-          </div>
+
+        <div className="signals-preview-grid">
+          {signalPreviews.map((sig, idx) => (
+            <div key={idx} className="signal-preview-card">
+              <div className="signal-preview-header">
+                <div className="signal-preview-icon">{sig.icon}</div>
+                <span className="signal-tag">{sig.tag}</span>
+              </div>
+              <h3>{sig.title}</h3>
+              <p>{sig.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="section-center-action">
+          <Link to="/signals" className="btn-inline-link">
+            Explore All 5 Signals in Detail <ArrowRight size={16} />
+          </Link>
         </div>
       </section>
 
-      {/* 3. INTELLIGENCE DASHBOARD / SOLUTIONS */}
-      <section className="section product-preview" id="solutions">
+      {/* 4. END-TO-END MRV OVERVIEW */}
+      <section className="landing-section mrv-overview-section scroll-reveal" ref={mrvOverviewRef}>
+        <div className="section-header-centered">
+          <span className="section-label">PLATFORM INFRASTRUCTURE</span>
+          <h2 className="section-title text-center">End-to-End MRV Operations</h2>
+          <p className="section-intro">
+            A unified digital framework covering measurement in the field, standard-aligned reporting, and independent verification.
+          </p>
+        </div>
+
+        <div className="mrv-pillars-grid">
+          <div className="mrv-pillar-card">
+            <div className="mrv-pillar-badge pillar-measure">Pillar 01</div>
+            <div className="mrv-pillar-icon"><Gauge size={28} strokeWidth={1.75} /></div>
+            <h3>Measurement</h3>
+            <p>Quantifying soil carbon, biomass, and crop condition via Sentinel-2 satellite and ground sampling.</p>
+          </div>
+
+          <div className="mrv-pillar-card">
+            <div className="mrv-pillar-badge pillar-report">Pillar 02</div>
+            <div className="mrv-pillar-icon"><FileSpreadsheet size={28} strokeWidth={1.75} /></div>
+            <h3>Reporting</h3>
+            <p>Standard-aligned disclosures and carbon calculations ready for compliance and ESG audit.</p>
+          </div>
+
+          <div className="mrv-pillar-card">
+            <div className="mrv-pillar-badge pillar-verify">Pillar 03</div>
+            <div className="mrv-pillar-icon"><CheckCheck size={28} strokeWidth={1.75} /></div>
+            <h3>Verification</h3>
+            <p>Verifiable digital audit trail connecting farm plots to certification bodies and commodity buyers.</p>
+          </div>
+        </div>
+
+        <div className="section-center-action">
+          <Link to="/mrv" className="btn-inline-link">
+            See the 6-Stage Operational Workflow <ArrowRight size={16} />
+          </Link>
+        </div>
+      </section>
+
+      {/* 5. PRODUCT PREVIEW */}
+      <section className="landing-section product-preview scroll-reveal" id="solutions" ref={productRef}>
         <div className="preview-grid">
           <div className="preview-text">
-            <span className="section-label">OUR PRODUCT</span>
+            <span className="section-label">OUR PLATFORM</span>
             <h2 className="section-title">Intelligence Dashboard</h2>
             <p className="preview-desc">
-              Monitor your farmland in real-time. Track 5 key parameters — NDVI, SOC, Yield, Biomass, and NPK — across all your plots, all in one place.
+              Monitor your farmland in real-time. Track NDVI, SOC, Yield, Biomass, and NPK across all your plots, all in one centralized SaaS interface.
             </p>
             <ul className="preview-features">
-              <li>✅ Interactive map with pixel-level detail</li>
-              <li>✅ Anomaly detection &amp; alert system</li>
-              <li>✅ Period-over-period comparison</li>
-              <li>✅ Automated carbon credit reports</li>
-              <li>✅ Per land-owner breakdown</li>
+              <li>Interactive map with pixel-level detail</li>
+              <li>Anomaly detection &amp; alert system</li>
+              <li>Period-over-period comparison</li>
+              <li>Automated carbon credit reports</li>
+              <li>Per land-owner breakdown</li>
             </ul>
             <Link to="/login" className="btn-preview-demo">Try the Demo →</Link>
           </div>
           <div className="preview-image">
-            <div className="preview-mockup">
-              <div className="mockup-bar">
-                <span></span><span></span><span></span>
+            <div className="dashboard-mockup">
+              <div className="mockup-sidebar">
+                <div className="mockup-sidebar-logo"></div>
+                <div className="mockup-sidebar-item active"></div>
+                <div className="mockup-sidebar-item"></div>
+                <div className="mockup-sidebar-item"></div>
+                <div className="mockup-sidebar-item"></div>
               </div>
-              <div className="mockup-content">
-                <div className="mockup-map"></div>
-                <div className="mockup-stats">
-                  <div className="mockup-stat-bar" style={{width: '85%'}}></div>
-                  <div className="mockup-stat-bar" style={{width: '65%'}}></div>
-                  <div className="mockup-stat-bar" style={{width: '90%'}}></div>
-                  <div className="mockup-stat-bar" style={{width: '70%'}}></div>
+              <div className="mockup-main">
+                <div className="mockup-topbar">
+                  <div className="mockup-search"></div>
+                  <div className="mockup-avatar"></div>
+                </div>
+                <div className="mockup-stats-row">
+                  <div className="mockup-stat">
+                    <div className="mockup-stat-label">NDVI</div>
+                    <div className="mockup-stat-value" style={{ color: 'var(--color-main-green)' }}>0.82</div>
+                  </div>
+                  <div className="mockup-stat">
+                    <div className="mockup-stat-label">SOC</div>
+                    <div className="mockup-stat-value" style={{ color: 'var(--color-dark-gold)' }}>3.4%</div>
+                  </div>
+                  <div className="mockup-stat">
+                    <div className="mockup-stat-label">Yield</div>
+                    <div className="mockup-stat-value" style={{ color: 'var(--color-medium-emerald)' }}>4.2 t/ha</div>
+                  </div>
+                </div>
+                <div className="mockup-content-row">
+                  <div className="mockup-map">
+                    <span className="mockup-map-badge">Plot 04 - West Java</span>
+                  </div>
+                  <div className="mockup-chart">
+                    <div className="mockup-bar" style={{ height: '60%' }}></div>
+                    <div className="mockup-bar" style={{ height: '85%' }}></div>
+                    <div className="mockup-bar" style={{ height: '45%' }}></div>
+                    <div className="mockup-bar" style={{ height: '95%' }}></div>
+                    <div className="mockup-bar" style={{ height: '70%' }}></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -209,101 +257,9 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* 4. HOW IT WORKS */}
-      <section className="section how-it-works" id="how-it-works">
-        <span className="section-label text-center" style={{display: 'block'}}>THE PROCESS</span>
-        <h2 className="section-title text-center">How It Works</h2>
-        <p className="section-subtitle text-center">From satellite to insight in 4 simple steps</p>
-        <div className="steps-grid">
-          <div className="step-card">
-            <div className="step-number">01</div>
-            <div className="step-icon">🛰️</div>
-            <h3>Satellite Data Collection</h3>
-            <p>We continuously collect Sentinel-2 satellite imagery over your farmland every quarter.</p>
-          </div>
-          <div className="step-card">
-            <div className="step-number">02</div>
-            <div className="step-icon">🤖</div>
-            <h3>AI Analysis</h3>
-            <p>Our machine learning models process the imagery to measure 5 key agricultural parameters.</p>
-          </div>
-          <div className="step-card">
-            <div className="step-number">03</div>
-            <div className="step-icon">📊</div>
-            <h3>Intelligence Dashboard</h3>
-            <p>Results are visualized in an interactive dashboard — maps, charts, trends, and anomaly alerts.</p>
-          </div>
-          <div className="step-card">
-            <div className="step-number">04</div>
-            <div className="step-icon">📄</div>
-            <h3>Carbon Credit Report</h3>
-            <p>Generate verified carbon reports ready for submission to Verra, Gold Standard, and other registries.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. OUR TEAM */}
-      <section className="section our-team" id="team">
-        <span className="section-label text-center" style={{display: 'block'}}>THE PEOPLE</span>
-        <h2 className="section-title text-center">Our Team</h2>
-        <div className="team-grid">
-          <div className="team-card">
-            <img src="/assets/images/Sofya Restu2.jpg" alt="Sofya Restu Seftyani" className="team-photo" />
-            <h3>Sofya Restu Seftyani, M.Sc.</h3>
-            <p className="team-role">Founder &amp; CEO</p>
-            <p className="team-desc">7 years experience in agribusiness and integrated farming system</p>
-          </div>
-          <div className="team-card">
-            <img src="/assets/images/Fitrah Ramadhan3.jpg" alt="Fitrah Ramadhan" className="team-photo" />
-            <h3>Fitrah Ramadhan, M.Sc.</h3>
-            <p className="team-role">Co-Founder &amp; CTO</p>
-            <p className="team-desc">Expert in AI, remote sensing, and agricultural decision-support systems</p>
-          </div>
-          <div className="team-card">
-            <img src="/assets/images/Nur Amalia3.jpg" alt="Nur Amelia" className="team-photo" />
-            <h3>Nur Amelia, S.Ds.</h3>
-            <p className="team-role">Co-Founder &amp; CBDO</p>
-            <p className="team-desc">Specialist in sustainability and circular economy project for corporate</p>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. CURRENT ACTIVITIES */}
-      <section className="section activities-section" id="activities">
-        <span className="section-label text-center" style={{display: 'block'}}>LATEST UPDATES</span>
-        <h2 className="section-title text-center">Current Activities</h2>
-        <div className="slider-wrapper">
-          <div className="slider-track" id="activitySlider" ref={sliderRef}>
-            <a href="#" className="activity-card">
-              <img src="/assets/activities/251124_profile.png" alt="Field Visit" />
-              <div className="activity-content">
-                <h3>Field Visit with Local Farmers</h3>
-                <p>Agrivision conducted a field visit in West Java to support capacity building and sustainable farming adoption.</p>
-              </div>
-            </a>
-            <a href="#" className="activity-card">
-              <img src="/assets/activities/251130_profile.png" alt="Satellite Monitoring" />
-              <div className="activity-content">
-                <h3>Satellite Monitoring Demo</h3>
-                <p>Demonstration of using remote sensing to monitor vegetation growth and soil carbon regeneration.</p>
-              </div>
-            </a>
-            <a href="#" className="activity-card">
-              <img src="/assets/activities/251205_profile.png" alt="Corporate Training" />
-              <div className="activity-content">
-                <h3>Corporate Training on RegenAgri</h3>
-                <p>Training session for private companies on regenerative agriculture and carbon-positive farming.</p>
-              </div>
-            </a>
-          </div>
-          <button className="slider-btn slider-prev" onClick={() => slideActivities(-1)}>&#10094;</button>
-          <button className="slider-btn slider-next" onClick={() => slideActivities(1)}>&#10095;</button>
-        </div>
-      </section>
-
-      {/* 7. OUR PARTNERS */}
-      <section className="section partners-section">
-        <h2 className="section-title text-center">Our Partners</h2>
+      {/* 6. PARTNERS */}
+      <section className="landing-section partners-section scroll-reveal" ref={partnersRef}>
+        <h2 className="section-title text-center">Our Strategic Partners</h2>
         <div className="partners-wrapper">
           <div className="partners-track">
             <img src="/assets/partner/pt lapi.jpg" alt="PT Lapi" />
@@ -321,96 +277,14 @@ const LandingPage = () => {
             <img src="/assets/partner/btp.jpg" alt="BTP" />
           </div>
         </div>
-      </section>
-
-      {/* 8. LET'S CONNECT */}
-      <section className="section connect-section" id="connect">
-        <div className="connect-grid">
-          <div className="connect-left">
-            <h2 className="connect-title">Let's Connect!</h2>
-            <a href="mailto:connect@agrivisiontech.com" className="contact-item">
-              <img src="/assets/icons/email3.png" alt="Email" />
-              <div>
-                <h3>Email</h3>
-                <p>connect@agrivisiontech.com</p>
-              </div>
-            </a>
-            <div className="contact-item">
-              <img src="/assets/icons/location3.png" alt="Location" />
-              <div>
-                <h3>Office Address</h3>
-                <p>Jl. Haji Gari No.43B RT002/RW003 Pesanggrahan,<br/>Pesanggrahan, Jakarta Selatan 12320</p>
-              </div>
-            </div>
-            <a href="https://www.linkedin.com/company/agrivisiontechnology/" target="_blank" rel="noopener noreferrer" className="contact-item">
-              <img src="/assets/icons/linkedin3.png" alt="LinkedIn" />
-              <div>
-                <h3>LinkedIn</h3>
-                <p>linkedin.com/company/agrivisiontechnology</p>
-              </div>
-            </a>
-            <a href="https://wa.me/6290546670" target="_blank" rel="noopener noreferrer" className="contact-item">
-              <img src="/assets/icons/whatsapp.png" alt="WhatsApp" />
-              <div>
-                <h3>Contact Number</h3>
-                <p>+62 9054 6670 (Available on WhatsApp)</p>
-              </div>
-            </a>
-          </div>
-          <div className="connect-right">
-            <h2 className="enquiry-title">Have Any Enquiries?</h2>
-            <form action="https://formsubmit.co/ofitrahramadhan@gmail.com" method="POST" className="contact-form">
-              <input type="hidden" name="_captcha" value="false" />
-              <label>Name</label>
-              <input type="text" name="name" required placeholder="Your full name" />
-              <label>Email</label>
-              <input type="email" name="email" required placeholder="your@email.com" />
-              <label>Message</label>
-              <textarea name="message" required placeholder="How can we help you?"></textarea>
-              <button type="submit" className="btn-submit">Send Message</button>
-            </form>
-          </div>
+        <div className="section-center-action mt-4">
+          <Link to="/about" className="btn-inline-link">
+            Learn More About Our Team &amp; Mission <ArrowRight size={16} />
+          </Link>
         </div>
       </section>
 
-      <footer className="footer">
-        <div className="footer-grid">
-          <div className="footer-brand">
-            <img src="/assets/images/agrivision.png" alt="Agrivision" className="footer-logo" />
-            <p className="footer-tagline">Climate-Smart Agriculture<br/>powered by AI &amp; Remote Sensing</p>
-            <div className="footer-socials">
-              <a href="https://www.linkedin.com/company/agrivisiontechnology/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-              <a href="https://wa.me/6290546670" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-              <a href="mailto:connect@agrivisiontech.com">Email</a>
-            </div>
-          </div>
-          <div className="footer-links">
-            <h4>Platform</h4>
-            <Link to="/login">Product Demo</Link>
-            <a href="#about">About Us</a>
-            <a href="#how-it-works">How It Works</a>
-            <a href="#connect">Contact</a>
-          </div>
-          <div className="footer-links">
-            <h4>Resources</h4>
-            <a href="#">Help Center</a>
-            <a href="#">Methodology</a>
-            <a href="#">Parameters Guide</a>
-            <a href="#">FAQ</a>
-          </div>
-          <div className="footer-links">
-            <h4>Company</h4>
-            <a href="#about">About</a>
-            <a href="#connect">Get in Touch</a>
-            <Link to="/login">Client Login</Link>
-            <a href="#">Privacy Policy</a>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>&copy; 2025 PT. Visi Agrikultur Indonesia. All rights reserved.</p>
-          <p>agrivisiontech.com</p>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 };

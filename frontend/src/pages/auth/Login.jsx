@@ -60,46 +60,48 @@ const Login = () => {
             <img
               src="/assets/images/logo_icon.png"
               alt="Agrivision Logo"
-              style={{ width: '44px', height: '44px', objectFit: 'contain' }}
+              className="login-logo-icon-left"
             />
-            <div>
-              <div className="login-brand-title">Agrivision</div>
-              <div className="login-brand-subtitle">See. Regenerate. Prosper</div>
-            </div>
           </div>
 
-          <div className="login-tagline-box">
-            <h2>
-              Monitor Lahan,<br />
-              Maksimalkan <span>Hasil.</span>
-            </h2>
-            <p>
-              Platform manajemen lahan pertanian presisi berbasis satelit dengan analisis NDVI, karbon kredit, dan laporan otomatis.
-            </p>
-          </div>
+          <div className="login-left-content">
+            <div className="login-tagline-box">
+              <h2>
+                Monitor Lahan,<br />
+                Maksimalkan <span>Hasil.</span>
+              </h2>
+              <p>
+                Platform manajemen lahan pertanian presisi berbasis satelit dengan analisis NDVI, karbon kredit, dan laporan otomatis.
+              </p>
+            </div>
 
-          <div className="login-features-list">
-            <div className="login-feature-item">
-              <span className="material-symbols-outlined">satellite_alt</span>
-              Monitoring lahan via satelit
-            </div>
-            <div className="login-feature-item">
-              <span className="material-symbols-outlined">eco</span>
-              Portofolio karbon terintegrasi
-            </div>
-            <div className="login-feature-item">
-              <span className="material-symbols-outlined">analytics</span>
-              Laporan analitik otomatis
-            </div>
-            <div className="login-feature-item">
-              <span className="material-symbols-outlined">shield</span>
-              Data aman & terenkripsi
+            <div className="login-features-list">
+              <div className="login-feature-item">
+                <span className="material-symbols-outlined">satellite_alt</span>
+                Monitoring lahan via satelit
+              </div>
+              <div className="login-feature-item">
+                <span className="material-symbols-outlined">eco</span>
+                Portofolio karbon terintegrasi
+              </div>
+              <div className="login-feature-item">
+                <span className="material-symbols-outlined">analytics</span>
+                Laporan analitik otomatis
+              </div>
+              <div className="login-feature-item">
+                <span className="material-symbols-outlined">shield</span>
+                Data aman & terenkripsi
+              </div>
             </div>
           </div>
         </div>
 
         {/* Panel Kanan - Form Login */}
         <div className="login-right-panel">
+          <div className="login-right-header">
+            <h1 className="login-title-right">Masuk ke Dashboard</h1>
+          </div>
+
           {error && (
             <div className="login-error-alert">
               <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>error</span>

@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../features/auth/AuthContext';
 
 const Sidebar = ({ role, user }) => {
@@ -48,15 +48,20 @@ const Sidebar = ({ role, user }) => {
   return (
     <>
       <aside className="sidebar">
-        <div className="sidebar-brand" style={{ justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div className="sidebar-logo">
-              <img src="/assets/images/logo_icon.png" alt="Agrivision Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <div className="sidebar-brand">
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+            <img 
+              src="/assets/images/logo_icon.png" 
+              alt="Agrivision Logo" 
+              className="sidebar-logo-icon" 
+            />
+            <div className="sidebar-brand-text">
+              <span className="sidebar-brand-title">
+                <span className="brand-agri">Agri</span><span className="brand-vision">vision</span>
+              </span>
+              <span className="sidebar-brand-tagline">See • Regenerate • Prosper</span>
             </div>
-            <div>
-              <div className="sidebar-brand-name">Agrivision</div>
-            </div>
-          </div>
+          </Link>
         </div>
 
         <nav className="sidebar-nav">

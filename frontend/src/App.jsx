@@ -2,6 +2,10 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './app/routes/ProtectedRoute';
 import LandingPage from './pages/public/LandingPage';
+import SignalsPage from './pages/public/SignalsPage';
+import MRVPage from './pages/public/MRVPage';
+import AboutPage from './pages/public/AboutPage';
+import ContactPage from './pages/public/ContactPage';
 import TraceabilityDashboard from './pages/public/TraceabilityDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminActivityLogsPage from './pages/admin/AdminActivityLogsPage';
@@ -33,6 +37,10 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/signals" element={<SignalsPage />} />
+        <Route path="/mrv" element={<MRVPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="/trace/:projectRef" element={<TraceabilityDashboard />} />
         <Route path="/login" element={<Login />} />
         

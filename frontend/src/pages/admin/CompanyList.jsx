@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
+import InputNumber from '../../shared/components/UI/InputNumber';
 
 const CompanyList = () => {
     const [companies, setCompanies] = useState([]);
@@ -181,11 +182,11 @@ const CompanyList = () => {
                             <div style={{ display: 'flex', gap: '15px' }}>
                                 <div className="form-group" style={{ flex: 1 }}>
                                     <label>Maksimal Lahan</label>
-                                    <input type="number" name="max_farms" value={formData.max_farms} onChange={handleInputChange} />
+                                    <InputNumber min="1" name="max_farms" value={formData.max_farms} onChange={handleInputChange} />
                                 </div>
                                 <div className="form-group" style={{ flex: 1 }}>
                                     <label>Maksimal User</label>
-                                    <input type="number" name="max_users" value={formData.max_users} onChange={handleInputChange} />
+                                    <InputNumber min="1" name="max_users" value={formData.max_users} onChange={handleInputChange} />
                                 </div>
                             </div>
                             

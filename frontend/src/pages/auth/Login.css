@@ -47,7 +47,8 @@
   background: #ffffff;
   border-radius: 28px;
   box-shadow: 0 24px 64px rgba(5, 59, 38, 0.12);
-  overflow: hidden;
+  padding: 16px;
+  gap: 24px;
   position: relative;
   z-index: 1;
 }
@@ -55,7 +56,8 @@
 /* Left Panel - Branding (Solid dark green per AGENTS.md rules) */
 .login-left-panel {
   background: #053b26;
-  padding: 76px 56px;
+  padding: 56px 48px;
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -87,28 +89,14 @@
 }
 
 .login-brand-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
   position: relative;
   z-index: 1;
 }
 
-.login-brand-title {
-  font-family: var(--font-display, 'Poppins', sans-serif);
-  font-size: 28px;
-  font-weight: 700;
-  color: #ffffff;
-  line-height: 1.1;
-}
-
-.login-brand-subtitle {
-  font-size: 11px;
-  font-weight: 600;
-  color: #9cf973;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  margin-top: 2px;
+.login-logo-icon-left {
+  height: 56px;
+  width: 56px;
+  object-fit: contain;
 }
 
 .login-tagline-box {
@@ -159,11 +147,30 @@
 
 /* Right Panel - Form */
 .login-right-panel {
-  padding: 76px 56px;
+  padding: 40px 48px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   background: #ffffff;
+}
+
+.login-right-header {
+  margin-bottom: 32px;
+}
+
+.login-logo-icon-right {
+  height: 56px;
+  width: 56px;
+  object-fit: contain;
+  margin-bottom: 12px;
+}
+
+.login-title-right {
+  font-family: var(--font-display, 'Poppins', sans-serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-primary, #002415);
+  line-height: 1.2;
 }
 
 .login-right-panel .form-group {

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import InputNumber from '../../shared/components/UI/InputNumber';
+
 
 const ManagerEconomics = () => {
     const navigate = useNavigate();
@@ -200,15 +202,15 @@ const ManagerEconomics = () => {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Total Produksi (Kg)</label>
-                                <input type="number" value={production} onChange={e => setProduction(e.target.value)} style={{ width: '100%', padding: '8px' }} />
+                                <InputNumber min="0" value={production} onChange={e => setProduction(e.target.value)} style={{ width: '100%', padding: '8px' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Total Pendapatan (Rp)</label>
-                                <input type="number" value={revenue} onChange={e => setRevenue(e.target.value)} style={{ width: '100%', padding: '8px' }} />
+                                <InputNumber min="0" value={revenue} onChange={e => setRevenue(e.target.value)} style={{ width: '100%', padding: '8px' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Biaya Operasional (Rp)</label>
-                                <input type="number" value={cost} onChange={e => setCost(e.target.value)} style={{ width: '100%', padding: '8px' }} />
+                                <InputNumber min="0" value={cost} onChange={e => setCost(e.target.value)} style={{ width: '100%', padding: '8px' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Catatan</label>
@@ -269,7 +271,7 @@ const ManagerEconomics = () => {
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Hasil Panen (Kg) *</label>
-                                    <input type="number" required value={analyticsYield} onChange={e => setAnalyticsYield(e.target.value)} style={{ width: '100%', padding: '8px' }} />
+                                    <InputNumber min="0" required value={analyticsYield} onChange={e => setAnalyticsYield(e.target.value)} style={{ width: '100%', padding: '8px' }} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Catatan Kendala/Kualitas</label>

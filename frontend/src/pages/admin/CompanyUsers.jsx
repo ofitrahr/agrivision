@@ -255,7 +255,7 @@ const CompanyUsers = () => {
                                 </div>
                                 <div className="form-group" style={{ flex: 1 }}>
                                     <label>No. HP</label>
-                                    <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} />
+                                    <input type="number" name="phone" value={formData.phone} onChange={handleInputChange} />
                                 </div>
                             </div>
                             <div className="form-group">

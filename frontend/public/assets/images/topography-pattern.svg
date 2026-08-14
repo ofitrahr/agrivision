@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="100%" height="100%" fill="none" stroke="#002415" stroke-width="1.1" stroke-opacity="0.022" preserveAspectRatio="none">
+  <!-- Elevation Contour Lines Layer 1 -->
+  <path d="M0 140 C 250 80, 550 240, 800 150 C 1050 60, 1250 180, 1440 120" />
+  <path d="M0 220 C 280 160, 580 300, 820 220 C 1070 140, 1270 260, 1440 190" />
+  <path d="M0 300 C 300 240, 620 360, 850 280 C 1100 200, 1300 320, 1440 260" />
+  
+  <!-- Elevation Contour Lines Layer 2 (Central Hill) -->
+  <path d="M0 420 C 220 360, 480 500, 720 420 C 980 340, 1220 460, 1440 380" />
+  <path d="M0 520 C 260 460, 520 600, 760 520 C 1000 440, 1250 540, 1440 480" />
+  <path d="M0 620 C 300 560, 580 690, 820 610 C 1040 530, 1290 630, 1440 570" />
+  <path d="M0 720 C 340 660, 640 780, 880 700 C 1100 620, 1330 720, 1440 660" />
+  <path d="M0 820 C 380 760, 690 870, 930 800 C 1150 720, 1380 810, 1440 760" />
+
+  <!-- Topographic Ridge Rings - North East -->
+  <ellipse cx="1180" cy="260" rx="200" ry="110" />
+  <ellipse cx="1180" cy="260" rx="150" ry="80" />
+  <ellipse cx="1180" cy="260" rx="95" ry="50" />
+  <ellipse cx="1180" cy="260" rx="45" ry="24" />
+
+  <!-- Topographic Valley Rings - South West -->
+  <ellipse cx="260" cy="650" rx="220" ry="120" />
+  <ellipse cx="260" cy="650" rx="160" ry="85" />
+  <ellipse cx="260" cy="650" rx="100" ry="55" />
+  <ellipse cx="260" cy="650" rx="50" ry="26" />
+</svg>

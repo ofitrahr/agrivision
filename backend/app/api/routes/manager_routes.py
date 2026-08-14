@@ -89,6 +89,16 @@ def manager_profile(current_user):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
+def _parse_year(val):
+    if not val:
+        return None
+    try:
+        y = int(float(str(val).strip()))
+        return y
+    except (ValueError, TypeError):
+        return None
+
+
 @manager_bp.route('/farmers', methods=['GET', 'POST'])
 @token_required
 @role_required('manager')
@@ -147,8 +157,8 @@ def manager_farmers(current_user):
             if file.filename != '':
                 photo_url = save_file_locally(file, subfolder='farmers')
                 
-        parsed_birth_year = int(raw_birth_year) if raw_birth_year and str(raw_birth_year).strip().isdigit() else None
-        parsed_join_year = int(raw_join_year) if raw_join_year and str(raw_join_year).strip().isdigit() else None
+        parsed_birth_year = _parse_year(raw_birth_year)
+        parsed_join_year = _parse_year(raw_join_year)
 
         new_farmer = Farmer(
             company_id=company_id,
@@ -167,6 +177,7 @@ def manager_farmers(current_user):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @manager_bp.route('/farmers/<farmer_id>', methods=['PUT'])
 @token_required
@@ -194,9 +205,9 @@ def edit_farmer(current_user, farmer_id):
             farmer.gender = data['gender']
         if 'birth_year' in data or 'age' in data:
             raw_by = data.get('birth_year') or data.get('age')
-            farmer.birth_year = int(raw_by) if raw_by and str(raw_by).strip().isdigit() else None
-        if 'join_year' in data and data['join_year']:
-            farmer.join_year = int(data['join_year'])
+            farmer.birth_year = _parse_year(raw_by)
+        if 'join_year' in data:
+            farmer.join_year = _parse_year(data.get('join_year'))
         if 'farm_info' in data:
             farmer.farm_info = data['farm_info']
             

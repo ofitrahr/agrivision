@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Settings, Leaf, MapPin, Plus, X, Save, Users, Calendar, Mountain, TreePine, Activity } from 'lucide-react';
+import InputNumber from '../../shared/components/UI/InputNumber';
+
 
 const FarmMapThumbnail = ({ farmId }) => {
   const [mapHtml, setMapHtml] = useState('');
@@ -313,8 +315,8 @@ const ManagerFarmManagement = () => {
                 <label className="form-label" style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-text-main)', marginBottom: '6px', display: 'block' }}>
                   Luas Lahan (Hektar)
                 </label>
-                <input
-                  type="number"
+                <InputNumber
+                  min="0.1"
                   step="0.1"
                   className="form-input"
                   value={totalAreaHa}
