@@ -2394,11 +2394,306 @@ body {
   transform: translateX(4px);
 }
 
+/* --- THE CHALLENGE SECTION --- */
+.challenge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 28px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.challenge-card {
+  background-color: var(--color-surface-white);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-xl);
+  padding: 36px 28px;
+  box-shadow: var(--shadow-elevated);
+  transition: all var(--transition);
+  display: flex;
+  flex-direction: column;
+}
+
+.challenge-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-main-green);
+}
+
+.challenge-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-whisper-green);
+  color: var(--color-main-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.challenge-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-main-green);
+  background-color: var(--color-whisper-green);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  align-self: flex-start;
+  margin-bottom: 12px;
+}
+
+.challenge-card h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+
+.challenge-card p {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  flex: 1;
+}
+
+.challenge-stat-highlight {
+  background-color: var(--color-surface-container);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-top: 20px;
+  border: 1px solid var(--color-border-muted);
+}
+
+.highlight-number {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.highlight-desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* --- SCALABLE SOLUTIONS (PRICING SECTION) --- */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+.pricing-card {
+  background-color: var(--color-surface-white);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-xl);
+  padding: 38px 30px;
+  box-shadow: var(--shadow-elevated);
+  transition: all var(--transition);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.pricing-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-main-green);
+}
+
+.pricing-card-featured {
+  border: 2px solid var(--color-main-green);
+  box-shadow: 0 16px 40px rgba(17, 106, 58, 0.12);
+}
+
+.pricing-featured-badge {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-main-green);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 4px 14px;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 4px 12px rgba(17, 106, 58, 0.25);
+}
+
+.pricing-tier-tag {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+}
+
+.pricing-tier-tag.tier-pro {
+  color: var(--color-main-green);
+}
+
+.pricing-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-bottom: 6px;
+  letter-spacing: -0.015em;
+}
+
+.pricing-target {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  min-height: 38px;
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.pricing-price-box {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.price-currency {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.price-amount {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.price-amount-custom {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.price-period {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.pricing-meta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-border-muted);
+}
+
+.pricing-body {
+  flex: 1;
+}
+
+.pricing-features-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 14px;
+}
+
+.pricing-features-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pricing-features-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-text-main);
+  line-height: 1.45;
+}
+
+.pricing-features-list li svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.pricing-footer {
+  margin-top: 32px;
+}
+
+.btn-pricing-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background-color: var(--color-main-green);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 13px 20px;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  transition: all var(--transition);
+  border: 1.5px solid var(--color-main-green);
+}
+
+.btn-pricing-primary:hover {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 36, 21, 0.15);
+}
+
+.btn-pricing-outline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background-color: transparent;
+  border: 1.5px solid var(--color-border-subtle);
+  color: var(--color-primary);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 13px 20px;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  transition: all var(--transition);
+}
+
+.btn-pricing-outline:hover {
+  border-color: var(--color-main-green);
+  background-color: var(--color-whisper-green);
+  color: var(--color-main-green);
+  transform: translateY(-2px);
+}
+
 /* --- RESPONSIVE ADJUSTMENTS FOR NEW PAGES --- */
 @media (max-width: 1024px) {
   .page-header-title { font-size: 38px; }
   .standards-box { grid-template-columns: 1fr; gap: 32px; }
   .about-mission-box { grid-template-columns: 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 500px; }
+  .challenge-grid { grid-template-columns: 1fr; max-width: 500px; }
 }
 
 @media (max-width: 768px) {

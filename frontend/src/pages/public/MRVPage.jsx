@@ -74,7 +74,7 @@ const MRVPage = () => {
       {/* THREE CORE PILLARS */}
       <section className="landing-section scroll-reveal" ref={pillarsRef}>
         <div className="section-header-centered">
-          <span className="section-label">THE THREE PILLARS</span>
+          <span className="section-label">CORE FRAMEWORK</span>
           <h2 className="section-title text-center">Built for Data Integrity &amp; Transparency</h2>
           <p className="section-intro">
             From initial satellite measurement to auditable verification, our framework ensures every carbon metric is grounded in robust science.
@@ -83,7 +83,7 @@ const MRVPage = () => {
 
         <div className="mrv-pillars-grid">
           <div className="mrv-pillar-card">
-            <div className="mrv-pillar-badge pillar-measure">Pillar 01</div>
+            <div className="mrv-pillar-badge pillar-measure">01</div>
             <div className="mrv-pillar-icon"><Gauge size={32} strokeWidth={1.75} /></div>
             <h3>Measurement</h3>
             <p>
@@ -97,7 +97,7 @@ const MRVPage = () => {
           </div>
 
           <div className="mrv-pillar-card">
-            <div className="mrv-pillar-badge pillar-report">Pillar 02</div>
+            <div className="mrv-pillar-badge pillar-report">02</div>
             <div className="mrv-pillar-icon"><FileSpreadsheet size={32} strokeWidth={1.75} /></div>
             <h3>Reporting</h3>
             <p>
@@ -111,7 +111,7 @@ const MRVPage = () => {
           </div>
 
           <div className="mrv-pillar-card">
-            <div className="mrv-pillar-badge pillar-verify">Pillar 03</div>
+            <div className="mrv-pillar-badge pillar-verify">03</div>
             <div className="mrv-pillar-icon"><CheckCheck size={32} strokeWidth={1.75} /></div>
             <h3>Verification</h3>
             <p>
