@@ -16,7 +16,7 @@ const SignalsPage = () => {
       id: 'npk',
       title: 'Soil Nutrient Intelligence',
       tag: 'Soil Chemistry',
-      icon: <Sprout size={28} strokeWidth={1.75} />,
+      icon: <Sprout size={24} strokeWidth={1.8} />,
       summary: 'Insights to nutrient availability and balance across fields.',
       description: 'Enables more precise input decisions and reduces inefficiencies in fertilizer use by mapping essential nutrient levels across farm plots.',
       benefits: [
@@ -30,7 +30,7 @@ const SignalsPage = () => {
       id: 'ndvi',
       title: 'Crop Health Index',
       tag: 'Canopy Health',
-      icon: <Activity size={28} strokeWidth={1.75} />,
+      icon: <Activity size={24} strokeWidth={1.8} />,
       summary: 'Monitor overall crop condition throughout the growing cycle.',
       description: 'Identifies biological stress, water deficits, and pest vulnerabilities before they visibly manifest and permanently impact final yield.',
       benefits: [
@@ -44,7 +44,7 @@ const SignalsPage = () => {
       id: 'soc',
       title: 'Soil Organic Carbon',
       tag: 'Soil Regeneration',
-      icon: <Leaf size={28} strokeWidth={1.75} />,
+      icon: <Leaf size={24} strokeWidth={1.8} />,
       summary: 'Helps farms track soil improvement and sustainability readiness.',
       description: 'Measures carbon accumulation in the soil profile resulting from regenerative farming practices, supporting long-term fertility and carbon credit claims.',
       benefits: [
@@ -58,7 +58,7 @@ const SignalsPage = () => {
       id: 'yield',
       title: 'Productivity Analytics',
       tag: 'Harvest Intelligence',
-      icon: <BarChart3 size={28} strokeWidth={1.75} />,
+      icon: <BarChart3 size={24} strokeWidth={1.8} />,
       summary: 'See how different areas of the farm perform and why.',
       description: 'Analyzes spatial variation in crop performance across blocks to optimize harvesting schedules and support consistent production forecasting.',
       benefits: [
@@ -72,7 +72,7 @@ const SignalsPage = () => {
       id: 'biomass',
       title: 'Biomass Carbon Estimation',
       tag: 'Carbon Accounting',
-      icon: <TreePine size={28} strokeWidth={1.75} />,
+      icon: <TreePine size={24} strokeWidth={1.8} />,
       summary: 'Estimate biomass development as part of overall farm performance.',
       description: 'Calculates above-ground and below-ground vegetative biomass over time to generate early indicators for carbon crediting and ESG compliance disclosures.',
       benefits: [
@@ -88,46 +88,58 @@ const SignalsPage = () => {
     <div className="page-wrapper">
       <PublicNavbar />
 
-      {/* PAGE HEADER */}
-      <header className="page-header-banner" ref={heroRef}>
-        <div className="page-header-container">
-          <span className="section-label">AGRONOMY INTELLIGENCE</span>
-          <h1 className="page-header-title">Five Signals That Run The Farm</h1>
-          <p className="page-header-desc">
-            From soil chemistry to canopy vigor, we transform raw Sentinel-2 satellite data and ground truth calibration into five high-integrity agricultural metrics.
-          </p>
+      {/* PAGE HEADER - SPLIT LAYOUT */}
+      <header className="hero-split hero-split--subpage" ref={heroRef}>
+        <div className="hero-split-left">
+          <div className="hero-split-content">
+            <span className="hero-tag-pill">Agronomy Intelligence</span>
+            <h1>Five Signals That Run The Farm</h1>
+            <p>
+              From soil chemistry to canopy vigor, we transform raw Sentinel-2 satellite data and ground truth calibration into five high-integrity agricultural metrics.
+            </p>
+          </div>
+          {/* Organic Vertical Seam Curve */}
+          <div className="hero-vertical-seam" aria-hidden="true">
+            <svg viewBox="0 0 60 800" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M0,0 C60,240 60,560 0,800 L0,800 L0,0 Z" fill="var(--color-primary)"></path>
+            </svg>
+          </div>
+        </div>
+        <div className="hero-split-right">
+          <img src="/assets/images/hero_signals.png" alt="Satellite remote sensing on farmland" />
+        </div>
+        <div className="hero-wave">
+          <svg viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,32 C280,96 520,12 800,64 C1080,116 1280,24 1440,48 L1440,120 L0,120 Z" fill="var(--color-surface)"></path>
+          </svg>
         </div>
       </header>
 
       {/* FIVE SIGNALS DETAILED GRID */}
       <section className="landing-section scroll-reveal" ref={signalsRef}>
-        <div className="signals-grid-full">
+        <div className="mrv-lifecycle-grid">
           {signals.map((signal, index) => (
-            <div key={signal.id} className="signal-card-detailed">
-              <div className="signal-card-header">
-                <div className="signal-icon-wrapper">{signal.icon}</div>
-                <div className="signal-header-text">
-                  <span className="signal-tag">{signal.tag}</span>
-                  <h3>{signal.title}</h3>
-                </div>
-                <div className="signal-number">0{index + 1}</div>
+            <div key={signal.id} className="lifecycle-card">
+              <div className="lifecycle-card-top">
+                <span className="lifecycle-step-num">0{index + 1}</span>
+                <div className="lifecycle-icon-wrap">{signal.icon}</div>
               </div>
-              <p className="signal-summary">{signal.summary}</p>
-              <p className="signal-description">{signal.description}</p>
+              <h3>{signal.title}</h3>
+              <p>{signal.description}</p>
               <div className="signal-benefits-box">
                 <h4>Key Value for Farm Managers:</h4>
                 <ul>
                   {signal.benefits.map((benefit, i) => (
                     <li key={i}>
-                      <CheckCircle2 size={16} className="text-main-green" />
+                      <CheckCircle2 size={15} className="text-main-green" />
                       <span>{benefit}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="signal-metric-footer">
-                <span className="metric-label">Key Metric:</span>
-                <span className="metric-value">{signal.metrics}</span>
+              <div className="lifecycle-output">
+                <span className="output-label">Key Metric:</span>
+                <span className="output-text">{signal.metrics}</span>
               </div>
             </div>
           ))}

@@ -65,34 +65,39 @@ const LandingPage = () => {
 
   const signalPreviews = [
     {
+      step: '01',
       title: 'Soil Nutrient Intelligence',
-      tag: 'NPK Balance',
       icon: <Sprout size={24} strokeWidth={1.75} />,
-      desc: 'Precision mapping of soil nutrient availability to eliminate fertilizer waste.'
+      desc: 'Precision mapping of soil nutrient availability (N, P, K) to eliminate wasteful over-fertilization and lift land productivity.',
+      output: 'N, P, K Spatial Distribution & Balance'
     },
     {
+      step: '02',
       title: 'Crop Health Index',
-      tag: 'Canopy NDVI',
       icon: <Activity size={24} strokeWidth={1.75} />,
-      desc: 'Early detection of crop biological stress and foliage vigor throughout growing cycles.'
+      desc: 'Quarterly satellite vegetation monitoring to detect biological stress, water deficits, and canopy health before yield loss.',
+      output: 'NDVI & NDRE Spectral Indices'
     },
     {
+      step: '03',
       title: 'Soil Organic Carbon',
-      tag: 'SOC Stock',
       icon: <Leaf size={24} strokeWidth={1.75} />,
-      desc: 'Quantified topsoil carbon accumulation supporting regenerative claims and ESG targets.'
+      desc: 'Quantified topsoil carbon accumulation supporting regenerative farming verification and high-integrity carbon credit claims.',
+      output: 'SOC Stock & Sequestration Rate'
     },
     {
+      step: '04',
       title: 'Productivity Analytics',
-      tag: 'Yield Forecasting',
       icon: <BarChart3 size={24} strokeWidth={1.75} />,
-      desc: 'Spatial analytics showing how different land zones perform and why.'
+      desc: 'Spatial analytics showing how different farm blocks perform over time to benchmark yield and forecast harvest volume.',
+      output: 'Projected vs Actual Yield per Ha'
     },
     {
+      step: '05',
       title: 'Biomass Carbon Estimation',
-      tag: 'Biomass Density',
       icon: <TreePine size={24} strokeWidth={1.75} />,
-      desc: 'Vegetative biomass calculations for verified carbon and sustainability reporting.'
+      desc: 'Vegetative biomass growth calculations over time for verified audit documentation and ESG corporate disclosures.',
+      output: 'Above-Ground Biomass Density'
     }
   ];
 
@@ -100,42 +105,69 @@ const LandingPage = () => {
     <div className="page-wrapper">
       <PublicNavbar />
 
-      {/* 1. HERO */}
-      <header className="hero" id="home">
-        <div className="hero-content">
-          <h1 className="display-hero">We Turn Landscape Intelligence into Measurable Climate Impact</h1>
-          <p className="hero-subtitle">
-            Sustainable Farm, Sustainable Business — helping large farms regenerate soil, lift yields, and become carbon and ESG ready.
-          </p>
-          <div className="hero-actions">
-            <Link to="/login" className="btn-demo">See Product Demo</Link>
-            <Link to="/contact" className="btn-demo-outline">Request a Consultation</Link>
+      {/* 1. HERO - SPLIT LAYOUT */}
+      <header className="hero-split" id="home">
+        <div className="hero-split-left">
+          <div className="hero-split-content">
+            <span className="hero-tag-pill">Climate-Smart Agriculture</span>
+            <h1>We Turn Landscape Intelligence into Measurable Climate Impact</h1>
+            <p>
+              Sustainable Farm, Sustainable Business — helping large farms regenerate soil, lift yields, and become carbon and ESG ready.
+            </p>
+            <div className="hero-actions">
+              <Link to="/login" className="btn-demo">See Product Demo</Link>
+              <Link to="/contact" className="btn-demo-outline">Request a Consultation</Link>
+            </div>
           </div>
+          {/* Organic Vertical Seam Curve */}
+          <div className="hero-vertical-seam" aria-hidden="true">
+            <svg viewBox="0 0 60 800" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M0,0 C60,240 60,560 0,800 L0,800 L0,0 Z" fill="var(--color-primary)"></path>
+            </svg>
+          </div>
+        </div>
+        <div className="hero-split-right">
+          <img src="/assets/images/hero_landing.png" alt="Aerial view of terraced farmland" />
+        </div>
+        <div className="hero-wave">
+          <svg viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,32 C280,96 520,12 800,64 C1080,116 1280,24 1440,48 L1440,120 L0,120 Z" fill="var(--color-surface)"></path>
+          </svg>
         </div>
       </header>
 
       {/* 2. STATS COUNTER */}
       <section className="stats-section scroll-reveal" ref={statsRef}>
-        <div className="landing-stats-grid">
-          <div className="stat-item">
-            <div className="stat-number" data-target="2500">0</div>
-            <div className="stat-suffix">Ha+</div>
-            <div className="stat-label">Land Monitored</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-number" data-target="12">0</div>
-            <div className="stat-suffix">Ton C/Ha</div>
-            <div className="stat-label">Avg Carbon Sequestered</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-number" data-target="90">0</div>
-            <div className="stat-suffix">%+</div>
-            <div className="stat-label">Model Accuracy</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-number" data-target="5">0</div>
-            <div className="stat-suffix">Parameters</div>
-            <div className="stat-label">Monitored per Farm</div>
+        <div className="stats-container-card">
+          <div className="landing-stats-grid">
+            <div className="stat-item">
+              <div className="stat-number-wrap">
+                <span className="stat-number" data-target="2500">0</span>
+                <span className="stat-suffix">Ha+</span>
+              </div>
+              <div className="stat-label">Land Monitored</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number-wrap">
+                <span className="stat-number" data-target="12">0</span>
+                <span className="stat-suffix">Ton C/Ha</span>
+              </div>
+              <div className="stat-label">Avg Carbon Sequestered</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number-wrap">
+                <span className="stat-number" data-target="90">0</span>
+                <span className="stat-suffix">%+</span>
+              </div>
+              <div className="stat-label">Model Accuracy</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number-wrap">
+                <span className="stat-number" data-target="5">0</span>
+                <span className="stat-suffix">Signals</span>
+              </div>
+              <div className="stat-label">Monitored per Farm</div>
+            </div>
           </div>
         </div>
       </section>
@@ -208,15 +240,19 @@ const LandingPage = () => {
           </p>
         </div>
 
-        <div className="signals-preview-grid">
-          {signalPreviews.map((sig, idx) => (
-            <div key={idx} className="signal-preview-card">
-              <div className="signal-preview-header">
-                <div className="signal-preview-icon">{sig.icon}</div>
-                <span className="signal-tag">{sig.tag}</span>
+        <div className="mrv-lifecycle-grid">
+          {signalPreviews.map((sig) => (
+            <div key={sig.step} className="lifecycle-card">
+              <div className="lifecycle-card-top">
+                <span className="lifecycle-step-num">{sig.step}</span>
+                <div className="lifecycle-icon-wrap">{sig.icon}</div>
               </div>
               <h3>{sig.title}</h3>
               <p>{sig.desc}</p>
+              <div className="lifecycle-output">
+                <span className="output-label">Key Metric:</span>
+                <span className="output-text">{sig.output}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -373,9 +409,8 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* Package 2: Pro Subscription (Recommended) */}
+          {/* Package 2: Pro Subscription */}
           <div className="pricing-card pricing-card-featured">
-            <div className="pricing-featured-badge">MOST POPULAR</div>
             <div className="pricing-header">
               <div className="pricing-tier-tag tier-pro">Commercial Scale</div>
               <h3 className="pricing-title">Pro (Subscription)</h3>

@@ -60,14 +60,30 @@ const MRVPage = () => {
     <div className="page-wrapper">
       <PublicNavbar />
 
-      {/* PAGE HEADER */}
-      <header className="page-header-banner" ref={heroRef}>
-        <div className="page-header-container">
-          <span className="section-label">CLIMATE TECH INFRASTRUCTURE</span>
-          <h1 className="page-header-title">End-to-End Measurement, Reporting &amp; Verification</h1>
-          <p className="page-header-desc">
-            A comprehensive MRV architecture engineered specifically for regenerative agriculture, topsoil carbon sequestration, and agricultural supply chain transparency.
-          </p>
+      {/* PAGE HEADER - SPLIT LAYOUT */}
+      <header className="hero-split hero-split--subpage" ref={heroRef}>
+        <div className="hero-split-left">
+          <div className="hero-split-content">
+            <span className="hero-tag-pill">Climate Tech Infrastructure</span>
+            <h1>End-to-End Measurement, Reporting &amp; Verification</h1>
+            <p>
+              A comprehensive MRV architecture engineered specifically for regenerative agriculture, topsoil carbon sequestration, and agricultural supply chain transparency.
+            </p>
+          </div>
+          {/* Organic Vertical Seam Curve */}
+          <div className="hero-vertical-seam" aria-hidden="true">
+            <svg viewBox="0 0 60 800" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M0,0 C60,240 60,560 0,800 L0,800 L0,0 Z" fill="var(--color-primary)"></path>
+            </svg>
+          </div>
+        </div>
+        <div className="hero-split-right">
+          <img src="/assets/images/hero_mrv.png" alt="Aerial view of monitored farmland plots" />
+        </div>
+        <div className="hero-wave">
+          <svg viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,32 C280,96 520,12 800,64 C1080,116 1280,24 1440,48 L1440,120 L0,120 Z" fill="var(--color-surface)"></path>
+          </svg>
         </div>
       </header>
 
