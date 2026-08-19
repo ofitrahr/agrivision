@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from app.core.security import token_required, role_required
 from app.services.admin_service import *
 from app.services.gis_service import GISService
-from app.db.models import User, Company, Farm
+from app.db.models import User, Company, Farm, RecentActivity
 from app.db.database import db
 
 
@@ -487,4 +487,192 @@ def get_admin_activities(current_user):
 
         return jsonify({'success': True, 'data': data}), 200
     except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ======================== RECENT ACTIVITIES ========================
+
+@admin_bp.route('/recent-activities', methods=['GET'])
+@token_required
+@role_required('super_admin')
+def get_recent_activities(current_user):
+    try:
+        activities = RecentActivity.query.order_by(RecentActivity.display_order.asc()).all()
+        data = [{
+            'id': str(a.id),
+            'title': a.title,
+            'description': a.description,
+            'image_path': a.image_path,
+            'activity_date': a.activity_date.isoformat() if a.activity_date else None,
+            'display_order': a.display_order,
+            'created_at': a.created_at.isoformat() if a.created_at else None,
+            'updated_at': a.updated_at.isoformat() if a.updated_at else None
+        } for a in activities]
+        return jsonify({'success': True, 'data': data}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/recent-activities', methods=['POST'])
+@token_required
+@role_required('super_admin')
+def create_recent_activity(current_user):
+    try:
+        title = request.form.get('title')
+        description = request.form.get('description')
+        activity_date = request.form.get('activity_date')
+
+        if not title or not description or not activity_date:
+            return jsonify({'success': False, 'message': 'Judul, deskripsi, dan tanggal wajib diisi'}), 400
+
+        image_path = None
+        if 'file' in request.files and request.files['file'].filename:
+            from app.services.upload_service import save_file_locally
+            try:
+                image_path = save_file_locally(request.files['file'], subfolder='activities')
+            except ValueError as e:
+                return jsonify({'success': False, 'message': str(e)}), 400
+
+        from datetime import date
+        max_order = db.session.query(db.func.max(RecentActivity.display_order)).scalar() or 0
+
+        activity = RecentActivity(
+            title=title,
+            description=description,
+            image_path=image_path,
+            activity_date=date.fromisoformat(activity_date),
+            display_order=max_order + 1
+        )
+        db.session.add(activity)
+        db.session.commit()
+
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='CREATE',
+            entity_type='RecentActivity',
+            entity_id=activity.id,
+            details=f"Menambahkan aktivitas '{title}'"
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Aktivitas berhasil ditambahkan',
+            'data': {
+                'id': str(activity.id),
+                'title': activity.title,
+                'description': activity.description,
+                'image_path': activity.image_path,
+                'activity_date': activity.activity_date.isoformat(),
+                'display_order': activity.display_order
+            }
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/recent-activities/reorder', methods=['PUT'])
+@token_required
+@role_required('super_admin')
+def reorder_recent_activities(current_user):
+    try:
+        data = request.get_json()
+        order = data.get('order', [])
+
+        if not order:
+            return jsonify({'success': False, 'message': 'Data urutan tidak valid'}), 400
+
+        for index, activity_id in enumerate(order):
+            activity = RecentActivity.query.get(activity_id)
+            if activity:
+                activity.display_order = index
+
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Urutan berhasil diperbarui'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/recent-activities/<activity_id>', methods=['PUT'])
+@token_required
+@role_required('super_admin')
+def update_recent_activity(current_user, activity_id):
+    try:
+        activity = RecentActivity.query.get(activity_id)
+        if not activity:
+            return jsonify({'success': False, 'message': 'Aktivitas tidak ditemukan'}), 404
+
+        title = request.form.get('title')
+        description = request.form.get('description')
+        activity_date = request.form.get('activity_date')
+
+        if title:
+            activity.title = title
+        if description:
+            activity.description = description
+        if activity_date:
+            from datetime import date
+            activity.activity_date = date.fromisoformat(activity_date)
+
+        if 'file' in request.files and request.files['file'].filename:
+            from app.services.upload_service import save_file_locally
+            try:
+                activity.image_path = save_file_locally(request.files['file'], subfolder='activities')
+            except ValueError as e:
+                return jsonify({'success': False, 'message': str(e)}), 400
+
+        db.session.commit()
+
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='UPDATE',
+            entity_type='RecentActivity',
+            entity_id=activity.id,
+            details=f"Memperbarui aktivitas '{activity.title}'"
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Aktivitas berhasil diperbarui',
+            'data': {
+                'id': str(activity.id),
+                'title': activity.title,
+                'description': activity.description,
+                'image_path': activity.image_path,
+                'activity_date': activity.activity_date.isoformat(),
+                'display_order': activity.display_order
+            }
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/recent-activities/<activity_id>', methods=['DELETE'])
+@token_required
+@role_required('super_admin')
+def delete_recent_activity(current_user, activity_id):
+    try:
+        activity = RecentActivity.query.get(activity_id)
+        if not activity:
+            return jsonify({'success': False, 'message': 'Aktivitas tidak ditemukan'}), 404
+
+        title = activity.title
+        db.session.delete(activity)
+        db.session.commit()
+
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='DELETE',
+            entity_type='RecentActivity',
+            details=f"Menghapus aktivitas '{title}'"
+        )
+
+        return jsonify({'success': True, 'message': 'Aktivitas berhasil dihapus'}), 200
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500

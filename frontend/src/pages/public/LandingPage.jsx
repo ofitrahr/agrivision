@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import api from '../../shared/api/axios';
 import { 
   Sprout, 
   Activity, 
@@ -27,7 +28,32 @@ const LandingPage = () => {
   const mrvOverviewRef = useScrollReveal();
   const productRef = useScrollReveal();
   const pricingRef = useScrollReveal();
+  const [activities, setActivities] = useState([]);
+  const activitiesRef = useScrollReveal({}, [activities]);
   const partnersRef = useScrollReveal();
+  const sliderRef = useRef(null);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const res = await api.get('/public/recent-activities');
+        if (res.data?.data) {
+          setActivities(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch activities', err);
+      }
+    };
+    fetchActivities();
+  }, []);
+
+  const slideActivities = (direction) => {
+    if (sliderRef.current) {
+      const card = sliderRef.current.querySelector('.activity-card');
+      const cardWidth = card ? card.offsetWidth + 28 : 340;
+      sliderRef.current.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
+    }
+  };
 
   // For stats counter
   useEffect(() => {
@@ -468,6 +494,39 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
+
+      {/* 5.8 RECENT ACTIVITIES */}
+      {activities.length > 0 && (
+        <section className="landing-section activities-section scroll-reveal" id="activities" ref={activitiesRef}>
+          <div className="activities-header">
+            <div>
+              <span className="section-label">FIELD UPDATES</span>
+              <h2 className="section-title">Recent Activities</h2>
+            </div>
+            {activities.length > 1 && (
+              <div className="activities-nav-btns">
+                <button className="slider-btn slider-prev" onClick={() => slideActivities(-1)} aria-label="Previous slide">&#10094;</button>
+                <button className="slider-btn slider-next" onClick={() => slideActivities(1)} aria-label="Next slide">&#10095;</button>
+              </div>
+            )}
+          </div>
+          <div className="slider-wrapper">
+            <div className="slider-track" id="activitySlider" ref={sliderRef}>
+              {activities.map((activity) => (
+                <div className="activity-card" key={activity.id}>
+                  {activity.image_path && (
+                    <img src={activity.image_path} alt={activity.title} />
+                  )}
+                  <div className="activity-content">
+                    <h3>{activity.title}</h3>
+                    <p>{activity.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* 6. PARTNERS */}
       <section className="landing-section partners-section scroll-reveal" ref={partnersRef}>

@@ -12,6 +12,7 @@ const Sidebar = ({ role, user }) => {
     { to: '/admin/companies', icon: 'business', label: 'Daftar Klien' },
     { to: '/admin/gis', icon: 'map', label: 'GIS & Pemetaan' },
     { to: '/admin/traceability', icon: 'qr_code_scanner', label: 'Traceability' },
+    { to: '/admin/recent-activities', icon: 'campaign', label: 'Aktivitas' },
   ];
 
   const managerLinks = [

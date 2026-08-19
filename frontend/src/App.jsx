@@ -16,6 +16,7 @@ import CompanyUsers from './pages/admin/CompanyUsers';
 import CompanyPermissions from './pages/admin/CompanyPermissions';
 import GIS from './pages/admin/GIS';
 import AdminTraceability from './pages/admin/AdminTraceability';
+import AdminRecentActivities from './pages/admin/AdminRecentActivities';
 
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import ManagerActivityLogsPage from './pages/manager/ManagerActivityLogsPage';
@@ -61,6 +62,7 @@ function App() {
             <Route path="/admin/projects/:projectId/permissions" element={<CompanyPermissions />} />
             <Route path="/admin/gis" element={<GIS />} />
             <Route path="/admin/traceability" element={<AdminTraceability />} />
+            <Route path="/admin/recent-activities" element={<AdminRecentActivities />} />
             <Route path="/admin/profile" element={<UserProfile />} />
         </Route>
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-const useScrollReveal = (options = {}) => {
+const useScrollReveal = (options = {}, deps = []) => {
   const { threshold = 0.15, rootMargin = '0px 0px -40px 0px' } = options;
   const ref = useRef(null);
 
@@ -31,7 +31,7 @@ const useScrollReveal = (options = {}) => {
       }
       observer.disconnect();
     };
-  }, [threshold, rootMargin]);
+  }, [threshold, rootMargin, ...deps]);
 
   return ref;
 };

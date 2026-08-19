@@ -361,3 +361,15 @@ class ActivityLog(db.Model):
     details = db.Column(db.Text)
     ip_address = db.Column(db.String(45))
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+class RecentActivity(db.Model):
+    __tablename__ = 'recent_activities'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    image_path = db.Column(db.String(500), nullable=True)
+    activity_date = db.Column(db.Date, nullable=False)
+    display_order = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)

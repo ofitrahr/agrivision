@@ -16,33 +16,37 @@ def get_dashboard_summary(current_user):
     
     try:
         # Metrik Utama
-        from app.db.models import Project
         project_id = current_user.project_id
         
-        farms_count = Farm.query.filter_by(project_id=project_id).count()
-        
-        farms = Farm.query.filter_by(project_id=project_id).all()
+        farms = Farm.query.filter_by(project_id=project_id).all() if project_id else []
+        farms_count = len(farms)
         total_area = sum([float(f.total_area_ha) for f in farms if f.total_area_ha])
         
-        # Ambil data farmer yang ditugaskan ke farm dalam project ini
-        farmers = Farmer.query.join(Farmer.farms).filter(Farm.project_id == project_id).distinct().all()
+        # Ambil data petani (berdasarkan perusahaan / penugasan lahan)
+        if company_id:
+            farmers = Farmer.query.filter_by(company_id=company_id).all()
+        elif project_id:
+            farmers = Farmer.query.join(Farmer.farms).filter(Farm.project_id == project_id).distinct().all()
+        else:
+            farmers = []
         farmers_count = len(farmers)
         
-        # Distribusi Jenis Tanaman 
+        # Distribusi Jenis Tanaman (Ekologi / Biodiversity)
         crop_distribution = {}
         for f in farms:
-            crops = FarmCrop.query.filter_by(farm_id=f.id).all()
-            if not crops:
+            area = float(f.total_area_ha) if f.total_area_ha else 0
+            if area <= 0:
                 continue
             
-            area_per_crop = (float(f.total_area_ha) if f.total_area_ha else 0) / len(crops)
-            
-            for c in crops:
-                crop_name = c.crop_type or 'Tidak Diketahui'
-                if crop_name in crop_distribution:
-                    crop_distribution[crop_name] += area_per_crop
-                else:
-                    crop_distribution[crop_name] = area_per_crop
+            crops = FarmCrop.query.filter_by(farm_id=f.id).all()
+            if crops:
+                area_per_crop = area / len(crops)
+                for c in crops:
+                    crop_name = c.crop_type or f.crop_variety or 'Tidak Diketahui'
+                    crop_distribution[crop_name] = crop_distribution.get(crop_name, 0) + area_per_crop
+            else:
+                crop_name = f.crop_variety or (project.commodity if project and project.commodity else 'Tanaman Utama')
+                crop_distribution[crop_name] = crop_distribution.get(crop_name, 0) + area
                 
         crop_chart_data = [{"name": k, "value": round(v, 2)} for k, v in crop_distribution.items()]
         
@@ -75,7 +79,17 @@ def get_dashboard_summary(current_user):
         age_chart_data = [{"name": k, "value": v} for k, v in age_dist.items() if v > 0]
         
         # Agregasi Data Ekonomi 
-        fin_records = FinancialRecord.query.join(Farm).filter(Farm.project_id == project_id).all()
+        farm_ids = [f.id for f in farms]
+        if farm_ids:
+            fin_records = FinancialRecord.query.filter(
+                (FinancialRecord.farm_id.in_(farm_ids)) |
+                ((FinancialRecord.company_id == company_id) & (FinancialRecord.farm_id.is_(None)))
+            ).order_by(FinancialRecord.created_at.asc()).all()
+        elif company_id:
+            fin_records = FinancialRecord.query.filter_by(company_id=company_id).order_by(FinancialRecord.created_at.asc()).all()
+        else:
+            fin_records = []
+
         total_revenue = sum([float(r.estimated_revenue) for r in fin_records if r.estimated_revenue])
         total_cost = sum([float(r.operational_cost) for r in fin_records if r.operational_cost])
         total_profit = total_revenue - total_cost

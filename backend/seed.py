@@ -1,6 +1,7 @@
+from datetime import date
 from app import create_app
 from app.db.database import db
-from app.db.models import User, Company, Project, ProjectPermission, Sdg, Farm
+from app.db.models import User, Company, Project, ProjectPermission, Sdg, Farm, RecentActivity
 import bcrypt
 
 app = create_app()

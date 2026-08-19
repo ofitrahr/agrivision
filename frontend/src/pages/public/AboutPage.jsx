@@ -1,5 +1,6 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import api from '../../shared/api/axios';
 import PublicNavbar from './components/PublicNavbar';
 import PublicFooter from './components/PublicFooter';
 import useScrollReveal from '../../shared/utils/useScrollReveal';
@@ -11,8 +12,23 @@ const AboutPage = () => {
   const missionRef = useScrollReveal();
   const valuesRef = useScrollReveal();
   const teamRef = useScrollReveal();
-  const activitiesRef = useScrollReveal();
+  const [activities, setActivities] = useState([]);
+  const activitiesRef = useScrollReveal({}, [activities]);
   const partnersRef = useScrollReveal();
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        const res = await api.get('/public/recent-activities');
+        if (res.data?.data) {
+          setActivities(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch activities', err);
+      }
+    };
+    fetchActivities();
+  }, []);
 
   const slideActivities = (direction) => {
     if (sliderRef.current) {
@@ -148,37 +164,37 @@ const AboutPage = () => {
       </section>
 
       {/* CURRENT ACTIVITIES SLIDER */}
-      <section className="landing-section activities-section scroll-reveal" id="activities" ref={activitiesRef}>
-        <span className="section-label text-center" style={{ display: 'block' }}>FIELD UPDATES</span>
-        <h2 className="section-title text-center">Recent Activities</h2>
-        <div className="slider-wrapper">
-          <div className="slider-track" id="activitySlider" ref={sliderRef}>
-            <div className="activity-card">
-              <img src="/assets/activities/251124_profile.png" alt="Field Visit" />
-              <div className="activity-content">
-                <h3>Field Visit with Local Farmers</h3>
-                <p>Agrivision conducted a field visit in West Java to support capacity building and sustainable farming adoption.</p>
-              </div>
+      {activities.length > 0 && (
+        <section className="landing-section activities-section scroll-reveal" id="activities" ref={activitiesRef}>
+          <div className="activities-header">
+            <div>
+              <span className="section-label">FIELD UPDATES</span>
+              <h2 className="section-title">Recent Activities</h2>
             </div>
-            <div className="activity-card">
-              <img src="/assets/activities/251130_profile.png" alt="Satellite Monitoring" />
-              <div className="activity-content">
-                <h3>Satellite Monitoring Demo</h3>
-                <p>Demonstration of using remote sensing to monitor vegetation growth and soil carbon regeneration.</p>
+            {activities.length > 1 && (
+              <div className="activities-nav-btns">
+                <button className="slider-btn slider-prev" onClick={() => slideActivities(-1)} aria-label="Previous slide">&#10094;</button>
+                <button className="slider-btn slider-next" onClick={() => slideActivities(1)} aria-label="Next slide">&#10095;</button>
               </div>
-            </div>
-            <div className="activity-card">
-              <img src="/assets/activities/251205_profile.png" alt="Corporate Training" />
-              <div className="activity-content">
-                <h3>Corporate Training on RegenAgri</h3>
-                <p>Training session for private companies on regenerative agriculture and carbon-positive farming.</p>
-              </div>
+            )}
+          </div>
+          <div className="slider-wrapper">
+            <div className="slider-track" id="activitySlider" ref={sliderRef}>
+              {activities.map((activity) => (
+                <div className="activity-card" key={activity.id}>
+                  {activity.image_path && (
+                    <img src={activity.image_path} alt={activity.title} />
+                  )}
+                  <div className="activity-content">
+                    <h3>{activity.title}</h3>
+                    <p>{activity.description}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          <button className="slider-btn slider-prev" onClick={() => slideActivities(-1)} aria-label="Previous slide">&#10094;</button>
-          <button className="slider-btn slider-next" onClick={() => slideActivities(1)} aria-label="Next slide">&#10095;</button>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* PARTNERS */}
       <section className="landing-section partners-section scroll-reveal" ref={partnersRef}>
