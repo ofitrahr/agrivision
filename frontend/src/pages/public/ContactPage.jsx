@@ -23,7 +23,6 @@ const ContactPage = () => {
       <header className="hero-split hero-split--contact" ref={heroRef}>
         <div className="hero-split-left">
           <div className="hero-split-content">
-            <span className="hero-tag-pill">Get In Touch</span>
             <h1>Connect with AgriVision</h1>
             <p>
               Whether you want to screen farmland, implement carbon MRV, or explore our agronomy dashboard, our team is ready to assist you.

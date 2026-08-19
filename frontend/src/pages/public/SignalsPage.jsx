@@ -92,7 +92,6 @@ const SignalsPage = () => {
       <header className="hero-split hero-split--subpage" ref={heroRef}>
         <div className="hero-split-left">
           <div className="hero-split-content">
-            <span className="hero-tag-pill">Agronomy Intelligence</span>
             <h1>Five Signals That Run The Farm</h1>
             <p>
               From soil chemistry to canopy vigor, we transform raw Sentinel-2 satellite data and ground truth calibration into five high-integrity agricultural metrics.

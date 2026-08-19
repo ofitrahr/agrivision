@@ -64,7 +64,6 @@ const MRVPage = () => {
       <header className="hero-split hero-split--subpage" ref={heroRef}>
         <div className="hero-split-left">
           <div className="hero-split-content">
-            <span className="hero-tag-pill">Climate Tech Infrastructure</span>
             <h1>End-to-End Measurement, Reporting &amp; Verification</h1>
             <p>
               A comprehensive MRV architecture engineered specifically for regenerative agriculture, topsoil carbon sequestration, and agricultural supply chain transparency.

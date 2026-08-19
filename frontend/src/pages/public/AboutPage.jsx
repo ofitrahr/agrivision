@@ -30,7 +30,6 @@ const AboutPage = () => {
       <header className="hero-split hero-split--subpage" ref={heroRef}>
         <div className="hero-split-left">
           <div className="hero-split-content">
-            <span className="hero-tag-pill">About Us</span>
             <h1>Bridging Technology &amp; Regenerative Farming</h1>
             <p>
               We empower agribusinesses, project developers, and farming communities with satellite AI intelligence to accelerate food security and carbon neutrality.

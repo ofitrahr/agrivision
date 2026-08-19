@@ -109,7 +109,6 @@ const LandingPage = () => {
       <header className="hero-split" id="home">
         <div className="hero-split-left">
           <div className="hero-split-content">
-            <span className="hero-tag-pill">Climate-Smart Agriculture</span>
             <h1>We Turn Landscape Intelligence into Measurable Climate Impact</h1>
             <p>
               Sustainable Farm, Sustainable Business — helping large farms regenerate soil, lift yields, and become carbon and ESG ready.
