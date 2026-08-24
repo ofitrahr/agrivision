@@ -7,31 +7,48 @@ const Sidebar = ({ role, user }) => {
   const { logout } = useContext(AuthContext);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const adminLinks = [
-    { to: '/admin/dashboard', icon: 'dashboard', label: 'Platform Overview' },
-    { to: '/admin/companies', icon: 'business', label: 'Daftar Klien' },
-    { to: '/admin/gis', icon: 'map', label: 'GIS & Pemetaan' },
-    { to: '/admin/traceability', icon: 'qr_code_scanner', label: 'Traceability' },
-    { to: '/admin/recent-activities', icon: 'campaign', label: 'Aktivitas' },
+  const adminSections = [
+    {
+      label: 'Menu Utama',
+      links: [
+        { to: '/admin/dashboard', icon: 'dashboard', label: 'Platform Overview' },
+        { to: '/admin/companies', icon: 'business', label: 'Daftar Klien' },
+        { to: '/admin/gis', icon: 'map', label: 'GIS & Pemetaan' },
+        { to: '/admin/traceability', icon: 'qr_code_scanner', label: 'Traceability' },
+        { to: '/admin/recent-activities', icon: 'campaign', label: 'Aktivitas' },
+      ],
+    },
   ];
 
-  const managerLinks = [
-    { to: '/manager/dashboard', icon: 'dashboard', label: 'Dashboard' },
-    { to: '/manager/farmers', icon: 'group', label: 'Data Petani' },
-    { to: '/manager/farm-management', icon: 'landscape', label: 'Manajemen Lahan' },
-    { to: '/manager/agronomy', icon: 'eco', label: 'Agronomi' },
-    { to: '/manager/economics', icon: 'payments', label: 'Ekonomi' },
-    { to: '/manager/traceability', icon: 'verified', label: 'Traceability' },
-  ];
-  
-  const boardLinks = [
-    { to: '/board/dashboard', icon: 'analytics', label: 'Dashboard Eksekutif' },
+  const managerSections = [
+    {
+      label: 'Operasional Lapangan',
+      links: [
+        { to: '/manager/dashboard', icon: 'dashboard', label: 'Dashboard' },
+        { to: '/manager/farm-management', icon: 'landscape', label: 'Manajemen Lahan' },
+        { to: '/manager/farmers', icon: 'group', label: 'Data Petani' },
+      ],
+    },
+    {
+      label: 'Monitoring & Analitik',
+      links: [
+        { to: '/manager/agronomy', icon: 'eco', label: 'Index Observasi' },
+        { to: '/manager/economics', icon: 'payments', label: 'Ekonomi & Laporan' },
+        { to: '/manager/traceability', icon: 'verified', label: 'Traceability' },
+      ],
+    },
   ];
 
-  let links = [];
-  if (role === 'super_admin') links = adminLinks;
-  else if (role === 'manager') links = managerLinks;
-  else if (role === 'board') links = boardLinks;
+  const boardSections = [
+    {
+      label: 'Menu Utama',
+      links: [
+        { to: '/board/dashboard', icon: 'analytics', label: 'Dashboard Eksekutif' },
+      ],
+    },
+  ];
+
+  const sections = role === 'super_admin' ? adminSections : (role === 'manager' ? managerSections : boardSections);
 
   const roleLabel = role === 'super_admin' ? 'Super Admin' : (role === 'manager' ? 'Manager' : 'Board');
 
@@ -66,40 +83,44 @@ const Sidebar = ({ role, user }) => {
         </div>
 
         <nav className="sidebar-nav">
-          <div className="sidebar-section-label">Menu Utama</div>
-          {links.map((link) => (
-            <NavLink 
-              key={link.to} 
-              to={link.to} 
-              className={({isActive}) => isActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'}
-            >
-              <span className="material-symbols-outlined">{link.icon}</span>
-              {link.label}
-            </NavLink>
+          {sections.map((section, idx) => (
+            <div key={idx} style={{ marginBottom: '16px' }}>
+              <div className="sidebar-section-label">{section.label}</div>
+              {section.links.map((link) => (
+                <NavLink 
+                  key={link.to} 
+                  to={link.to} 
+                  className={({isActive}) => isActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'}
+                >
+                  <span className="material-symbols-outlined">{link.icon}</span>
+                  {link.label}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
 
-
-
         <div className="sidebar-footer">
-          <div className="sidebar-user">
-            <div className="sidebar-avatar">
-              {(user?.full_name || user?.user || 'U').charAt(0).toUpperCase()}
+          <div className="sidebar-footer-card">
+            <div className="sidebar-user">
+              <div className="sidebar-avatar">
+                {(user?.full_name || user?.user || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="sidebar-user-name">{user?.full_name || user?.user || 'Pengguna'}</div>
+                <div className="sidebar-user-role">{roleLabel}</div>
+              </div>
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="sidebar-user-name">{user?.full_name || user?.user || 'Pengguna'}</div>
-              <div className="sidebar-user-role">{roleLabel}</div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="sidebar-footer-btn" onClick={() => navigate(profilePath)} title="Profil">
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person</span>
+                Profil
+              </button>
+              <button className="sidebar-footer-btn sidebar-footer-btn-danger" onClick={() => setShowLogoutConfirm(true)} title="Keluar">
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
+                Keluar
+              </button>
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="sidebar-footer-btn" onClick={() => navigate(profilePath)} title="Profil">
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person</span>
-              Profil
-            </button>
-            <button className="sidebar-footer-btn sidebar-footer-btn-danger" onClick={() => setShowLogoutConfirm(true)} title="Keluar">
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
-              Keluar
-            </button>
           </div>
         </div>
       </aside>

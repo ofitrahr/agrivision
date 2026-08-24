@@ -92,20 +92,15 @@ const ManagerTraceability = () => {
     <div>
       <div className="page-header">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#6C757D', marginBottom: 8 }}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-            <span style={{ color: '#012d1d' }}>Traceability Profile</span>
-          </div>
-          <h1 className="page-title" style={{ margin: '0 0 8px 0' }}>Edit Profile Story</h1>
-          <p className="page-description">Customize how your farm's journey appears to consumers.</p>
+          <h1 className="page-title">Edit Profile Story</h1>
+          <p className="page-subtitle">Sesuaikan bagaimana cerita dan perjalanan komoditas kebun Anda ditampilkan ke konsumen.</p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button className="secondary-btn" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button className="btn btn-ghost" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <QrCode size={18} />
             Download QR Code
           </button>
-          <button className="primary-btn" onClick={handleSaveDraft} disabled={saving}>
+          <button className="btn btn-primary" onClick={handleSaveDraft} disabled={saving}>
             {saving ? 'Menyimpan...' : 'Save Draft'}
           </button>
         </div>

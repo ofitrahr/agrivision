@@ -57,7 +57,7 @@ class GISService:
             location=[-0.7893, 113.9213], 
             zoom_start=5, 
             max_zoom=22, 
-            tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", 
+            tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", 
             attr="Google",  
             zoom_control= False,
         )

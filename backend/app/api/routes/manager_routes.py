@@ -372,10 +372,13 @@ def get_manager_farm_map(current_user, farm_id):
         if geojson_str:
             farm_geojson = json.loads(geojson_str)
 
+    is_thumbnail = request.args.get('thumbnail', 'false').lower() == 'true'
+
     try:
         map_html = GISService.generate_manager_map(
             farm_boundary_geojson=farm_geojson,
-            existing_blocks_geojson=[]
+            existing_blocks_geojson=[],
+            thumbnail=is_thumbnail
         )
         return jsonify({
             'success': True,

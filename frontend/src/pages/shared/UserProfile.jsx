@@ -13,6 +13,8 @@ const UserProfile = () => {
   const [saving, setSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState({ type: '', text: '' });
 
+  const [stats, setStats] = useState({ total_farms: 0, total_farmers: 0, total_production_ton: 0 });
+
   const [passwordData, setPasswordData] = useState({
     current_password: '',
     new_password: '',
@@ -53,6 +55,20 @@ const UserProfile = () => {
     };
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    if (user?.role === 'manager') {
+      api.get('/manager/dashboard/stats')
+        .then((res) => {
+          if (res.data.success) {
+            setStats(res.data.data);
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+        });
+    }
+  }, [user]);
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
@@ -130,7 +146,7 @@ const UserProfile = () => {
   }
 
   return (
-    <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+    <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
       <header className="page-header" style={{ marginBottom: 'var(--space-md)' }}>
         <div>
           <h1 className="page-title">Profil Akun</h1>
@@ -144,165 +160,196 @@ const UserProfile = () => {
         </div>
       </header>
 
-      {/* Info Akun */}
-      <Card style={{ marginBottom: 'var(--space-md)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: 'var(--space-md)' }}>
-          <div style={{
-            width: '64px', height: '64px', borderRadius: '50%',
-            background: 'var(--color-primary-container)', color: 'white',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '24px', fontWeight: 700, flexShrink: 0,
-          }}>
-            {(user?.full_name || user?.user || 'U').charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-main)' }}>
-              {profile.full_name || user?.user || 'Pengguna'}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <Card>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: 'var(--space-md)' }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                background: 'var(--color-primary-container)', color: 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '24px', fontWeight: 700, flexShrink: 0,
+              }}>
+                {(user?.full_name || user?.user || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-main)' }}>
+                  {profile.full_name || user?.user || 'Pengguna'}
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                  @{user?.user}
+                </div>
+                <span className="badge badge-info" style={{ marginTop: '8px' }}>{roleLabel}</span>
+              </div>
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-              @{user?.user}
-            </div>
-            <span className="badge badge-info" style={{ marginTop: '8px' }}>{roleLabel}</span>
-          </div>
-        </div>
-      </Card>
+          </Card>
 
-      {/* Edit Profil */}
-      <Card title="Informasi Profil" style={{ marginBottom: 'var(--space-md)' }}>
-        <form onSubmit={handleProfileSubmit}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label className="form-label">Username</label>
-              <input
-                className="form-input"
-                type="text"
-                value={user?.user || ''}
-                disabled
-                style={{ opacity: 0.6, cursor: 'not-allowed' }}
-              />
-            </div>
-            <div>
-              <label className="form-label">Nama Lengkap</label>
-              <input
-                className="form-input"
-                type="text"
-                value={profile.full_name}
-                onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                placeholder="Masukkan nama lengkap"
-              />
-            </div>
-            <div>
-              <label className="form-label">No. Telepon</label>
-              <input
-                className="form-input"
-                type="text"
-                value={profile.phone}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                placeholder="Contoh: 08123456789"
-              />
-            </div>
-          </div>
+          {user?.role === 'manager' && (
+            <Card title="Ringkasan Kelolaan">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: 'var(--space-md)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--color-surface)', borderRadius: '8px', border: '1px solid var(--color-border-muted)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--color-main-green)' }}>landscape</span>
+                    Total Lahan
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--color-text-main)' }}>{stats.total_farms} Lahan</span>
+                </div>
 
-          {profileMsg.text && (
-            <div style={{
-              marginTop: '12px', padding: '10px 14px', borderRadius: 'var(--radius-sm)',
-              fontSize: '13px', fontWeight: 500,
-              background: profileMsg.type === 'success' ? 'rgba(156,249,115,0.15)' : 'var(--color-error-container)',
-              color: profileMsg.type === 'success' ? '#195200' : '#93000a',
-            }}>
-              {profileMsg.text}
-            </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--color-surface)', borderRadius: '8px', border: '1px solid var(--color-border-muted)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--color-main-green)' }}>group</span>
+                    Petani Terdaftar
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--color-text-main)' }}>{stats.total_farmers} Orang</span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--color-surface)', borderRadius: '8px', border: '1px solid var(--color-border-muted)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--color-main-green)' }}>inventory_2</span>
+                    Estimasi Produksi
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--color-text-main)' }}>{stats.total_production_ton} Ton</span>
+                </div>
+              </div>
+            </Card>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--color-border-muted)' }}>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span>
-              {saving ? 'Menyimpan...' : 'Simpan Profil'}
-            </button>
-          </div>
-        </form>
-      </Card>
-
-      {/* Ubah Password */}
-      <Card title="Ubah Password" style={{ marginBottom: 'var(--space-md)' }}>
-        <form onSubmit={handlePasswordSubmit}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label className="form-label">Password Saat Ini</label>
-              <input
-                className="form-input"
-                type="password"
-                value={passwordData.current_password}
-                onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
-                placeholder="Masukkan password saat ini"
-                required
-              />
+          <Card>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-md)' }}>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-main)' }}>Keluar dari Akun</div>
+                <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                  Anda akan dikembalikan ke login.
+                </div>
+              </div>
+              <button
+                className="btn btn-ghost"
+                style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
+                onClick={() => setShowLogoutModal(true)}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
+                Keluar
+              </button>
             </div>
-            <div>
-              <label className="form-label">Password Baru</label>
-              <input
-                className="form-input"
-                type="password"
-                value={passwordData.new_password}
-                onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
-                placeholder="Minimal 6 karakter"
-                required
-              />
-            </div>
-            <div>
-              <label className="form-label">Konfirmasi Password Baru</label>
-              <input
-                className="form-input"
-                type="password"
-                value={passwordData.confirm_password}
-                onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
-                placeholder="Ulangi password baru"
-                required
-              />
-            </div>
-          </div>
-
-          {passwordMsg.text && (
-            <div style={{
-              marginTop: '12px', padding: '10px 14px', borderRadius: 'var(--radius-sm)',
-              fontSize: '13px', fontWeight: 500,
-              background: passwordMsg.type === 'success' ? 'rgba(156,249,115,0.15)' : 'var(--color-error-container)',
-              color: passwordMsg.type === 'success' ? '#195200' : '#93000a',
-            }}>
-              {passwordMsg.text}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--color-border-muted)' }}>
-            <button type="submit" className="btn btn-primary" disabled={changingPassword}>
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>lock_reset</span>
-              {changingPassword ? 'Mengubah...' : 'Ubah Password'}
-            </button>
-          </div>
-        </form>
-      </Card>
-
-      {/* Tombol Logout */}
-      <Card style={{ marginBottom: 'var(--space-lg)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-main)' }}>Keluar dari Akun</div>
-            <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-              Anda akan dikembalikan ke halaman login.
-            </div>
-          </div>
-          <button
-            className="btn btn-ghost"
-            style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
-            onClick={() => setShowLogoutModal(true)}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
-            Keluar
-          </button>
+          </Card>
         </div>
-      </Card>
 
-      {/* Modal Konfirmasi Logout */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <Card title="Informasi Profil">
+            <form onSubmit={handleProfileSubmit} style={{ padding: 'var(--space-md)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label className="form-label">Username</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={user?.user || ''}
+                    disabled
+                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Nama Lengkap</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={profile.full_name}
+                    onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                    placeholder="Masukkan nama lengkap"
+                  />
+                </div>
+                <div>
+                  <label className="form-label">No. Telepon</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    value={profile.phone}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    placeholder="Contoh: 08123456789"
+                  />
+                </div>
+              </div>
+
+              {profileMsg.text && (
+                <div style={{
+                  marginTop: '12px', padding: '10px 14px', borderRadius: 'var(--radius-sm)',
+                  fontSize: '13px', fontWeight: 500,
+                  background: profileMsg.type === 'success' ? 'rgba(156,249,115,0.15)' : 'var(--color-error-container)',
+                  color: profileMsg.type === 'success' ? '#195200' : '#93000a',
+                }}>
+                  {profileMsg.text}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--color-border-muted)' }}>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span>
+                  {saving ? 'Menyimpan...' : 'Simpan Profil'}
+                </button>
+              </div>
+            </form>
+          </Card>
+
+          <Card title="Ubah Password">
+            <form onSubmit={handlePasswordSubmit} style={{ padding: 'var(--space-md)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label className="form-label">Password Saat Ini</label>
+                  <input
+                    className="form-input"
+                    type="password"
+                    value={passwordData.current_password}
+                    onChange={(e) => setPasswordData({ ...passwordData, current_password: e.target.value })}
+                    placeholder="Masukkan password saat ini"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Password Baru</label>
+                  <input
+                    className="form-input"
+                    type="password"
+                    value={passwordData.new_password}
+                    onChange={(e) => setPasswordData({ ...passwordData, new_password: e.target.value })}
+                    placeholder="Minimal 6 karakter"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Konfirmasi Password Baru</label>
+                  <input
+                    className="form-input"
+                    type="password"
+                    value={passwordData.confirm_password}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
+                    placeholder="Ulangi password baru"
+                    required
+                  />
+                </div>
+              </div>
+
+              {passwordMsg.text && (
+                <div style={{
+                  marginTop: '12px', padding: '10px 14px', borderRadius: 'var(--radius-sm)',
+                  fontSize: '13px', fontWeight: 500,
+                  background: passwordMsg.type === 'success' ? 'rgba(156,249,115,0.15)' : 'var(--color-error-container)',
+                  color: passwordMsg.type === 'success' ? '#195200' : '#93000a',
+                }}>
+                  {passwordMsg.text}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--color-border-muted)' }}>
+                <button type="submit" className="btn btn-primary" disabled={changingPassword}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>lock_reset</span>
+                  {changingPassword ? 'Mengubah...' : 'Ubah Password'}
+                </button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      </div>
+
       {showLogoutModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center' }}>

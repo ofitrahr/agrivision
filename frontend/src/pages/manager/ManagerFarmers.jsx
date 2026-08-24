@@ -154,18 +154,13 @@ const ManagerFarmers = () => {
     return (
         <div>
             {/* Header Navigation & Page Title */}
-            <div className="page-header" style={{ marginBottom: 24 }}>
+            <div className="page-header">
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#6C757D', marginBottom: 8 }}>
-                        <span>Dashboard</span>
-                        <ChevronRight size={14} />
-                        <span style={{ color: '#012d1d' }}>Data Petani</span>
-                    </div>
-                    <h1 className="page-title" style={{ margin: '0 0 8px 0' }}>Daftar Petani (Pekerja)</h1>
-                    <p className="page-description">Kelola profil pekerja dan penugasan petani di kebun Anda.</p>
+                    <h1 className="page-title">Daftar Petani (Pekerja)</h1>
+                    <p className="page-subtitle">Kelola profil pekerja dan penugasan petani di kebun Anda.</p>
                 </div>
                 <div>
-                    <button className="primary-btn" onClick={handleOpenAddModal} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button className="btn btn-primary" onClick={handleOpenAddModal} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Plus size={18} />
                         Tambah Pekerja Baru
                     </button>

@@ -191,10 +191,8 @@ const ManagerFarmManagement = () => {
     return (
       <div>
         <div style={{ marginBottom: '24px' }}>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 700, color: 'var(--color-text-main)', margin: '0 0 6px 0' }}>
-            Daftar Lahan Project
-          </h1>
-          <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', margin: 0 }}>
+          <h1 className="page-title">Daftar Lahan Project</h1>
+          <p className="page-subtitle">
             Kelola data lahan, ringkasan spesifikasi, penugasan petani, dan komoditas tanaman.
           </p>
         </div>
@@ -222,6 +220,29 @@ const ManagerFarmManagement = () => {
 
                   <div className="agro-chip-group" style={{ marginBottom: '16px' }}>
                     <span className="agro-chip">{f.total_area_ha} Ha</span>
+
+                    {(f.crop_variety || f.crops?.length > 0) && (
+                      <span
+                        className="agro-chip agro-chip-active"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <Leaf size={12} />
+                        {f.crop_variety || f.crops[0]}
+                      </span>
+                    )}
+
+                    {f.agroforestry_system && (
+                      <span
+                        className="agro-chip"
+                        style={{
+                          background: '#f0f5f2',
+                          color: 'var(--color-forest-green)',
+                          border: '1px solid var(--color-border-muted)',
+                        }}
+                      >
+                        {f.agroforestry_system}
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px', marginBottom: '20px', flex: 1 }}>
@@ -270,10 +291,10 @@ const ManagerFarmManagement = () => {
       </div>
 
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 700, color: 'var(--color-text-main)', margin: '0 0 6px 0' }}>
+        <h1 className="page-title">
           Kelola Lahan: {farmName || '...'}
         </h1>
-        <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', margin: 0 }}>
+        <p className="page-subtitle">
           Ubah informasi ringkasan lahan, atur penugasan petani pengelola, dan kelola jenis komoditas tanaman.
         </p>
       </div>

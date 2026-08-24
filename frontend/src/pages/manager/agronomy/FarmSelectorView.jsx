@@ -25,7 +25,17 @@ const FarmSelectorView = ({
   ] : [];
 
   return (
-    <div className="agro-selector-grid">
+    <div>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Index Observasi Agronomi</h1>
+          <p className="page-subtitle">
+            Pemantauan data spasial citra satelit, indeks vegetasi, dan parameter agronomi lahan.
+          </p>
+        </div>
+      </div>
+
+      <div className="agro-selector-grid">
       {/* Left Card - Farm Overview */}
       <div className="agro-card">
         <h2 className="agro-card-title">
@@ -71,7 +81,7 @@ const FarmSelectorView = ({
               className="agro-btn-detail"
               onClick={() => onViewDetail?.(selectedFarm)}
             >
-              Lihat Dasbor Agronomi Detail
+              Lihat Index Observasi
               <ArrowRight size={16} />
             </button>
           </div>
@@ -159,6 +169,7 @@ const FarmSelectorView = ({
         )}
       </div>
     </div>
+  </div>
   );
 };
 
