@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
+import NarrativeTextarea from '../../shared/components/traceability/NarrativeTextarea';
 import {
   ChevronRight, QrCode, Camera, BadgeCheck,
   Lock, MapPin, Lightbulb, Globe, Clock
 } from 'lucide-react';
 
 const ManagerTraceability = () => {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -20,12 +19,7 @@ const ManagerTraceability = () => {
   const [status, setStatus] = useState('draft');
   const [lastPublished, setLastPublished] = useState(null);
   const [publishLoading, setPublishLoading] = useState(false);
-  const [charCounts, setCharCounts] = useState({
-    origin_story: 0,
-    social_narrative: 0,
-    economic_narrative: 0,
-    environmental_narrative: 0
-  });
+  const [originStoryCount, setOriginStoryCount] = useState(0);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -34,12 +28,7 @@ const ManagerTraceability = () => {
         if (res.data.success) {
           const d = res.data.data;
           setFormData(d);
-          setCharCounts({
-            origin_story: d.origin_story?.length || 0,
-            social_narrative: d.social_narrative?.length || 0,
-            economic_narrative: d.economic_narrative?.length || 0,
-            environmental_narrative: d.environmental_narrative?.length || 0
-          });
+          setOriginStoryCount(d.origin_story?.length || 0);
         }
       } catch (error) {
         console.error('Gagal load traceability profile', error);
@@ -52,7 +41,7 @@ const ManagerTraceability = () => {
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    setCharCounts(prev => ({ ...prev, [field]: value.length }));
+    if (field === 'origin_story') setOriginStoryCount(value.length);
   };
 
   const handleSaveDraft = async () => {
@@ -204,8 +193,8 @@ const ManagerTraceability = () => {
           <div className="stat-card" style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <label htmlFor="origin-story" style={{ fontSize: 20, fontWeight: 600, color: '#012d1d', margin: 0 }}>Origin Story</label>
-              <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: charCounts.origin_story > 900 ? '#D90429' : '#6C757D' }}>
-                {charCounts.origin_story} / 1000 chars
+              <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: originStoryCount > 900 ? '#D90429' : '#6C757D' }}>
+                {originStoryCount} / 1000 chars
               </span>
             </div>
             <textarea
@@ -239,80 +228,30 @@ const ManagerTraceability = () => {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <label htmlFor="social-narrative" style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844' }}>
-                    Social Impact Narrative
-                  </label>
-                  <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', color: charCounts.social_narrative > 450 ? '#D90429' : '#6C757D' }}>
-                    {charCounts.social_narrative} / 500 chars
-                  </span>
-                </div>
-                <textarea
-                  id="social-narrative"
-                  rows={3}
-                  value={formData.social_narrative}
-                  onChange={(e) => handleChange('social_narrative', e.target.value)}
-                  maxLength={500}
-                  style={{
-                    width: '100%', padding: '12px 16px', border: '1px solid #E9ECEF',
-                    borderRadius: 8, fontSize: 16, color: '#191c1d',
-                    outline: 'none', resize: 'vertical', fontFamily: 'inherit',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="Describe your social impact..."
-                />
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <label htmlFor="economic-narrative" style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844' }}>
-                    Economic Impact Narrative
-                  </label>
-                  <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', color: charCounts.economic_narrative > 450 ? '#D90429' : '#6C757D' }}>
-                    {charCounts.economic_narrative} / 500 chars
-                  </span>
-                </div>
-                <textarea
-                  id="economic-narrative"
-                  rows={3}
-                  value={formData.economic_narrative}
-                  onChange={(e) => handleChange('economic_narrative', e.target.value)}
-                  maxLength={500}
-                  style={{
-                    width: '100%', padding: '12px 16px', border: '1px solid #E9ECEF',
-                    borderRadius: 8, fontSize: 16, color: '#191c1d',
-                    outline: 'none', resize: 'vertical', fontFamily: 'inherit',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="Describe your economic impact..."
-                />
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <label htmlFor="environmental-narrative" style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844' }}>
-                    Environmental Impact Narrative
-                  </label>
-                  <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', color: charCounts.environmental_narrative > 450 ? '#D90429' : '#6C757D' }}>
-                    {charCounts.environmental_narrative} / 500 chars
-                  </span>
-                </div>
-                <textarea
-                  id="environmental-narrative"
-                  rows={3}
-                  value={formData.environmental_narrative}
-                  onChange={(e) => handleChange('environmental_narrative', e.target.value)}
-                  maxLength={500}
-                  style={{
-                    width: '100%', padding: '12px 16px', border: '1px solid #E9ECEF',
-                    borderRadius: 8, fontSize: 16, color: '#191c1d',
-                    outline: 'none', resize: 'vertical', fontFamily: 'inherit',
-                    boxSizing: 'border-box'
-                  }}
-                  placeholder="Describe your environmental impact..."
-                />
-              </div>
+              <NarrativeTextarea
+                id="social-narrative"
+                label="Social Impact Narrative"
+                value={formData.social_narrative}
+                maxLength={500}
+                onChange={(e) => handleChange('social_narrative', e.target.value)}
+                placeholder="Describe your social impact..."
+              />
+              <NarrativeTextarea
+                id="economic-narrative"
+                label="Economic Impact Narrative"
+                value={formData.economic_narrative}
+                maxLength={500}
+                onChange={(e) => handleChange('economic_narrative', e.target.value)}
+                placeholder="Describe your economic impact..."
+              />
+              <NarrativeTextarea
+                id="environmental-narrative"
+                label="Environmental Impact Narrative"
+                value={formData.environmental_narrative}
+                maxLength={500}
+                onChange={(e) => handleChange('environmental_narrative', e.target.value)}
+                placeholder="Describe your environmental impact..."
+              />
             </div>
           </div>
         </div>
@@ -376,11 +315,11 @@ const ManagerTraceability = () => {
                 onClick={handlePublishToggle}
                 disabled={publishLoading}
                 style={{
-                  width: '100%', padding: '12px 24px', border: 'none', borderRadius: 8,
+                  width: '100%', padding: '12px 24px', borderRadius: 8,
                   fontSize: 14, fontWeight: 700, letterSpacing: '0.03em', cursor: 'pointer',
                   background: status === 'published' ? '#f8f9fa' : '#012d1d',
                   color: status === 'published' ? '#012d1d' : '#ffffff',
-                  border: status === 'published' ? '1px solid #012d1d' : '1px solid #012d1d',
+                  border: '1px solid #012d1d',
                   transition: 'all 0.2s ease', fontFamily: 'inherit'
                 }}
               >

@@ -1,6 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Building2, Package, MapPin, Sprout, Leaf, Users, TrendingUp, Trees, BadgeCheck, QrCode } from 'lucide-react';
+import DetailCard from '../../shared/components/traceability/DetailCard';
+import ImpactSection from '../../shared/components/traceability/ImpactSection';
+
+const ImpactStat = ({ label, value }) => (
+  <div style={{ background: '#f8f9fa', padding: 8, borderRadius: 12, border: '1px solid rgba(233,236,239,0.5)', textAlign: 'center' }}>
+    <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', textTransform: 'uppercase', margin: '0 0 4px 0' }}>{label}</p>
+    <p style={{ fontSize: 24, fontWeight: 700, color: '#012d1d', margin: 0 }}>{value}</p>
+  </div>
+);
+
+const ImpactRow = ({ label, value, valueColor }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
+    <span style={{ fontSize: 14, color: '#414844' }}>{label}</span>
+    <span style={{ fontWeight: 700, color: valueColor || '#191c1d' }}>{value}</span>
+  </div>
+);
 
 const MOCK_DATA = {
   batch_number: 'BATCH-2025-001',
@@ -168,58 +184,10 @@ const TraceabilityDashboard = () => {
           gap: 16,
           marginBottom: 32
         }}>
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #E9ECEF',
-            borderRadius: 12,
-            padding: 16,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#414844' }}>
-              <Sprout size={20} />
-              <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em' }}>Project</span>
-            </div>
-            <p style={{ fontSize: 20, fontWeight: 600, color: '#191c1d', margin: 0 }}>{data.project_name}</p>
-          </div>
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #E9ECEF',
-            borderRadius: 12,
-            padding: 16,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#414844' }}>
-              <Building2 size={20} />
-              <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em' }}>Company</span>
-            </div>
-            <p style={{ fontSize: 20, fontWeight: 600, color: '#191c1d', margin: 0 }}>{data.company_name}</p>
-          </div>
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #E9ECEF',
-            borderRadius: 12,
-            padding: 16,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#414844' }}>
-              <Package size={20} />
-              <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em' }}>Commodity</span>
-            </div>
-            <p style={{ fontSize: 20, fontWeight: 600, color: '#191c1d', margin: 0 }}>{data.commodity}</p>
-          </div>
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #E9ECEF',
-            borderRadius: 12,
-            padding: 16,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#414844' }}>
-              <MapPin size={20} />
-              <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em' }}>Location</span>
-            </div>
-            <p style={{ fontSize: 20, fontWeight: 600, color: '#191c1d', margin: 0 }}>{data.location}</p>
-          </div>
+          <DetailCard icon={<Sprout size={20} />} label="Project" value={data.project_name} />
+          <DetailCard icon={<Building2 size={20} />} label="Company" value={data.company_name} />
+          <DetailCard icon={<Package size={20} />} label="Commodity" value={data.commodity} />
+          <DetailCard icon={<MapPin size={20} />} label="Location" value={data.location} />
         </div>
 
         {/* Origin Story */}
@@ -270,134 +238,44 @@ const TraceabilityDashboard = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {/* Social Impact */}
-            <div style={{
-              background: '#ffffff',
-              border: '1px solid #E9ECEF',
-              borderRadius: 16,
-              padding: 24,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                <div style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
-                  background: '#1b4332',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff'
-                }}>
-                  <Users size={24} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: 20, fontWeight: 600, color: '#191c1d', margin: 0, lineHeight: '28px' }}>Social Impact</h3>
-                  <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', margin: 0, textTransform: 'uppercase' }}>
-                    Community &amp; Equity
-                  </p>
-                </div>
-              </div>
+            <ImpactSection
+              icon={<Users size={24} />}
+              title="Social Impact"
+              subtitle="Community & Equity"
+              description={s.social.description}
+            >
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
-                <div style={{ background: '#f8f9fa', padding: 8, borderRadius: 12, border: '1px solid rgba(233,236,239,0.5)', textAlign: 'center' }}>
-                  <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', textTransform: 'uppercase', margin: '0 0 4px 0' }}>Partners</p>
-                  <p style={{ fontSize: 24, fontWeight: 700, color: '#012d1d', margin: 0 }}>{s.social.partners}</p>
-                </div>
-                <div style={{ background: '#f8f9fa', padding: 8, borderRadius: 12, border: '1px solid rgba(233,236,239,0.5)', textAlign: 'center' }}>
-                  <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', textTransform: 'uppercase', margin: '0 0 4px 0' }}>Female</p>
-                  <p style={{ fontSize: 24, fontWeight: 700, color: '#012d1d', margin: 0 }}>{s.social.female}</p>
-                </div>
-                <div style={{ background: '#f8f9fa', padding: 8, borderRadius: 12, border: '1px solid rgba(233,236,239,0.5)', textAlign: 'center' }}>
-                  <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', textTransform: 'uppercase', margin: '0 0 4px 0' }}>Programs</p>
-                  <p style={{ fontSize: 24, fontWeight: 700, color: '#012d1d', margin: 0 }}>{s.social.programs}</p>
-                </div>
+                <ImpactStat label="Partners" value={s.social.partners} />
+                <ImpactStat label="Female" value={s.social.female} />
+                <ImpactStat label="Programs" value={s.social.programs} />
               </div>
-              <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', margin: 0 }}>{s.social.description}</p>
-            </div>
+            </ImpactSection>
 
             {/* Economic Impact */}
-            <div style={{
-              background: '#ffffff',
-              border: '1px solid #E9ECEF',
-              borderRadius: 16,
-              padding: 24,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                <div style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
-                  background: '#1b4332',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff'
-                }}>
-                  <TrendingUp size={24} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: 20, fontWeight: 600, color: '#191c1d', margin: 0, lineHeight: '28px' }}>Economic Impact</h3>
-                  <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', margin: 0, textTransform: 'uppercase' }}>
-                    Growth &amp; Value
-                  </p>
-                </div>
-              </div>
+            <ImpactSection
+              icon={<TrendingUp size={24} />}
+              title="Economic Impact"
+              subtitle="Growth & Value"
+              description={s.economic.description}
+            >
               <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
-                  <span style={{ fontSize: 14, color: '#414844' }}>Active Farm Area</span>
-                  <span style={{ fontWeight: 700, color: '#191c1d' }}>{s.economic.active_farm_area}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
-                  <span style={{ fontSize: 14, color: '#414844' }}>Annual Yield</span>
-                  <span style={{ fontWeight: 700, color: '#191c1d' }}>{s.economic.annual_yield}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
-                  <span style={{ fontSize: 14, color: '#414844' }}>Carbon Credit</span>
-                  <span style={{ fontWeight: 700, color: '#2D6A4F' }}>{s.economic.carbon_credit}</span>
-                </div>
+                <ImpactRow label="Active Farm Area" value={s.economic.active_farm_area} />
+                <ImpactRow label="Annual Yield" value={s.economic.annual_yield} />
+                <ImpactRow label="Carbon Credit" value={s.economic.carbon_credit} valueColor="#2D6A4F" />
               </div>
-              <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', margin: 0 }}>{s.economic.description}</p>
-            </div>
+            </ImpactSection>
 
             {/* Environmental Impact */}
-            <div style={{
-              background: '#ffffff',
-              border: '1px solid #E9ECEF',
-              borderRadius: 16,
-              padding: 24,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-                <div style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 12,
-                  background: '#1b4332',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff'
-                }}>
-                  <Trees size={24} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: 20, fontWeight: 600, color: '#191c1d', margin: 0, lineHeight: '28px' }}>Environmental Impact</h3>
-                  <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', margin: 0, textTransform: 'uppercase' }}>
-                    Regeneration
-                  </p>
-                </div>
-              </div>
+            <ImpactSection
+              icon={<Trees size={24} />}
+              title="Environmental Impact"
+              subtitle="Regeneration"
+              description={s.environmental.description}
+            >
               <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
-                  <span style={{ fontSize: 14, color: '#414844' }}>Land Area</span>
-                  <span style={{ fontWeight: 700, color: '#191c1d' }}>{s.environmental.land_area}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
-                  <span style={{ fontSize: 14, color: '#414844' }}>Carbon Stock</span>
-                  <span style={{ fontWeight: 700, color: '#191c1d' }}>{s.environmental.carbon_stock}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
-                  <span style={{ fontSize: 14, color: '#414844' }}>Farm Practice</span>
+                <ImpactRow label="Land Area" value={s.environmental.land_area} />
+                <ImpactRow label="Carbon Stock" value={s.environmental.carbon_stock} />
+                <ImpactRow label="Farm Practice" value={(
                   <span style={{
                     padding: '4px 12px',
                     background: '#a1f4c8',
@@ -409,10 +287,9 @@ const TraceabilityDashboard = () => {
                   }}>
                     {s.environmental.farm_practice}
                   </span>
-                </div>
+                )} />
               </div>
-              <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', margin: 0 }}>{s.environmental.description}</p>
-            </div>
+            </ImpactSection>
           </div>
 
 

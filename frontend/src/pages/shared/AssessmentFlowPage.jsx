@@ -1,41 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChevronRight, Building2, FolderOpen, Play, Scale, Send,
-  CircleDollarSign, UtensilsCrossed, Heart, BookOpen, UserCheck,
-  Droplets, Zap, Briefcase, Cog, Recycle, Globe, Fish, TreePine,
-  Gavel, Handshake, CheckCircle2, XCircle, MinusCircle, ChevronDown,
+  ChevronRight, Building2, FolderOpen, Play, Send,
+  CheckCircle2, XCircle, MinusCircle, ChevronDown,
   Loader2, Info, FileText, CalendarDays, User, BadgeCheck
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import api from '../../shared/api/axios';
-
-const SDG_META = [
-  { goal_number: 1, name: 'No Poverty', color: '#E5243B', icon: CircleDollarSign },
-  { goal_number: 2, name: 'Zero Hunger', color: '#DDA63A', icon: UtensilsCrossed },
-  { goal_number: 3, name: 'Good Health & Well-being', color: '#4C9F38', icon: Heart },
-  { goal_number: 4, name: 'Quality Education', color: '#C5192D', icon: BookOpen },
-  { goal_number: 5, name: 'Gender Equality', color: '#FF3A21', icon: UserCheck },
-  { goal_number: 6, name: 'Clean Water & Sanitation', color: '#26BDE2', icon: Droplets },
-  { goal_number: 7, name: 'Affordable & Clean Energy', color: '#FCC30B', icon: Zap },
-  { goal_number: 8, name: 'Decent Work & Economic Growth', color: '#A21942', icon: Briefcase },
-  { goal_number: 9, name: 'Industry, Innovation & Infrastructure', color: '#FD6925', icon: Cog },
-  { goal_number: 10, name: 'Reduced Inequalities', color: '#DD1367', icon: Scale },
-  { goal_number: 11, name: 'Sustainable Cities & Communities', color: '#FD9D24', icon: Building2 },
-  { goal_number: 12, name: 'Responsible Consumption & Production', color: '#BF8B2E', icon: Recycle },
-  { goal_number: 13, name: 'Climate Action', color: '#3F7E44', icon: Globe },
-  { goal_number: 14, name: 'Life Below Water', color: '#0A97D9', icon: Fish },
-  { goal_number: 15, name: 'Life on Land', color: '#56C02B', icon: TreePine },
-  { goal_number: 16, name: 'Peace, Justice & Strong Institutions', color: '#00689D', icon: Gavel },
-  { goal_number: 17, name: 'Partnerships for the Goals', color: '#19486A', icon: Handshake },
-];
-
-const getSdgMeta = (goalNumber) => SDG_META.find(m => m.goal_number === goalNumber)
-  || { goal_number: goalNumber, name: `Goal ${goalNumber}`, color: '#6C757D', icon: Building2 };
+import { getSdgMeta } from '../../shared/constants/sdg';
+import { fmtDate } from '../../shared/utils/date';
 
 const STATUS_META = {
   'Terpenuhi': { text: 'Terpenuhi', bg: '#116c4a', icon: CheckCircle2 },
-  'Belum Terpenuhi': { text: 'Belum Terpenuhi', bg: '#D90429', icon: XCircle },
+  'Belum Terpenuhi': { text: 'Belum Terpenuhi', bg: '#B45309', icon: XCircle },
   'Tidak Dinilai': { text: 'Tidak Dinilai', bg: '#6C757D', icon: MinusCircle },
 };
 
@@ -77,12 +54,6 @@ const StatCard = ({ label, value, sub, color }) => (
     <div style={{ fontSize: 12, color: '#6C757D', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>
   </div>
 );
-
-const fmtDate = (iso) => {
-  if (!iso) return '-';
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-};
 
 const statusText = (status) => {
   const map = {
@@ -601,8 +572,8 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
         const meta = assessmentMeta || {};
         const defaultThreshold = assessed[0]?.threshold ?? 70;
         const donutData = [
-          { name: 'Terpenuhi', value: metCount, color: '#116c4a' },
-          { name: 'Belum Terpenuhi', value: notMetCount, color: '#D90429' },
+          { name: 'Terpenuhi', value: metCount, color: '#2D6A4F' },
+          { name: 'Belum Terpenuhi', value: notMetCount, color: '#B45309' },
         ];
         const hasDonut = metCount + notMetCount > 0;
         const metSdgs = assessed.filter(r => r.is_met);
@@ -614,7 +585,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
                 <CheckCircle2 size={20} style={{ color: '#116c4a' }} />
                 <h4 style={{ fontSize: 18, fontWeight: 700, color: '#012d1d', margin: 0 }}>Hasil Assessment SDG</h4>
-                <span style={{ marginLeft: 'auto', padding: '5px 10px', borderRadius: 9999, background: '#012d1d14', color: '#012d1d', fontSize: 11, fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
+                <span style={{ marginLeft: 'auto', padding: '5px 10px', borderRadius: 9999, background: '#2D6A4F14', color: '#012d1d', fontSize: 11, fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
                   {statusText(meta.status)}
                 </span>
               </div>
@@ -631,9 +602,9 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
             {/* Summary */}
             <div className="stats-grid" style={{ marginBottom: 20 }}>
               <StatCard label="SDG Terpenuhi" value={`${metCount}/${assessedCount}`} sub={`${unassessedCount} SDG tidak dinilai`} color="#116c4a" />
-              <StatCard label="Belum Terpenuhi" value={`${notMetCount}`} sub={`dari ${assessedCount} SDG dinilai`} color="#D90429" />
+              <StatCard label="Belum Terpenuhi" value={`${notMetCount}`} sub={`dari ${assessedCount} SDG dinilai`} color="#B45309" />
               <StatCard label="Rata-rata Score" value={`${avgScore}%`} sub="SDG yang dinilai" color="#012d1d" />
-              <StatCard label="Score Tertinggi" value={top ? `${Math.round(top.score)}%` : '-'} sub={top ? `GOAL ${String(top.goal_number).padStart(2, '0')} ${top.name}` : '-'} color={top ? top.meta.color : '#6C757D'} />
+              <StatCard label="Score Tertinggi" value={top ? `${Math.round(top.score)}%` : '-'} sub={top ? `GOAL ${String(top.goal_number).padStart(2, '0')} ${top.name}` : '-'} color="#2D6A4F" />
             </div>
 
             {/* SDG Score Overview */}
@@ -669,8 +640,8 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
                 return (
                   <div key={r.goal_number} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: '1px solid #E9ECEF' }}>
                     <div style={{ width: 230, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                      <span style={{ width: 34, height: 34, borderRadius: 8, background: `${r.meta.color}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon size={18} style={{ color: r.meta.color }} />
+                      <span style={{ width: 34, height: 34, borderRadius: 8, background: r.is_met ? '#116c4a' : '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon size={18} style={{ color: r.is_met ? '#ffffff' : '#6C757D' }} />
                       </span>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: '#414844', letterSpacing: '0.03em' }}>GOAL {String(r.goal_number).padStart(2, '0')}</div>
@@ -681,7 +652,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ position: 'relative', height: 18, background: '#EDF0F2', borderRadius: 9999 }}>
                         {r.is_assessed && (
-                          <div style={{ width: `${Math.min(r.score, 100)}%`, height: '100%', background: r.meta.color, borderRadius: 9999 }} />
+                          <div style={{ width: `${Math.min(r.score, 100)}%`, height: '100%', background: r.is_met ? '#2D6A4F' : '#B45309', borderRadius: 9999 }} />
                         )}
                         {r.is_assessed && (
                           <div style={{ position: 'absolute', left: `${r.threshold}%`, top: -3, bottom: -3, width: 2, background: '#191c1d', borderRadius: 1, transform: 'translateX(-1px)' }} title={`Threshold ${Math.round(r.threshold)}%`} />
@@ -728,8 +699,8 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
                       onClick={() => toggleExpand(r.goal_number)}
                       style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', background: expanded ? '#f8faf9' : '#ffffff', transition: 'background 0.15s ease' }}
                     >
-                      <span style={{ width: 36, height: 36, borderRadius: 8, background: `${r.meta.color}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon size={18} style={{ color: r.meta.color }} />
+                      <span style={{ width: 36, height: 36, borderRadius: 8, background: r.is_met ? '#116c4a' : '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon size={18} style={{ color: r.is_met ? '#ffffff' : '#6C757D' }} />
                       </span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#191c1d' }}>
@@ -757,7 +728,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
                             </span>
                           </div>
                           <div style={{ position: 'relative', height: 14, background: '#EDF0F2', borderRadius: 9999 }}>
-                            {r.is_assessed && <div style={{ width: `${Math.min(r.score, 100)}%`, height: '100%', background: r.meta.color, borderRadius: 9999 }} />}
+                            {r.is_assessed && <div style={{ width: `${Math.min(r.score, 100)}%`, height: '100%', background: r.is_met ? '#2D6A4F' : '#B45309', borderRadius: 9999 }} />}
                             {r.is_assessed && <div style={{ position: 'absolute', left: `${r.threshold}%`, top: -2, bottom: -2, width: 2, background: '#191c1d' }} />}
                           </div>
                           {r.is_assessed && (
@@ -776,14 +747,14 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
                             {r.result?.contributions?.length ? (
                               r.result.contributions.map((c, i) => (
                                 <div key={c.question_id} style={{ display: 'flex', gap: 10, padding: '8px 0', borderTop: '1px solid #F1F3F5', alignItems: 'center' }}>
-                                  <span style={{ width: 26, height: 26, borderRadius: 6, background: '#012d1d14', color: '#012d1d', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>Q{i + 1}</span>
+                                  <span style={{ width: 26, height: 26, borderRadius: 6, background: '#2D6A4F14', color: '#116c4a', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>Q{i + 1}</span>
                                   <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontSize: 13, color: '#191c1d', lineHeight: 1.4 }}>{c.question_text}</div>
                                     <div style={{ fontSize: 11, color: '#6C757D', marginTop: 2 }}>
                                       Jawaban score {Math.round(c.score)}% • Weight {Math.round(c.weight_pct)}%
                                     </div>
                                   </div>
-                                  <span style={{ fontSize: 13, fontWeight: 700, color: '#012d1d', flexShrink: 0 }}>+{Math.round(c.contribution)} poin</span>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: '#116c4a', flexShrink: 0 }}>+{Math.round(c.contribution)} poin</span>
                                 </div>
                               ))
                             ) : (
@@ -819,8 +790,8 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
                       return (
                         <span key={r.goal_number} style={{
                           display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px',
-                          borderRadius: 9999, background: `${r.meta.color}14`, border: `1px solid ${r.meta.color}40`,
-                          color: r.meta.color, fontSize: 12, fontWeight: 700
+                          borderRadius: 9999, background: '#2D6A4F14', border: '1px solid #2D6A4F40',
+                          color: '#116c4a', fontSize: 12, fontWeight: 700
                         }}>
                           <Icon size={16} /> GOAL {String(r.goal_number).padStart(2, '0')} • {r.name} <span style={{ color: '#6C757D', fontWeight: 600 }}>({Math.round(r.score)}%)</span>
                         </span>
