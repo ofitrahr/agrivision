@@ -1362,6 +1362,10 @@ img { max-width: 100%; display: block; }
   cursor: pointer;
   transition: color var(--transition);
   text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
 }
 
 .agro-breadcrumb-link:hover {
@@ -1661,119 +1665,216 @@ img { max-width: 100%; display: block; }
   font-weight: 500;
 }
 
-/* ─── MAP SECTION (Center) ───────────────────────────── */
+/* ─── MAP SECTION (Center - 3-Row Layout) ─────────────── */
 .agro-map-section {
   position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  height: 100%;
+}
+
+.agro-map-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  position: relative;
+  background: var(--color-surface-white);
+}
+
+/* Baris 1: Layer Parameter Tag Pills */
+.agro-map-header-row1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--color-surface-white);
+  border-bottom: 1px solid var(--color-border-muted);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+
+.agro-map-header-row1::-webkit-scrollbar {
+  display: none;
+}
+
+.agro-header-row-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.agro-layer-pills-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.agro-layer-pills-list::-webkit-scrollbar {
+  display: none;
+}
+
+.agro-layer-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
+  background: var(--color-surface-container-low);
+  border: 1px solid var(--color-border-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease-in-out;
+}
+
+.agro-layer-pill:hover {
+  color: var(--color-text-main);
+  background: var(--color-surface-container-high);
+  border-color: var(--color-border-gray);
+}
+
+.agro-layer-pill-active {
+  background: var(--color-main-green) !important;
+  color: var(--color-pure-white) !important;
+  border-color: var(--color-main-green) !important;
+  box-shadow: 0 1px 3px rgba(17, 106, 58, 0.2);
+}
+
+/* Baris 2: Periode Timeline Pills & Transparansi */
+.agro-map-header-row2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 14px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border-muted);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.agro-period-pills-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.agro-period-pills-group::-webkit-scrollbar {
+  display: none;
+}
+
+.agro-period-pills-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-surface-white);
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-muted);
+}
+
+.agro-period-pill {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease-in-out;
+}
+
+.agro-period-pill:hover {
+  color: var(--color-text-main);
+  background: var(--color-surface-container-low);
+}
+
+.agro-period-pill-active {
+  background: var(--color-forest-green) !important;
+  color: var(--color-pure-white) !important;
+  box-shadow: 0 1px 2px rgba(31, 84, 56, 0.2);
+}
+
+.agro-transparency-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.agro-transparency-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.agro-transparency-val {
+  font-size: 11px;
+  color: var(--color-text-main);
+  min-width: 28px;
+  text-align: right;
+}
+
+.agro-mini-slider {
+  width: 70px;
+  appearance: none;
+  height: 4px;
+  background: var(--color-border-muted);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.agro-mini-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-main-green);
+  cursor: pointer;
+  border: 2px solid var(--color-surface-white);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* Baris 3: Viewport Peta */
+.agro-map-viewport {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface-container-low);
 }
 
 .agro-map-frame {
   width: 100%;
   height: 100%;
   border: none;
-  flex: 1;
-}
-
-.agro-map-toolbar {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 200px;
-  background: rgba(255, 255, 255, 0.96);
-  border-radius: 10px;
-  padding: 12px 14px;
-  z-index: 10;
-  max-height: calc(100% - 24px);
-  overflow-y: auto;
-  border: 1px solid var(--color-border-muted);
-}
-
-.agro-map-toolbar::-webkit-scrollbar {
-  width: 3px;
-}
-
-.agro-map-toolbar::-webkit-scrollbar-thumb {
-  background: #c0d4ce;
-  border-radius: 3px;
-}
-
-.agro-toolbar-group {
-  margin-bottom: 12px;
-}
-
-.agro-toolbar-group:last-child {
-  margin-bottom: 0;
-}
-
-.agro-toolbar-label {
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 4px;
   display: block;
-}
-
-.agro-toolbar-select {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--color-border-muted);
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-main);
-  background: var(--color-surface-white);
-  font-family: var(--font-body);
-  cursor: pointer;
-}
-
-.agro-toolbar-select:focus {
-  outline: none;
-  border-color: var(--color-main-green);
-}
-
-.agro-toolbar-slider {
-  width: 100%;
-  appearance: none;
-  height: 4px;
-  background: var(--color-border-muted);
-  border-radius: 4px;
-  outline: none;
-  margin: 6px 0 4px;
-}
-
-.agro-toolbar-slider::-webkit-slider-thumb {
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  cursor: pointer;
-  border: 2px solid var(--color-surface-white);
-}
-
-.agro-toolbar-time-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-main);
-  text-align: center;
-}
-
-.agro-toolbar-opacity-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  color: var(--color-text-muted);
-}
-
-.agro-toolbar-divider {
-  height: 1px;
-  background: var(--color-border-muted);
-  margin: 8px 0;
 }
 
 /* ─── LOADING OVERLAY ────────────────────────────────── */

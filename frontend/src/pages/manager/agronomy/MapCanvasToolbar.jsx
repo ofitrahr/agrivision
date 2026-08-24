@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { Layers, Clock, Eye } from 'lucide-react';
+import { Clock, Eye } from 'lucide-react';
 
 const PERIODS = [
   { id: 'Q1_2025', label: 'Jan - Mar 2025' },
@@ -7,6 +7,14 @@ const PERIODS = [
   { id: 'Q3_2025', label: 'Jul - Sep 2025' },
   { id: 'Q4_2025', label: 'Okt - Des 2025' },
   { id: 'Q1_2026', label: 'Jan - Mar 2026' },
+];
+
+const LAYER_OPTIONS = [
+  { id: 'ndvi', label: 'Kesehatan Tanaman (NDVI)', permKey: 'can_access_ndvi' },
+  { id: 'yield', label: 'Estimasi Produksi (Yield)', permKey: 'can_access_yield' },
+  { id: 'soc', label: 'Stok Karbon (SOC)', permKey: 'can_access_soc' },
+  { id: 'biomass', label: 'Biomassa Karbon', permKey: 'can_access_biomass' },
+  { id: 'soilnpk', label: 'Nutrisi Tanah (NPK)', permKey: 'can_access_soilnpk' },
 ];
 
 const MapCanvasToolbar = ({
@@ -38,7 +46,7 @@ const MapCanvasToolbar = ({
     '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:Poppins,sans-serif;color:#5C7A6D;background:#f4f6f5;">Peta belum tersedia</div>';
 
   return (
-    <>
+    <div className="agro-map-column">
       {/* Loading Overlay */}
       {loading && (
         <div className="agro-loading-overlay">
@@ -49,103 +57,93 @@ const MapCanvasToolbar = ({
         </div>
       )}
 
-      {/* Map iframe */}
-      <iframe
-        ref={iframeRef}
-        srcDoc={mapHtml || fallbackHtml}
-        className="agro-map-frame"
-        title="Peta Agronomi"
-        onLoad={() => {
-          if (iframeRef.current && iframeRef.current.contentWindow) {
-            iframeRef.current.contentWindow.postMessage(
-              {
-                type: 'SET_LAYER_OPACITY',
-                opacity: opacity,
-              },
-              '*'
-            );
-          }
-        }}
-      />
-
-      {/* Floating Toolbar */}
-      <div className="agro-map-toolbar">
-        {/* Layer Parameter */}
-        <div className="agro-toolbar-group">
-          <label className="agro-toolbar-label">
-            <Layers size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'text-bottom' }} />
-            Layer Parameter
-          </label>
-          <select
-            className="agro-toolbar-select"
-            value={selectedLayer}
-            onChange={(e) => onLayerChange(e.target.value)}
-          >
-            {(!permissions || permissions.can_access_ndvi) && (
-              <option value="ndvi">Kesehatan Tanaman (NDVI)</option>
-            )}
-            {(!permissions || permissions.can_access_yield) && (
-              <option value="yield">Estimasi Produksi (Yield)</option>
-            )}
-            {(!permissions || permissions.can_access_soc) && (
-              <option value="soc">Stok Karbon (SOC)</option>
-            )}
-            {(!permissions || permissions.can_access_biomass) && (
-              <option value="biomass">Biomassa Karbon</option>
-            )}
-            {(!permissions || permissions.can_access_soilnpk) && (
-              <option value="soilnpk">Nutrisi Tanah (NPK)</option>
-            )}
-          </select>
+      {/* Baris 1: Layer Parameter Tag Pills */}
+      <div className="agro-map-header-row1">
+        <div className="agro-header-row-label">
+          <span>Layer Parameter:</span>
         </div>
+        <div className="agro-layer-pills-list">
+          {LAYER_OPTIONS.map((layer) => {
+            if (permissions && !permissions[layer.permKey]) return null;
+            const isActive = selectedLayer === layer.id;
+            return (
+              <button
+                key={layer.id}
+                type="button"
+                className={`agro-layer-pill ${isActive ? 'agro-layer-pill-active' : ''}`}
+                onClick={() => onLayerChange(layer.id)}
+              >
+                {layer.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-        <div className="agro-toolbar-divider" />
-
-        {/* Periode */}
-        <div className="agro-toolbar-group">
-          <label className="agro-toolbar-label">
+      {/* Baris 2: Periode Timeline Pills & Transparansi */}
+      <div className="agro-map-header-row2">
+        <div className="agro-period-pills-group">
+          <div className="agro-header-row-label">
             <Clock size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'text-bottom' }} />
-            Periode
-          </label>
-          <input
-            type="range"
-            className="agro-toolbar-slider"
-            min="0"
-            max={PERIODS.length - 1}
-            step="1"
-            value={periodIdx}
-            onChange={(e) => onPeriodChange(parseInt(e.target.value, 10))}
-          />
-          <div className="agro-toolbar-time-label">
-            {PERIODS[periodIdx]?.label || '-'}
+            <span>Periode:</span>
+          </div>
+          <div className="agro-period-pills-list">
+            {PERIODS.map((period, idx) => {
+              const isActive = periodIdx === idx;
+              return (
+                <button
+                  key={period.id}
+                  type="button"
+                  className={`agro-period-pill ${isActive ? 'agro-period-pill-active' : ''}`}
+                  onClick={() => onPeriodChange(idx)}
+                >
+                  {period.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="agro-toolbar-divider" />
-
-        {/* Transparansi */}
-        <div className="agro-toolbar-group">
-          <label className="agro-toolbar-label">
+        <div className="agro-transparency-control">
+          <div className="agro-transparency-label">
             <Eye size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'text-bottom' }} />
-            Transparansi Layer
-          </label>
+            <span>Transparansi:</span>
+            <strong className="agro-transparency-val">{opacity}%</strong>
+          </div>
           <input
             type="range"
-            className="agro-toolbar-slider"
+            className="agro-mini-slider"
             min="0"
             max="100"
             step="5"
             value={opacity}
             onChange={(e) => onOpacityChange(parseInt(e.target.value, 10))}
+            title="Transparansi Layer"
           />
-          <div className="agro-toolbar-opacity-label">
-            <span>Transparan</span>
-            <span>{opacity}%</span>
-            <span>Solid</span>
-          </div>
         </div>
       </div>
-    </>
+
+      {/* Baris 3: Viewport Peta Bersih */}
+      <div className="agro-map-viewport">
+        <iframe
+          ref={iframeRef}
+          srcDoc={mapHtml || fallbackHtml}
+          className="agro-map-frame"
+          title="Peta Agronomi"
+          onLoad={() => {
+            if (iframeRef.current && iframeRef.current.contentWindow) {
+              iframeRef.current.contentWindow.postMessage(
+                {
+                  type: 'SET_LAYER_OPACITY',
+                  opacity: opacity,
+                },
+                '*'
+              );
+            }
+          }}
+        />
+      </div>
+    </div>
   );
 };
 
