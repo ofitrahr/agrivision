@@ -1883,3 +1883,195 @@ img { max-width: 100%; display: block; }
     min-height: 400px;
   }
 }
+
+/* ─── SDG ASSESSMENT (AssessmentFlowPage) ───────────────
+   Desain konsisten dengan program lain: palet hijau tua + netral,
+   uppercase kecil, card putih radius ringan, tanpa pelangi/warna mencolok.
+   ========================================================== */
+.text-muted { color: var(--color-text-muted); }
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+.breadcrumb .active { color: #012d1d; }
+
+.feedback-success {
+  background: #e6f4ec;
+  color: #1b6b43;
+  border: 1px solid #c8e6d5;
+  border-left: 4px solid #2d6a4f;
+}
+.feedback-error {
+  background: #fdf0f0;
+  color: #992222;
+  border: 1px solid #f3d3d3;
+  border-left: 4px solid #ba1a1a;
+}
+
+.panel-emphasized {
+  border: 1px solid #2d6a4f;
+  border-top: 3px solid #012d1d;
+}
+
+.project-selected {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--color-surface-container-low);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+}
+
+.sdg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  background: #eef3f0;
+  border: 1px solid var(--color-border-muted);
+  color: #1c3b2e;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.progress-hint {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #f4f7f5;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: #414844;
+  line-height: 1.5;
+}
+
+.question-block {
+  padding: 18px 0;
+  border-top: 1px solid var(--color-border-muted);
+}
+.q-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: #eef3f0;
+  color: #116c4a;
+  font-size: 12px;
+  font-weight: 700;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.sdg-tag {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 9px;
+  border-radius: 9999px;
+  background: #eef3f0;
+  color: #2d6a4f;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.option-item:hover { border-color: #b6cec1; }
+.option-item.selected {
+  border: 2px solid #2d6a4f;
+  background: #f0f6f2;
+}
+.option-item input[type='radio'] { accent-color: #116c4a; width: 16px; height: 16px; margin: 0; flex-shrink: 0; }
+.option-item .option-text { flex: 1; font-size: 14px; color: #191c1d; }
+.option-item .option-score { font-size: 11px; font-weight: 600; color: #6c757d; }
+
+.bottom-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.detail-card {
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  background: #ffffff;
+  transition: background 0.15s ease;
+}
+.detail-header:hover { background: #f6faf7; }
+.detail-body {
+  padding: 16px 18px;
+  border-top: 1px solid var(--color-border-muted);
+  background: #ffffff;
+}
+
+.contribution-row {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid #f1f3f5;
+  align-items: center;
+}
+.q-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #eef3f0;
+  color: #116c4a;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}

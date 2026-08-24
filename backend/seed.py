@@ -220,9 +220,8 @@ if __name__ == "__main__":
     seed_kopi_test()
 
     # ==========================================
-    # Arsitektur traceability BARU (paralel).
-    # Tanam SDG Master + Questionnaire v1 (16 soal).
+    # Arsitektur traceability BARU (plan revisi terbaru).
+    # Tanam SDG Master + Questionnaire kontribusi SDG dari soal.md (105 pertanyaan).
     # ==========================================
-    from seed_traceability_v2 import _seed_sdg, seed_questionnaire
-    _seed_sdg()
-    seed_questionnaire()
+    from seed_sdg_contribution import run as seed_sdg_contribution
+    seed_sdg_contribution()

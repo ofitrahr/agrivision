@@ -370,20 +370,56 @@ class ActivityLog(db.Model):
 # =======================================================================
 
 class SdgMaster(db.Model):
-    """SDG Master (plan.md #6). berpasangan dengan projects via project_traceability."""
+    """SDG Master (plan revisi #19.1). Menyimpan threshold/konfigurasi per goal.
+
+    Threshold bersifat configurable & bisa berbeda antar goal (plan revisi, catatan
+    akhir). Status SDG dihitung oleh engine (bukan dipilih manual).
+    """
     __tablename__ = 'sdg_masters'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     goal_number = db.Column(db.Integer, nullable=False, unique=True)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
-    threshold = db.Column(db.Numeric(5, 2), nullable=False, default=70.00)
+    # Threshold/methodology config (plan revisi #15, #44) -- configurable per goal
+    fulfilled_score = db.Column(db.Numeric(5, 2), nullable=False, default=70.00)
+    minimum_applicable_questions = db.Column(db.Integer, nullable=False, default=2)
+    minimum_question_score = db.Column(db.Numeric(5, 2), nullable=False, default=50.00)
+    minimum_question_coverage = db.Column(db.Numeric(5, 2), nullable=False, default=50.00)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     project_sdgs = db.relationship('ProjectSdg', backref='sdg_master', cascade='all, delete-orphan')
-    question_sdgs = db.relationship('QuestionSdg', backref='sdg_master', cascade='all, delete-orphan')
+    indicators = db.relationship('SdgIndicator', backref='sdg_master', cascade='all, delete-orphan')
+
+
+class SdgIndicator(db.Model):
+    """Indikator SDG dari metadata (plan revisi #19.2).
+
+    `is_applicable` menandai apakah indikator dapat diterjemahkan menjadi
+    pertanyaan tingkat project (APPLICABLE) atau tidak (NOT_APPLICABLE).
+    Klasifikasi asli metadata tidak diubah.
+    """
+    __tablename__ = 'sdg_indicators'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    goal_id = db.Column(UUID(as_uuid=True), db.ForeignKey('sdg_masters.id', ondelete='CASCADE'), nullable=False)
+    target_code = db.Column(db.String(20))
+    target_name = db.Column(db.Text)
+    indicator_code = db.Column(db.String(30), nullable=False)
+    indicator_name = db.Column(db.Text, nullable=False)
+    classification = db.Column(db.String(50))
+    is_applicable = db.Column(db.Boolean, nullable=False, default=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('goal_id', 'indicator_code', name='uq_sdg_indicator_code'),
+    )
+
+    question_mappings = db.relationship('QuestionIndicator', backref='indicator', cascade='all, delete-orphan')
 
 
 class ProjectTraceabilityProfile(db.Model):
@@ -435,14 +471,22 @@ class QuestionSection(db.Model):
 
 
 class Question(db.Model):
-    """Question (plan.md #13)."""
+    """Question (plan revisi #19.3).
+
+    Satu pertanyaan hanya mewakili SATU SDG Goal (`sdg_id`). Semua versi saat ini
+    bertipe SINGLE_CHOICE. `indicator_mappings` menghubungkan pertanyaan ke
+    indikator indikator dalam SDG yang sama.
+    """
     __tablename__ = 'questions'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     questionnaire_id = db.Column(UUID(as_uuid=True), db.ForeignKey('questionnaires.id', ondelete='CASCADE'), nullable=False)
     section_id = db.Column(UUID(as_uuid=True), db.ForeignKey('question_sections.id', ondelete='CASCADE'))
+    sdg_id = db.Column(UUID(as_uuid=True), db.ForeignKey('sdg_masters.id', ondelete='SET NULL'))
     question_text = db.Column(db.Text, nullable=False)
+    purpose = db.Column(db.Text)
     question_type = db.Column(db.String(20), nullable=False, default='single_choice')
+    weight = db.Column(db.Numeric(5, 2), nullable=False, default=1.00)
     question_order = db.Column(db.Integer, nullable=False, default=0)
     is_required = db.Column(db.Boolean, nullable=False, default=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
@@ -450,12 +494,35 @@ class Question(db.Model):
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     options = db.relationship('QuestionOption', backref='question', cascade='all, delete-orphan')
-    sdg_mappings = db.relationship('QuestionSdg', backref='question', cascade='all, delete-orphan')
+    indicator_mappings = db.relationship('QuestionIndicator', backref='question', cascade='all, delete-orphan')
     assessment_answers = db.relationship('AssessmentAnswer', backref='question')
+    sdg_master = db.relationship('SdgMaster', backref='questions')
+
+    @property
+    def sdg_goal_number(self):
+        return self.sdg_master.goal_number if self.sdg_master else None
+
+
+class QuestionIndicator(db.Model):
+    """Question -> Indicator mapping (plan revisi #19.5).
+
+    PENTING: semua indikator yang dimapping harus berasal dari SDG yang sama
+    dengan `question.sdg_id`. Divalidasi pada layer service.
+    """
+    __tablename__ = 'question_indicator_mappings'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    question_id = db.Column(UUID(as_uuid=True), db.ForeignKey('questions.id', ondelete='CASCADE'), nullable=False)
+    indicator_id = db.Column(UUID(as_uuid=True), db.ForeignKey('sdg_indicators.id', ondelete='CASCADE'), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('question_id', 'indicator_id', name='uq_question_indicator'),
+    )
 
 
 class QuestionOption(db.Model):
-    """Question option / answer choice (plan.md #14)."""
+    """Question option / answer choice (plan revisi #19.4, #18)."""
     __tablename__ = 'question_options'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -464,20 +531,6 @@ class QuestionOption(db.Model):
     score = db.Column(db.Numeric(5, 2), nullable=False, default=0)
     option_order = db.Column(db.Integer, nullable=False, default=0)
     is_exclusive = db.Column(db.Boolean, nullable=False, default=False)
-
-
-class QuestionSdg(db.Model):
-    """Question -> SDG mapping dengan weight (plan.md #17, #18, #19)."""
-    __tablename__ = 'question_sdgs'
-
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    question_id = db.Column(UUID(as_uuid=True), db.ForeignKey('questions.id', ondelete='CASCADE'), nullable=False)
-    sdg_id = db.Column(UUID(as_uuid=True), db.ForeignKey('sdg_masters.id', ondelete='CASCADE'), nullable=False)
-    weight = db.Column(db.Numeric(5, 2), nullable=False, default=0)
-
-    __table_args__ = (
-        db.UniqueConstraint('question_id', 'sdg_id', name='uq_question_sdg'),
-    )
 
 
 class TraceAssessment(db.Model):
@@ -504,34 +557,34 @@ class TraceAssessment(db.Model):
 
 
 class AssessmentAnswer(db.Model):
-    """Assessment answer (plan.md #24)."""
+    """Assessment answer (plan revisi #21).
+
+    `selected_option_id` = opsi SINGLE_CHOICE yang dipilih; `score` = snapshot
+    nilai opsi saat assessment diisi (agar hasil historis tidak berubah jika
+    skor opsi master diperbarui).
+    """
     __tablename__ = 'assessment_answers'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     assessment_id = db.Column(UUID(as_uuid=True), db.ForeignKey('trace_assessments.id', ondelete='CASCADE'), nullable=False)
     question_id = db.Column(UUID(as_uuid=True), db.ForeignKey('questions.id', ondelete='CASCADE'), nullable=False)
+    selected_option_id = db.Column(UUID(as_uuid=True), db.ForeignKey('question_options.id', ondelete='SET NULL'))
     answer_text = db.Column(db.Text)
     score = db.Column(db.Numeric(5, 2), nullable=False, default=0)
     answered_at = db.Column(db.DateTime)
 
-    selected_options = db.relationship('AssessmentAnswerOption', backref='answer', cascade='all, delete-orphan')
-
-
-class AssessmentAnswerOption(db.Model):
-    """Selected options for multiple-choice answer (plan.md #25)."""
-    __tablename__ = 'assessment_answer_options'
-
-    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    answer_id = db.Column(UUID(as_uuid=True), db.ForeignKey('assessment_answers.id', ondelete='CASCADE'), nullable=False)
-    option_id = db.Column(UUID(as_uuid=True), db.ForeignKey('question_options.id', ondelete='CASCADE'), nullable=False)
-
     __table_args__ = (
-        db.UniqueConstraint('answer_id', 'option_id', name='uq_answer_option'),
+        db.UniqueConstraint('assessment_id', 'question_id', name='uq_assessment_question_answer'),
     )
 
 
 class AssessmentSdgResult(db.Model):
-    """Result kalkulasi SDG utk assessment (plan.md #27-#28)."""
+    """Result kalkulasi kontribusi SDG utk assessment (plan revisi #22, #13).
+
+    Status dihitung engine menggunakan threshold configurable per goal. Bukan
+    input manual. Menyimpan rincian pertanyaan yg applicable/terjawab/memenuhi
+    syarat minimal + coverage utk menjelaskan status.
+    """
     __tablename__ = 'assessment_sdg_results'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -539,6 +592,11 @@ class AssessmentSdgResult(db.Model):
     sdg_id = db.Column(UUID(as_uuid=True), db.ForeignKey('sdg_masters.id', ondelete='CASCADE'), nullable=False)
     score = db.Column(db.Numeric(5, 2), nullable=False, default=0)
     threshold = db.Column(db.Numeric(5, 2), nullable=False, default=70.00)
+    status = db.Column(db.String(30), nullable=False, default='NOT_ASSESSED')
+    applicable_question_count = db.Column(db.Integer, nullable=False, default=0)
+    answered_question_count = db.Column(db.Integer, nullable=False, default=0)
+    qualified_question_count = db.Column(db.Integer, nullable=False, default=0)
+    coverage_percentage = db.Column(db.Numeric(5, 2), nullable=False, default=0)
     is_met = db.Column(db.Boolean, nullable=False, default=False)
     calculated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 

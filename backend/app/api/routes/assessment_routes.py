@@ -19,6 +19,18 @@ def api_list_sdgs(current_user):
 
 
 # ---------------------------------------------------------------
+# SDG INDICATOR (metadata 302 indikator, plan revisi #19.2)
+# ---------------------------------------------------------------
+@assessment_bp.route('/indicators', methods=['GET'])
+@token_required
+@roles_required(*ASSESS_ROLES)
+def api_list_indicators(current_user):
+    applicable_only = request.args.get('applicable') == '1'
+    result, status = svc.list_sdg_indicators(applicable_only=applicable_only)
+    return jsonify(result), status
+
+
+# ---------------------------------------------------------------
 # QUESTIONNAIRE
 # ---------------------------------------------------------------
 @assessment_bp.route('/questionnaires', methods=['GET'])

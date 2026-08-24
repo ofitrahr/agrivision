@@ -16,14 +16,14 @@ from app.db.models import (
     Project,
     ProjectTraceabilityProfile,
     SdgMaster,
+    SdgIndicator,
     Questionnaire,
     QuestionSection,
     Question,
     QuestionOption,
-    QuestionSdg,
+    QuestionIndicator,
     TraceAssessment,
     AssessmentAnswer,
-    AssessmentAnswerOption,
     AssessmentSdgResult,
     ProjectSdg,
     ProjectSdgVerification,
@@ -56,8 +56,61 @@ SDG_CATALOG = [
 ]
 
 
+# ---------------------------------------------------------------
+# STATUS SDG (plan revisi #13) -- dihitung engine, bukan input manual.
+# ---------------------------------------------------------------
+NOT_ASSESSED = 'NOT_ASSESSED'
+LOW_CONTRIBUTION = 'LOW_CONTRIBUTION'
+CONTRIBUTING = 'CONTRIBUTING'
+FULFILLED = 'FULFILLED'
+
+
+def get_threshold_config(sdg_master):
+    """Ambil konfigurasi threshold untuk sebuah goal (plan revisi #14, #15, #44).
+
+    Threshold bersifat configurable dan BOLEH berbeda antar goal.
+    """
+    return {
+        'fulfilled_score': float(sdg_master.fulfilled_score),
+        'minimum_applicable_questions': int(sdg_master.minimum_applicable_questions),
+        'minimum_question_score': float(sdg_master.minimum_question_score),
+        'minimum_question_coverage': float(sdg_master.minimum_question_coverage),
+    }
+
+
+def evaluate_sdg_status(score, applicable_count, answered_count, qualified_count, config):
+    """Evaluasi status SDG (plan revisi #12, #13) berbasis config, tanpa hardcode.
+
+    Config:
+      fulfilled_score            -> ambang skor untuk FULFILLED (>=
+      minimum_applicable_questions -> minimal jumlah pertanyaan applicable
+      minimum_question_score     -> ambang skor per pertanyaan utk dihitung "qualified"
+      minimum_question_coverage  -> % minim. pertanyaan yg mencapai minimum_question_score
+    """
+    if applicable_count <= 0:
+        return NOT_ASSESSED
+
+    coverage_pct = (qualified_count / applicable_count) * 100 if applicable_count else 0
+    min_q = config['minimum_applicable_questions']
+    min_cov = config['minimum_question_coverage']
+
+    fulfilled = (
+        score >= config['fulfilled_score']
+        and applicable_count >= min_q
+        and coverage_pct >= min_cov
+    )
+    if fulfilled:
+        return FULFILLED
+
+    # Jika basis penilaian tipis (hanya 1 applicable question), score tinggi
+    # cukup menghasilkan CONTRIBUTING, BUKAN FULFILLED (plan revisi #12, #13).
+    if score < 40:
+        return LOW_CONTRIBUTION
+    return CONTRIBUTING
+
+
 def seed_sdg_masters(threshold=70.00):
-    """Pastikan SDG Master (goal_number 1..17) tersedia & lengkap. (plan.md #34)
+    """Pastikan SDG Master (goal_number 1..17) tersedia & lengkap. (plan revisi #19.1)
 
     Idempoten: goal yang belum ada dibuat, goal yang sudah ada dilengkapi
     description-nya tanpa mengubah threshold/data lain.
@@ -68,7 +121,8 @@ def seed_sdg_masters(threshold=70.00):
         sdg = SdgMaster.query.filter_by(goal_number=num).first()
         if not sdg:
             db.session.add(SdgMaster(
-                goal_number=num, name=name, description=description, threshold=threshold
+                goal_number=num, name=name, description=description,
+                fulfilled_score=threshold,
             ))
             created += 1
         else:
@@ -89,11 +143,42 @@ def list_sdg_masters(active_only=True):
             "goal_number": s.goal_number,
             "name": s.name,
             "description": s.description,
-            "threshold": float(s.threshold),
+            "threshold": float(s.fulfilled_score),
+            "threshold_config": get_threshold_config(s),
+            "indicator_count": len(s.indicators),
             "is_active": s.is_active,
         }
         for s in q.order_by(SdgMaster.goal_number).all()
     ]
+
+
+def list_sdg_indicators(applicable_only=False, goal_number=None):
+    """Daftar indikator SDG (metadata). Opsional filter hanya yang APPLICABLE."""
+    q = SdgIndicator.query.join(SdgMaster).order_by(
+        SdgMaster.goal_number, SdgIndicator.indicator_code
+    )
+    if applicable_only:
+        q = q.filter(SdgIndicator.is_applicable.is_(True))
+    if goal_number is not None:
+        q = q.filter(SdgMaster.goal_number == goal_number)
+    rows = q.all()
+    return {
+        "success": True,
+        "data": [
+            {
+                "id": str(i.id),
+                "goal_number": i.sdg_master.goal_number if i.sdg_master else None,
+                "goal_name": i.sdg_master.name if i.sdg_master else None,
+                "target_code": i.target_code,
+                "target_name": i.target_name,
+                "indicator_code": i.indicator_code,
+                "indicator_name": i.indicator_name,
+                "classification": i.classification,
+                "is_applicable": i.is_applicable,
+            }
+            for i in rows
+        ],
+    }, 200
 
 
 # ---------------------------------------------------------------
@@ -125,7 +210,7 @@ def get_project_traceability_data(project_id):
                 "sdg_id": str(sdg.id),
                 "goal_number": sdg.goal_number,
                 "name": sdg.name,
-                "threshold": float(sdg.threshold),
+                "threshold": float(sdg.fulfilled_score),
             })
 
     assessments = []
@@ -227,24 +312,31 @@ def serialize_questionnaire(questionnaire_id):
                 }
                 for o in sorted(question.options, key=lambda x: x.option_order or 0)
             ]
-            sdg_mappings = [
+            indicators = [
                 {
-                    "sdg_id": str(m.sdg_id),
-                    "goal_number": m.sdg_master.goal_number,
-                    "name": m.sdg_master.name,
-                    "weight": float(m.weight),
+                    "id": str(m.indicator_id),
+                    "indicator_code": m.indicator.indicator_code if m.indicator else None,
+                    "indicator_name": m.indicator.indicator_name if m.indicator else None,
+                    "classification": m.indicator.classification if m.indicator else None,
                 }
-                for m in question.sdg_mappings
-                if m.sdg_master
+                for m in question.indicator_mappings
+                if m.indicator
             ]
             questions.append({
                 "id": str(question.id),
                 "question_text": question.question_text,
+                "purpose": question.purpose,
                 "question_type": question.question_type,
                 "question_order": question.question_order,
                 "is_required": question.is_required,
+                "weight": float(question.weight or 1),
+                "sdg": {
+                    "sdg_id": str(question.sdg_id) if question.sdg_id else None,
+                    "goal_number": question.sdg_goal_number,
+                    "name": question.sdg_master.name if question.sdg_master else None,
+                },
+                "indicator_mappings": indicators,
                 "options": options,
-                "sdg_mappings": sdg_mappings,
             })
         sections.append({
             "id": str(sec.id),
@@ -306,35 +398,38 @@ def serialize_sdg_results(assessment_id):
     for r in rows:
         contributions = []
         if assessment and assessment.questionnaire_id:
-            mappings = QuestionSdg.query.join(Question).filter(
-                QuestionSdg.sdg_id == r.sdg_id,
-                Question.questionnaire_id == assessment.questionnaire_id,
-                Question.is_active.is_(True),
-            ).all()
-            total_weight = sum(float(m.weight) for m in mappings) or 1.0
+            questions = [q for q in assessment.questionnaire.questions
+                         if q.is_active and q.sdg_id == r.sdg_id]
+            total_weight = sum(float(q.weight or 1) for q in questions) or 1.0
             answers = {a.question_id: a for a in assessment.answers}
-            for m in mappings:
-                q = m.question
-                ans = answers.get(m.question_id)
+            for q in questions:
+                ans = answers.get(q.id)
                 score = float(ans.score) if ans else 0.0
-                weight = float(m.weight)
+                weight = float(q.weight or 1)
                 contributions.append({
-                    "question_id": str(m.question_id),
-                    "question_text": q.question_text if q else None,
-                    "question_type": q.question_type if q else None,
+                    "question_id": str(q.id),
+                    "question_text": q.question_text,
+                    "question_type": q.question_type,
                     "score": score,
                     "weight": weight,
                     "weight_pct": round(weight / total_weight * 100, 2),
                     "contribution": round(score * weight / total_weight, 2),
                 })
+        sm = r.sdg_master
         results.append({
             "id": str(r.id),
             "sdg_id": str(r.sdg_id),
-            "goal_number": r.sdg_master.goal_number if r.sdg_master else None,
-            "name": r.sdg_master.name if r.sdg_master else None,
-            "description": r.sdg_master.description if r.sdg_master else None,
+            "goal_number": sm.goal_number if sm else None,
+            "name": sm.name if sm else None,
+            "description": sm.description if sm else None,
             "score": float(r.score),
             "threshold": float(r.threshold),
+            "threshold_config": get_threshold_config(sm) if sm else None,
+            "status": r.status,
+            "applicable_question_count": r.applicable_question_count,
+            "answered_question_count": r.answered_question_count,
+            "qualified_question_count": r.qualified_question_count,
+            "coverage_percentage": float(r.coverage_percentage),
             "is_met": r.is_met,
             "calculated_at": r.calculated_at.isoformat() if r.calculated_at else None,
             "contributions": contributions,
@@ -353,16 +448,13 @@ def serialize_answers(assessment_id, questionnaire_id):
         if not question.is_active:
             continue
         ans = next((a for a in answers if a.question_id == question.id), None)
-        selected_ids = []
-        if ans:
-            selected_ids = [str(so.option_id) for so in ans.selected_options]
         out.append({
             "question_id": str(question.id),
             "question_text": question.question_text,
             "question_type": question.question_type,
             "answer_text": ans.answer_text if ans else None,
             "score": float(ans.score) if ans else None,
-            "selected_option_ids": selected_ids,
+            "selected_option_id": str(ans.selected_option_id) if ans and ans.selected_option_id else None,
         })
     return out
 
@@ -433,7 +525,11 @@ def get_assessment_detail(assessment_id):
 
 
 def submit_answers(assessment_id, current_user, data):
-    """Simpan jawaban & kalkulasi SDG. (plan.md #15, #16, #26, #27)"""
+    """Simpan jawaban & kalkulasi SDG. (plan revisi #21, #25, #33)
+
+    Semua pertanyaan bertipe SINGLE_CHOICE; score awal adalah snapshot dari
+    opsi terpilih (0-100) agar hasil historis tidak berubah.
+    """
     assessment = TraceAssessment.query.get(assessment_id)
     if not assessment:
         return {"success": False, "message": "Assessment tidak ditemukan"}, 404
@@ -450,54 +546,47 @@ def submit_answers(assessment_id, current_user, data):
     # Hapus jawaban lama (re-submit)
     AssessmentAnswer.query.filter_by(assessment_id=assessment_id).delete()
 
+    saved_count = 0
     for item in answers:
         question_id = item.get('question_id')
         question = question_map.get(question_id)
-        if not question:
+        if not question or not question.sdg_id:
             continue
+        if question.question_type != 'single_choice':
+            return {"success": False, "message": "Hanya question SINGLE_CHOICE yang didukung. Hubungi admin."}, 400
 
-        answer_text = None
-        score = 0
-        selected_ids = item.get('option_ids', []) or item.get('selected_option_ids', [])
-        option_id_single = item.get('option_id')
-
-        if option_id_single:
-            selected_ids = [option_id_single]
-
-        if not selected_ids and not item.get('answer_text'):
-            # skip jawaban kosong utk soal wajib
-            if question.is_required:
-                continue
-            answer_text = item.get('answer_text')
+        option_id = item.get('option_id')
+        if option_id:
+            option = QuestionOption.query.get(option_id)
+            if not option or option.question_id != question.id:
+                return {"success": False, "message": "Opsi jawaban tidak valid untuk pertanyaan ini"}, 400
+            score = float(option.score)
+            if score < 0 or score > 100:
+                return {"success": False, "message": "Skor jawaban harus berada pada rentang 0-100"}, 400
+            answer_text = str(option.option_text)
+        elif item.get('answer_text'):
+            score = 0
+            answer_text = item['answer_text']
         else:
-            opts = QuestionOption.query.filter(QuestionOption.id.in_(selected_ids)).all()
-            if question.question_type == 'multiple_choice':
-                # plan.md #16: jumlah score option yang dipilih, klamp 0-100
-                score = sum(float(o.score) for o in opts)
-                score = min(max(score, 0), 100)
-                answer_text = ", ".join(str(o.option_text) for o in opts)
-            else:
-                # single choice: pakai score option terpilih
-                if opts:
-                    score = float(opts[0].score)
-                    answer_text = str(opts[0].option_text)
-                elif item.get('answer_text'):
-                    answer_text = item['answer_text']
+            continue  # soal belum dijawab
 
         answer = AssessmentAnswer(
             assessment_id=assessment_id,
             question_id=question_id,
+            selected_option_id=option_id,
             answer_text=answer_text,
             score=score,
             answered_at=datetime.utcnow(),
         )
         db.session.add(answer)
-        db.session.flush()
+        saved_count += 1
 
-        # simpan multiple-choice selected options
-        if question.question_type == 'multiple_choice' and selected_ids:
-            for oid in selected_ids:
-                db.session.add(AssessmentAnswerOption(answer_id=answer.id, option_id=oid))
+    # Validasi submission: semua question wajib harus dijawab (plan #25)
+    required_ids = {str(q.id) for q in questionnaire.questions if q.is_active and q.is_required}
+    answered_ids = {item.get('question_id') for item in answers}
+    missing = required_ids - answered_ids
+    if data.get('status') == 'completed' and missing:
+        return {"success": False, "message": f"Masih ada {len(missing)} pertanyaan wajib yang belum dijawab"}, 400
 
     # update status
     assessment.status = data.get('status', 'in_progress')
@@ -515,6 +604,7 @@ def submit_answers(assessment_id, current_user, data):
         "message": "Jawaban berhasil disimpan",
         "data": {
             "status": assessment.status,
+            "added_answers": saved_count,
             "assessment": serialize_assessment(assessment),
             "sdg_results": serialize_sdg_results(assessment_id),
             "all_sdgs": list_sdg_masters(active_only=False),
@@ -523,59 +613,88 @@ def submit_answers(assessment_id, current_user, data):
 
 
 def _calculate_sdg(assessment):
-    """Kalkulasi SDG score = sum(question_score * weight). (plan.md #26, #27, #29)
+    """Kalkulasi kontribusi SDG + status (plan revisi #16, #33).
 
-    Catatan: fungsi ini HANYA menulis AssessmentSdgResult (hasil penilaian).
-    Penentuan Project SDG tidak dilakukan di sini — dilakukan secara manual oleh
-    Admin melalui halaman Traceability (save_project_sdg_selection).
+    Untuk setiap goal: score = rata-rata jawaban (equal weight) pertanyaan yang
+    memetakan ke goal tsb. Status (NOT_ASSESSED/LOW_CONTRIBUTION/CONTRIBUTING/
+    FULFILLED) dihitung menggunakan threshold configurable per goal.
+
+    Fungsi ini HANYA menulis AssessmentSdgResult. Penentuan SDG Project
+    (ProjectSdg) dilakukan oleh Admin pada halaman Traceability.
     """
     # delete hasil lama
     AssessmentSdgResult.query.filter_by(assessment_id=assessment.id).delete()
 
     answers = {a.question_id: a for a in assessment.answers}
-    # kumpulkan sdg ikut serta
-    mappings = QuestionSdg.query.join(Question).filter(
-        Question.questionnaire_id == assessment.questionnaire_id,
-        Question.is_active.is_(True),
-    ).all()
+    # kumpulkan pertanyaan ikut serta per SDG
+    questions = [q for q in assessment.questionnaire.questions if q.is_active and q.sdg_id]
 
     sdg_agg = {}
-    for m in mappings:
-        if m.sdg_id not in sdg_agg:
-            sdg_agg[m.sdg_id] = []
-        sdg_agg[m.sdg_id].append(m)
+    for q in questions:
+        sdg_agg.setdefault(q.sdg_id, []).append(q)
 
-    results = []
-    for sdg_id, mapping_list in sdg_agg.items():
-        total_weight = sum(float(m.weight) for m in mapping_list)
+    for sdg_id, q_list in sdg_agg.items():
+        total_weight = sum(float(q.weight or 1) for q in q_list)
         if total_weight <= 0:
             continue
 
         weighted_sum = Decimal(0)
-        for m in mapping_list:
-            ans = answers.get(m.question_id)
+        qualified = 0
+        answered = 0
+        for q in q_list:
+            ans = answers.get(q.id)
             if ans:
-                weighted_sum += Decimal(ans.score) * Decimal(m.weight)
+                answered += 1
+                weighted_sum += Decimal(ans.score) * Decimal(q.weight or 1)
+                if float(ans.score) >= float(q.sdg_master.minimum_question_score):
+                    qualified += 1
 
+        applicable_count = len(q_list)
         raw_score = (weighted_sum / Decimal(total_weight)) * Decimal(100)
 
         sdg_master = SdgMaster.query.get(sdg_id)
-        threshold = sdg_master.threshold if sdg_master else Decimal(70)
-        score = min(max(raw_score, 0), 100)
-        is_met = score >= threshold
+        config = get_threshold_config(sdg_master)
+        score = min(max(raw_score, Decimal(0)), Decimal(100))
+        status = evaluate_sdg_status(float(score), applicable_count, answered, qualified, config)
+        is_met = status == FULFILLED
+        coverage = (qualified / applicable_count * 100) if applicable_count else 0
 
-        result = AssessmentSdgResult(
+        db.session.add(AssessmentSdgResult(
             assessment_id=assessment.id,
             sdg_id=sdg_id,
             score=score,
-            threshold=threshold,
+            threshold=config['fulfilled_score'],
+            status=status,
+            applicable_question_count=applicable_count,
+            answered_question_count=answered,
+            qualified_question_count=qualified,
+            coverage_percentage=coverage,
             is_met=is_met,
             calculated_at=datetime.utcnow(),
-        )
-        db.session.add(result)
-        results.append(result)
+        ))
 
-    return results
+    # Goal tanpa pertanyaan APPLICABLE -> NOT_ASSESSED (plan revisi #13).
+    # Pastikan setiap SDG hadir dgn status eksplisit, bukan absen.
+    with_questions = set(sdg_agg.keys())
+    for sdg_master in SdgMaster.query.all():
+        if sdg_master.id in with_questions:
+            continue
+        config = get_threshold_config(sdg_master)
+        db.session.add(AssessmentSdgResult(
+            assessment_id=assessment.id,
+            sdg_id=sdg_master.id,
+            score=Decimal(0),
+            threshold=config['fulfilled_score'],
+            status=NOT_ASSESSED,
+            applicable_question_count=0,
+            answered_question_count=0,
+            qualified_question_count=0,
+            coverage_percentage=Decimal(0),
+            is_met=False,
+            calculated_at=datetime.utcnow(),
+        ))
+
+    return True
 
 
 def change_assessment_status(assessment_id, status):
@@ -686,7 +805,7 @@ def get_project_sdg_selection(project_id):
             "goal_number": sdg.goal_number,
             "name": sdg.name,
             "description": sdg.description,
-            "threshold": float(sdg.threshold),
+            "threshold": float(sdg.fulfilled_score),
             "selected": ps is not None,
             "display_order": ps.display_order if hasattr(ps, 'display_order') else 0,
         })
