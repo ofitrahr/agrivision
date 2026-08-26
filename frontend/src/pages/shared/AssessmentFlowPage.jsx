@@ -600,7 +600,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
                         </div>
                         <div style={{ fontSize: 12, color: '#6C757D' }}>
                           {r.is_assessed
-                            ? `Skor ${Math.round(r.score)}% • Threshold ${Math.round(r.threshold)}% • ${r.applicable_count} pertanyaan menilai`
+                            ? `Skor ${Math.round(r.score)}% • Threshold ${Math.round(r.threshold)}% • Cakupan ${Math.round(r.coverage || 0)}% • ${r.applicable_count} pertanyaan menilai`
                             : 'Tidak ada pertanyaan yang berlaku untuk SDG ini pada questionnaire.'}
                         </div>
                       </div>
@@ -619,6 +619,27 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
                               <span style={{ fontSize: 12, fontWeight: 700, color: '#191c1d' }}>{Math.round(r.score)}% / {Math.round(r.threshold)}%</span>
                             </div>
                             <ProgressBar score={r.score} threshold={r.threshold} assessed={r.is_assessed} />
+                          </div>
+                        )}
+
+                        {r.is_assessed && r.result?.criteria && (
+                          <div style={{ marginBottom: 14 }}>
+                            <div className="form-label" style={{ marginBottom: 8 }}>Kriteria status Terpenuhi:</div>
+                            {['min_score', 'min_questions', 'min_coverage'].map(key => {
+                              const c = r.result.criteria[key];
+                              if (!c) return null;
+                              return (
+                                <div key={key} style={{
+                                  display: 'flex', alignItems: 'center', gap: 8,
+                                  fontSize: 13, color: c.met ? '#116c4a' : '#B45309',
+                                  padding: '4px 0'
+                                }}>
+                                  {c.met ? <CheckCircle2 size={14} /> : <Clock3 size={14} />}
+                                  <span style={{ color: '#191c1d' }}>{c.label}</span>
+                                  {!c.met && <span style={{ color: '#B45309', fontWeight: 600 }}>(belum terpenuhi)</span>}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
 

@@ -416,6 +416,10 @@ def serialize_sdg_results(assessment_id):
                     "contribution": round(score * weight / total_weight, 2),
                 })
         sm = r.sdg_master
+        cfg = get_threshold_config(sm) if sm else None
+        applicable = r.applicable_question_count or 0
+        qualified = r.qualified_question_count or 0
+        coverage_pct = float(r.coverage_percentage or 0)
         results.append({
             "id": str(r.id),
             "sdg_id": str(r.sdg_id),
@@ -424,13 +428,33 @@ def serialize_sdg_results(assessment_id):
             "description": sm.description if sm else None,
             "score": float(r.score),
             "threshold": float(r.threshold),
-            "threshold_config": get_threshold_config(sm) if sm else None,
+            "threshold_config": cfg,
             "status": r.status,
-            "applicable_question_count": r.applicable_question_count,
+            "applicable_question_count": applicable,
             "answered_question_count": r.answered_question_count,
-            "qualified_question_count": r.qualified_question_count,
-            "coverage_percentage": float(r.coverage_percentage),
+            "qualified_question_count": qualified,
+            "coverage_percentage": coverage_pct,
             "is_met": r.is_met,
+            # Kriteria FULFILLED dievaluasi ulang dari data tersimpan agar UI
+            # bisa menjelaskan kondisi mana yang belum terpenuhi.
+            "criteria": {
+                "min_score": {
+                    "label": f"Skor >= {float(r.threshold):.0f}%",
+                    "met": float(r.score) >= float(r.threshold),
+                },
+                "min_questions": {
+                    "label": f"Pertanyaan berlaku >= {cfg['minimum_applicable_questions']}" if cfg else "-",
+                    "met": applicable >= (cfg['minimum_applicable_questions'] if cfg else 0),
+                    "value": applicable,
+                    "required": cfg['minimum_applicable_questions'] if cfg else None,
+                },
+                "min_coverage": {
+                    "label": f"Cakupan jawaban memadai >= {cfg['minimum_question_coverage']:.0f}%" if cfg else "-",
+                    "met": coverage_pct >= float(cfg['minimum_question_coverage']) if cfg else False,
+                    "value": round(coverage_pct, 1),
+                    "required": float(cfg['minimum_question_coverage']) if cfg else None,
+                },
+            } if cfg else None,
             "calculated_at": r.calculated_at.isoformat() if r.calculated_at else None,
             "contributions": contributions,
         })
@@ -634,26 +658,27 @@ def _calculate_sdg(assessment):
         sdg_agg.setdefault(q.sdg_id, []).append(q)
 
     for sdg_id, q_list in sdg_agg.items():
-        total_weight = sum(float(q.weight or 1) for q in q_list)
-        if total_weight <= 0:
-            continue
+        sdg_master = SdgMaster.query.get(sdg_id)
+        config = get_threshold_config(sdg_master)
 
+        # Skor opsi sudah skala 0-100; skor goal = rata-rata tertimbang dari
+        # jawaban TERISI (bobot pertanyaan tak terjawab tidak ikut pembagi).
         weighted_sum = Decimal(0)
+        answered_weight = Decimal(0)
         qualified = 0
         answered = 0
         for q in q_list:
             ans = answers.get(q.id)
+            w = Decimal(q.weight or 1)
             if ans:
                 answered += 1
-                weighted_sum += Decimal(ans.score) * Decimal(q.weight or 1)
-                if float(ans.score) >= float(q.sdg_master.minimum_question_score):
+                weighted_sum += Decimal(ans.score) * w
+                answered_weight += w
+                if float(ans.score) >= float(sdg_master.minimum_question_score):
                     qualified += 1
 
         applicable_count = len(q_list)
-        raw_score = (weighted_sum / Decimal(total_weight)) * Decimal(100)
-
-        sdg_master = SdgMaster.query.get(sdg_id)
-        config = get_threshold_config(sdg_master)
+        raw_score = weighted_sum / answered_weight if answered_weight > 0 else Decimal(0)
         score = min(max(raw_score, Decimal(0)), Decimal(100))
         status = evaluate_sdg_status(float(score), applicable_count, answered, qualified, config)
         is_met = status == FULFILLED
