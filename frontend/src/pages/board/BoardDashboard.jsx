@@ -68,23 +68,25 @@ const BoardDashboard = () => {
                         <StatCard 
                             title="TOTAL LAHAN AKTIF" 
                             value={metrics?.total_farms || 0} 
-                            unit="Lahan"
+                            unit="Lahan Terdaftar"
                             icon={MapPin}
                         />
                         <StatCard 
                             title="LUAS AREA" 
-                            value={`${metrics?.total_area_ha || 0} Ha`} 
+                            value={metrics?.total_area_ha || 0} 
+                            unit="Hektar (Ha)"
                             icon={Maximize2}
                         />
                         <StatCard 
                             title="TOTAL PEKERJA" 
                             value={metrics?.total_farmers || 0} 
-                            unit="Pekerja"
+                            unit="Pekerja Terdaftar"
                             icon={Users}
                         />
                         <StatCard 
                             title="TOTAL KEUNTUNGAN" 
                             value={formatCurrency(metrics?.total_profit)} 
+                            unit="Rupiah (IDR)"
                             icon={Coins}
                         />
                     </>

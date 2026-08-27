@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, TreePine, Coins, Users, Maximize2 } from 'lucide-react';
 import StatCard from '../../shared/components/UI/StatCard';
 import Card from '../../shared/components/UI/Card';
 
 const StatCardSkeleton = () => (
   <div className="stat-card" aria-busy="true" aria-label="Memuat data">
-    <div className="skeleton-text mb-2" style={{ height: '12px', width: '45%' }}></div>
-    <div className="skeleton-text mt-3" style={{ height: '36px', width: '70%' }}></div>
-    <div className="skeleton-text mt-2" style={{ height: '20px', width: '55%', borderRadius: '6px' }}></div>
+    <div className="skeleton-text mb-2" style={{ height: '14px', width: '45%' }}></div>
+    <div className="skeleton-text mt-3" style={{ height: '40px', width: '70%' }}></div>
+    <div className="skeleton-text mt-2" style={{ height: '24px', width: '55%', borderRadius: '6px' }}></div>
   </div>
 );
 
@@ -64,9 +64,9 @@ const FarmCardSkeleton = () => (
   <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
     <div className="skeleton-text" style={{ height: '180px', width: '100%' }}></div>
     <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <div className="skeleton-text" style={{ height: '20px', width: '65%' }}></div>
+      <div className="skeleton-text" style={{ height: '18px', width: '65%' }}></div>
       <div className="skeleton-text" style={{ height: '16px', width: '40%' }}></div>
-      <div className="skeleton-text" style={{ height: '14px', width: '80%' }}></div>
+      <div className="skeleton-text" style={{ height: '13px', width: '80%' }}></div>
       <div style={{ display: 'flex', gap: '8px' }}>
         <div className="skeleton-text" style={{ height: '36px', flex: 1, borderRadius: 'var(--radius-pill)' }}></div>
         <div className="skeleton-text" style={{ height: '36px', flex: 1, borderRadius: 'var(--radius-pill)' }}></div>
@@ -84,7 +84,7 @@ const FarmCard = ({ farm, onManage, onAgronomy }) => {
       <FarmMapThumbnail farmId={farm.id} />
       <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div>
-          <h3 className="card-title" style={{ marginBottom: '8px', fontSize: '16px' }}>{farm.name}</h3>
+          <h3 className="card-title" style={{ marginBottom: '8px', fontSize: '16px', fontWeight: 700 }}>{farm.name}</h3>
           <div className="agro-chip-group" style={{ marginBottom: 0 }}>
             {farm.total_area_ha && (
               <span className="agro-chip">{farm.total_area_ha} Ha</span>
@@ -176,8 +176,6 @@ const ManagerDashboard = () => {
   const primaryCommodity = stats?.primary_commodity ?? null;
   const totalRevenue = stats?.total_revenue > 0 ? stats.total_revenue : null;
   const totalCarbonTon = stats?.total_carbon_ton > 0 ? stats.total_carbon_ton : null;
-  // revenue_trend: array angka dari FinancialRecord, kosong jika tidak ada data
-  const revenueTrend = stats?.revenue_trend?.length > 0 ? stats.revenue_trend : null;
 
   return (
     <div>
@@ -203,43 +201,44 @@ const ManagerDashboard = () => {
             Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
           ) : (
             <>
-              {/* Kartu 1: Serapan Karbon — data dari EsgMetric.carbon_footprint */}
-              <StatCard
-                title="SERAPAN KARBON"
-                value={totalCarbonTon !== null ? `${totalCarbonTon} ton` : '-'}
-                badgeText="Biomassa Lahan Aktif"
-                variant="dark"
-              />
+              {/* Kartu 1: Serapan Karbon — data dari EsgMetric.carbon_footprint (hanya tampil jika data tersedia) */}
+              {totalCarbonTon !== null && (
+                <StatCard
+                  title="SERAPAN KARBON"
+                  headerUnit="(TON CO2e)"
+                  value={totalCarbonTon}
+                  badgeText="Biomassa Lahan Aktif"
+                  variant="dark"
+                  icon={TreePine}
+                />
+              )}
 
               {/* Kartu 2: Nilai Ekonomi — data dari FinancialRecord.estimated_revenue */}
               <StatCard
                 title="NILAI EKONOMI (EST)"
                 value={formatCurrency(totalRevenue) ?? '-'}
-                chartData={revenueTrend}
-                chartColor="var(--color-bright-emerald)"
-                chartFill="rgba(16, 185, 129, 0.08)"
+                icon={Coins}
+                silhouetteColor="var(--color-dark-amber)"
               />
 
               {/* Kartu 3: Lahan & Petani — data dari Farm.count + Farmer.count */}
               <StatCard
                 title="LAHAN & PETANI"
-                value={totalFarms !== null ? `${totalFarms} Lahan` : '-'}
+                value={totalFarms !== null ? totalFarms : '-'}
+                inlineUnit="Lahan Terdaftar"
                 badgeText={totalFarmers !== null ? `${totalFarmers} Petani Terdaftar` : null}
                 badgeType="neutral"
-                chartData={farms.length > 0 ? farms.map((_, i) => i + 1) : null}
-                chartColor="var(--color-dark-amber)"
-                chartFill="rgba(217, 119, 6, 0.08)"
+                icon={Users}
               />
 
               {/* Kartu 4: Luas Lahan & Komoditas — data dari Farm.total_area_ha + Farm.crop_variety */}
               <StatCard
                 title="TOTAL LUAS LAHAN"
-                value={totalAreaHa !== null ? `${totalAreaHa} Ha` : '-'}
+                headerUnit="(HA)"
+                value={totalAreaHa !== null ? totalAreaHa : '-'}
                 badgeText={primaryCommodity ? `Komoditas: ${primaryCommodity}` : null}
                 badgeType="neutral"
-                chartData={farms.length > 0 ? farms.map(f => parseFloat(f.total_area_ha) || 0) : null}
-                chartColor="var(--color-main-green)"
-                chartFill="rgba(17, 106, 58, 0.08)"
+                icon={Maximize2}
               />
             </>
           )}

@@ -96,7 +96,8 @@ const AdminDashboard = () => {
                         />
                         <StatCard 
                             title="TOTAL LUAS" 
-                            value={`${stats?.total_area_ha || 0} Ha`} 
+                            value={stats?.total_area_ha || 0} 
+                            unit="Hektar (Ha)"
                             icon={Maximize2}
                         />
                         <StatCard 

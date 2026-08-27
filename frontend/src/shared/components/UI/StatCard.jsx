@@ -52,12 +52,17 @@ const SparklineArea = ({
 
 const StatCard = ({
   title,
+  headerUnit,
   value,
   unit,
+  inlineUnit,
   subtext,
   badgeText,
   badgeType = 'success',
   variant = 'white', // 'white' | 'dark'
+  icon: IconProp,
+  silhouette: SilhouetteProp,
+  silhouetteColor,
   chartData,
   chartColor,
   chartFill,
@@ -66,6 +71,7 @@ const StatCard = ({
 }) => {
   const isDark = variant === 'dark';
   const isTextValue = typeof value === 'string' && isNaN(Number(value)) && !value.startsWith('Rp');
+  const SilhouetteIcon = SilhouetteProp || IconProp;
 
   return (
     <div 
@@ -78,14 +84,32 @@ const StatCard = ({
       <div className="stat-card-main-content">
         <div className="stat-card-header-clean">
           <span className="stat-label">{title}</span>
+          {headerUnit && (
+            <span className="stat-header-unit">
+              {headerUnit}
+            </span>
+          )}
         </div>
 
         <div className="stat-card-body-row">
           <div className="stat-card-info-side">
             <div className={`stat-value ${isTextValue ? 'stat-value-text' : ''}`}>
               <span>{value ?? 0}</span>
-              {unit && <span className="unit" style={{ color: isDark ? '#ffffff' : 'var(--color-text-muted)', fontSize: '14px', marginLeft: '4px' }}>{unit}</span>}
+              {inlineUnit && (
+                <span className="stat-unit-inline" style={{ color: isDark ? 'rgba(255, 255, 255, 0.85)' : 'var(--color-text-muted)' }}>
+                  {inlineUnit}
+                </span>
+              )}
             </div>
+
+            {unit && (
+              <div 
+                className="stat-unit-label"
+                style={{ color: isDark ? 'rgba(255, 255, 255, 0.85)' : 'var(--color-text-muted)' }}
+              >
+                {unit}
+              </div>
+            )}
 
             {badgeText && (
               <div style={{ marginTop: '8px' }}>
@@ -102,7 +126,7 @@ const StatCard = ({
             )}
           </div>
 
-          {chartData && !isDark && (
+          {chartData && !isDark && !SilhouetteIcon && (
             <SparklineArea
               data={Array.isArray(chartData) ? chartData : undefined}
               strokeColor={chartColor || 'var(--color-main-green)'}
@@ -111,6 +135,22 @@ const StatCard = ({
           )}
         </div>
       </div>
+
+      {SilhouetteIcon && (
+        <div 
+          className="stat-card-silhouette" 
+          style={silhouetteColor ? { color: silhouetteColor } : undefined}
+          aria-hidden="true"
+        >
+          {typeof SilhouetteIcon === 'function' || (typeof SilhouetteIcon === 'object' && SilhouetteIcon !== null) ? (
+            <SilhouetteIcon size={80} strokeWidth={1.5} />
+          ) : (
+            <span className="material-symbols-outlined" style={{ fontSize: '80px' }}>
+              {SilhouetteIcon}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 };
