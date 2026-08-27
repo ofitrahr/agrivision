@@ -373,3 +373,18 @@ class RecentActivity(db.Model):
     display_order = db.Column(db.Integer, nullable=False, default=0)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class DocumentReport(db.Model):
+    __tablename__ = 'document_reports'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='CASCADE'), nullable=False)
+    farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id', ondelete='SET NULL'), nullable=True)
+    title = db.Column(db.String(255), nullable=False)
+    report_type = db.Column(db.String(50), nullable=False)
+    farm_name = db.Column(db.String(255))
+    period = db.Column(db.String(50))
+    format = db.Column(db.String(10), nullable=False, default='pdf')
+    status = db.Column(db.String(20), nullable=False, default='available')
+    file_url = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)

@@ -1,14 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { Clock, Eye } from 'lucide-react';
 
-const PERIODS = [
-  { id: 'Q1_2025', label: 'Jan - Mar 2025' },
-  { id: 'Q2_2025', label: 'Apr - Jun 2025' },
-  { id: 'Q3_2025', label: 'Jul - Sep 2025' },
-  { id: 'Q4_2025', label: 'Okt - Des 2025' },
-  { id: 'Q1_2026', label: 'Jan - Mar 2026' },
-];
-
 const LAYER_OPTIONS = [
   { id: 'ndvi', label: 'Kesehatan Tanaman (NDVI)', permKey: 'can_access_ndvi' },
   { id: 'yield', label: 'Estimasi Produksi (Yield)', permKey: 'can_access_yield' },
@@ -27,6 +19,7 @@ const MapCanvasToolbar = ({
   onOpacityChange,
   permissions,
   loading,
+  periods = [],
 }) => {
   const iframeRef = useRef(null);
 
@@ -88,7 +81,7 @@ const MapCanvasToolbar = ({
             <span>Periode:</span>
           </div>
           <div className="agro-period-pills-list">
-            {PERIODS.map((period, idx) => {
+            {periods.map((period, idx) => {
               const isActive = periodIdx === idx;
               return (
                 <button

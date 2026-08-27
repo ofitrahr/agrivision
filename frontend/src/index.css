@@ -510,9 +510,48 @@ img { max-width: 100%; display: block; }
 /* ─── STAT CARDS ─────────────────────────────────── */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--gutter);
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
   margin-bottom: var(--space-lg);
+}
+
+.stats-grid-2x2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: var(--space-lg);
+}
+
+@media (max-width: 860px) {
+  .stats-grid-2x2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stats-grid-top {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .stats-grid-top {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+.stats-grid-hero {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin-bottom: var(--space-lg);
+}
+
+@media (max-width: 900px) {
+  .stats-grid-hero {
+    grid-template-columns: 1fr;
+  }
 }
 
 .stats-grid-3 {
@@ -520,79 +559,143 @@ img { max-width: 100%; display: block; }
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: var(--gutter);
 }
+
 .stat-card {
   background: var(--color-surface-white);
-  border-radius: var(--radius-sm);
-  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  padding: 20px;
   border: 1px solid var(--color-border-muted);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 116px;
+  min-height: 128px;
   transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
 }
+
 .stat-card:hover {
   transform: translateY(-2px);
-  border-color: var(--color-primary-container);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-color: var(--color-border-gray);
+  box-shadow: 0 4px 12px rgba(5, 59, 38, 0.05);
 }
 
-.stat-card-header {
+.stat-card-clickable {
+  cursor: pointer;
+}
+
+.stat-card-main-content {
+  width: 100%;
+  height: 100%;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: space-between;
-  margin-bottom: 12px;
-  position: relative;
-  z-index: 1;
 }
-.stat-card-icon {
-  font-size: 22px;
-  color: var(--color-primary-container);
+
+.stat-card-header-clean {
+  margin-bottom: 8px;
 }
+
+.stat-card-body-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.stat-card-info-side {
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-card-chart-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+/* Dark Green Solid Card (Serapan Karbon) */
+.stat-card-dark {
+  background: var(--color-primary-container);
+  border: 1px solid var(--color-primary-container);
+  color: var(--color-pure-white);
+}
+
+.stat-card-dark:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(5, 59, 38, 0.15);
+}
+
+.stat-card-dark .stat-label {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  opacity: 0.95;
+}
+
+.stat-card-dark .stat-value {
+  color: #ffffff;
+}
+
+.stat-badge-dark-pill {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+
 .stat-badge {
   font-size: 11px;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
 }
-.stat-badge.success { background: rgba(156, 249, 115, 0.2); color: #195200; }
-.stat-badge.warning { background: rgba(254, 178, 53, 0.3); color: #6d4700; }
-.stat-badge.danger  { background: var(--color-error-container); color: #93000a; }
+
+.stat-badge-success {
+  background: var(--color-pale-mint);
+  color: var(--color-forest-green);
+}
+
+.stat-badge-neutral {
+  background: var(--color-surface-container);
+  color: var(--color-text-muted);
+}
+
 .stat-label {
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  margin-bottom: 6px;
-  position: relative;
-  z-index: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-bottom: 4px;
 }
+
 .stat-value {
-  font-family: 'Inter', var(--font-body), sans-serif;
-  font-size: 24px;
+  font-family: var(--font-display);
+  font-size: 26px;
   font-weight: 700;
   color: var(--color-text-main);
   line-height: 1.2;
   letter-spacing: -0.02em;
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
   gap: 4px;
 }
+
 .stat-value-text {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   line-height: 1.3;
 }
+
 .stat-value .unit {
   font-size: 13px;
   font-weight: 500;
@@ -600,26 +703,34 @@ img { max-width: 100%; display: block; }
   letter-spacing: normal;
 }
 
+.stat-subtext {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
 /* ─── CARDS ──────────────────────────────────────── */
 .card {
-  background: var(--color-surface-white);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border-muted);
-  box-shadow: none;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
 }
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-md);
-  border-bottom: 1px solid var(--color-border-muted);
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
 }
 .card-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--color-text-main);
+  color: #0f172a;
 }
-.card-body { padding: var(--space-md); }
+.card-body { padding: 20px; }
 
 /* ─── TABLES ─────────────────────────────────────── */
 .table-container { overflow-x: auto; }

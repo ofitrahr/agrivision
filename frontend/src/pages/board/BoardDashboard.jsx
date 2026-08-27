@@ -1,17 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
-import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
+import { MapPin, Maximize2, Users, Coins, Download, Filter } from 'lucide-react';
 import StatCard from '../../shared/components/UI/StatCard';
 import Card from '../../shared/components/UI/Card';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4'];
 const GENDER_COLORS = ['#3b82f6', '#ec4899', '#9ca3af'];
 
 const BoardDashboard = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
 
     const formatCurrency = (value) => {
         if (!value) return 'Rp 0';
@@ -22,14 +21,13 @@ const BoardDashboard = () => {
         const fetchDashboardData = async () => {
             try {
                 const response = await api.get('/board/dashboard/summary');
-                if (response.data.success) {
+                if (response.data?.success) {
                     setData(response.data.data);
                 }
             } catch (error) {
                 console.error("Error fetching board data:", error);
             } finally {
-                // Simulate network delay for skeleton loading
-                setTimeout(() => setLoading(false), 800);
+                setTimeout(() => setLoading(false), 600);
             }
         };
         fetchDashboardData();
@@ -46,11 +44,11 @@ const BoardDashboard = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                     <button className="btn btn-ghost">
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>filter_list</span>
+                        <Filter size={16} />
                         Filter
                     </button>
                     <button className="btn btn-primary">
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span>
+                        <Download size={16} />
                         Unduh Laporan
                     </button>
                 </div>
@@ -68,44 +66,45 @@ const BoardDashboard = () => {
                 ) : (
                     <>
                         <StatCard 
-                            title="Total Lahan Aktif" 
+                            title="TOTAL LAHAN AKTIF" 
                             value={metrics?.total_farms || 0} 
-                            icon="map" 
+                            unit="Lahan"
+                            icon={MapPin}
                         />
                         <StatCard 
-                            title="Luas Area (Ha)" 
-                            value={metrics?.total_area_ha || 0} 
-                            icon="eco" 
+                            title="LUAS AREA" 
+                            value={`${metrics?.total_area_ha || 0} Ha`} 
+                            icon={Maximize2}
                         />
                         <StatCard 
-                            title="Total Pekerja" 
+                            title="TOTAL PEKERJA" 
                             value={metrics?.total_farmers || 0} 
-                            icon="group" 
+                            unit="Pekerja"
+                            icon={Users}
                         />
                         <StatCard 
-                            title="Total Keuntungan" 
+                            title="TOTAL KEUNTUNGAN" 
                             value={formatCurrency(metrics?.total_profit)} 
-                            icon="payments" 
-                            iconColor="var(--color-main-gold)"
+                            icon={Coins}
                         />
                     </>
                 )}
             </div>
 
             {/* Analitik Grafik Ekologi & Sosial */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 'var(--gutter)', marginBottom: 'var(--space-lg)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 'var(--gutter)', marginBottom: 'var(--space-lg)' }}>
                 
                 {/* Chart 1: Ekologi (Distribusi Lahan) */}
                 <Card title="Biodiversity (Ekologi)">
                     {loading ? (
-                        <div className="skeleton-text" style={{ width: '100%', height: '300px' }}></div>
+                        <div className="skeleton-text" style={{ width: '100%', height: '280px' }}></div>
                     ) : charts?.crop_distribution?.length > 0 ? (
-                        <div style={{ height: '300px' }}>
+                        <div style={{ height: '280px' }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie data={charts.crop_distribution} cx="50%" cy="50%" labelLine={true} 
                                          label={({name, value}) => `${name} (${value}Ha)`}
-                                         outerRadius={100} fill="#8884d8" dataKey="value">
+                                         outerRadius={90} fill="#8884d8" dataKey="value">
                                         {charts.crop_distribution.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
@@ -115,8 +114,8 @@ const BoardDashboard = () => {
                             </ResponsiveContainer>
                         </div>
                     ) : (
-                        <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <p style={{ color: 'var(--color-text-muted)' }}>Data lahan/tanaman belum tersedia.</p>
+                        <div style={{ height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <p style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>Data lahan/tanaman belum tersedia.</p>
                         </div>
                     )}
                 </Card>
@@ -124,16 +123,16 @@ const BoardDashboard = () => {
                 {/* Chart 2: Sosial (Demografi Pekerja) */}
                 <Card title="Demografi Gender Pekerja (Sosial)">
                     {loading ? (
-                        <div className="skeleton-text" style={{ width: '100%', height: '300px' }}></div>
+                        <div className="skeleton-text" style={{ width: '100%', height: '280px' }}></div>
                     ) : charts?.gender_distribution?.length > 0 ? (
-                        <div style={{ height: '300px' }}>
+                        <div style={{ height: '280px' }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={charts.gender_distribution} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-muted)" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--color-text-muted)'}} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--color-text-muted)'}} />
-                                    <Tooltip cursor={{fill: 'var(--color-surface-container-low)'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-elevated)'}} />
-                                    <Bar dataKey="value" name="Jumlah Orang" radius={[4, 4, 0, 0]}>
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--color-text-muted)', fontSize: 12}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--color-text-muted)', fontSize: 12}} />
+                                    <Tooltip cursor={{fill: 'var(--color-surface-container-low)'}} contentStyle={{borderRadius: '8px', border: '1px solid var(--color-border-muted)', boxShadow: 'var(--shadow-elevated)'}} />
+                                    <Bar dataKey="value" name="Jumlah Orang" radius={[6, 6, 0, 0]}>
                                         {charts.gender_distribution.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={GENDER_COLORS[index % GENDER_COLORS.length]} />
                                         ))}
@@ -142,8 +141,8 @@ const BoardDashboard = () => {
                             </ResponsiveContainer>
                         </div>
                     ) : (
-                        <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <p style={{ color: 'var(--color-text-muted)' }}>Data pekerja belum tersedia.</p>
+                        <div style={{ height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <p style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>Data pekerja belum tersedia.</p>
                         </div>
                     )}
                 </Card>
@@ -151,16 +150,16 @@ const BoardDashboard = () => {
                 {/* Chart 3: Sosial (Demografi Usia Pekerja) */}
                 <Card title="Demografi Usia Pekerja (Sosial)">
                     {loading ? (
-                        <div className="skeleton-text" style={{ width: '100%', height: '300px' }}></div>
+                        <div className="skeleton-text" style={{ width: '100%', height: '280px' }}></div>
                     ) : charts?.age_distribution?.length > 0 ? (
-                        <div style={{ height: '300px' }}>
+                        <div style={{ height: '280px' }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={charts.age_distribution} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-muted)" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--color-text-muted)'}} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--color-text-muted)'}} />
-                                    <Tooltip cursor={{fill: 'var(--color-surface-container-low)'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-elevated)'}} />
-                                    <Bar dataKey="value" name="Jumlah Orang" radius={[4, 4, 0, 0]}>
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--color-text-muted)', fontSize: 12}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--color-text-muted)', fontSize: 12}} />
+                                    <Tooltip cursor={{fill: 'var(--color-surface-container-low)'}} contentStyle={{borderRadius: '8px', border: '1px solid var(--color-border-muted)', boxShadow: 'var(--shadow-elevated)'}} />
+                                    <Bar dataKey="value" name="Jumlah Orang" radius={[6, 6, 0, 0]}>
                                         {charts.age_distribution.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
@@ -169,8 +168,8 @@ const BoardDashboard = () => {
                             </ResponsiveContainer>
                         </div>
                     ) : (
-                        <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <p style={{ color: 'var(--color-text-muted)' }}>Data usia pekerja belum tersedia.</p>
+                        <div style={{ height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <p style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>Data usia pekerja belum tersedia.</p>
                         </div>
                     )}
                 </Card>
@@ -180,25 +179,25 @@ const BoardDashboard = () => {
             {/* Grafik Ekonomi */}
             <Card title="Tren Pendapatan & Biaya Bulanan (Ekonomi)" style={{ marginBottom: 'var(--space-xl)' }}>
                 {loading ? (
-                    <div className="skeleton-text" style={{ width: '100%', height: '350px' }}></div>
+                    <div className="skeleton-text" style={{ width: '100%', height: '320px' }}></div>
                 ) : charts?.financial_trends?.length > 0 ? (
-                    <div style={{ height: '350px' }}>
+                    <div style={{ height: '320px' }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={charts.financial_trends} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-muted)" />
-                                <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{fill: 'var(--color-text-muted)'}} />
-                                <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--color-text-muted)'}} />
-                                <Tooltip formatter={(value) => `Rp ${value.toLocaleString('id-ID')}`} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: 'var(--shadow-elevated)'}} />
-                                <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                <Line type="monotone" dataKey="revenue" name="Pendapatan" stroke="#10b981" strokeWidth={3} activeDot={{ r: 8 }} dot={{ r: 4 }} />
-                                <Line type="monotone" dataKey="cost" name="Biaya Operasional" stroke="#ef4444" strokeWidth={3} dot={{ r: 4 }} />
-                                <Line type="monotone" dataKey="profit" name="Keuntungan Bersih" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} />
+                                <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{fill: 'var(--color-text-muted)', fontSize: 12}} />
+                                <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--color-text-muted)', fontSize: 12}} />
+                                <Tooltip formatter={(value) => `Rp ${value.toLocaleString('id-ID')}`} contentStyle={{borderRadius: '8px', border: '1px solid var(--color-border-muted)', boxShadow: 'var(--shadow-elevated)'}} />
+                                <Legend wrapperStyle={{ paddingTop: '16px' }} />
+                                <Line type="monotone" dataKey="revenue" name="Pendapatan" stroke="#10b981" strokeWidth={2.5} activeDot={{ r: 6 }} dot={{ r: 3 }} />
+                                <Line type="monotone" dataKey="cost" name="Biaya Operasional" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3 }} />
+                                <Line type="monotone" dataKey="profit" name="Keuntungan Bersih" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
                 ) : (
-                    <div style={{ height: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <p style={{ color: 'var(--color-text-muted)' }}>Data keuangan belum tersedia.</p>
+                    <div style={{ height: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <p style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>Data keuangan belum tersedia.</p>
                     </div>
                 )}
             </Card>

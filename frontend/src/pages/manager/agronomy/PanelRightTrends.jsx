@@ -2,14 +2,6 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, Calculator, Leaf } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
-const MOCK_TREND = [
-  { period: 'Jan-Mar 2025', value: 39.8 },
-  { period: 'Apr-Jun 2025', value: 40.2 },
-  { period: 'Jul-Sep 2025', value: 41.5 },
-  { period: 'Okt-Des 2025', value: 41.8 },
-  { period: 'Jan-Mar 2026', value: 42.2 },
-];
-
 const formatRupiah = (number) =>
   new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -18,21 +10,24 @@ const formatRupiah = (number) =>
     maximumFractionDigits: 0,
   }).format(number);
 
-const PanelRightTrends = ({ selectedLayer, periodIdx, farm }) => {
+const PanelRightTrends = ({ selectedLayer, periodIdx, farm, statsData }) => {
   const [priceInput, setPriceInput] = useState('200.000');
   const [carbonResult, setCarbonResult] = useState({ value: 0, co2e: 0, totalC: 0 });
 
+  const trendData = statsData?.trend ?? [];
+  const meanSOC = statsData?.stats?.mean ?? null;
+
   useEffect(() => {
     if (selectedLayer === 'soc') {
-      const meanSOC = 42.156;
-      const totalHa = farm?.total_area_ha || 25;
-      const totalC = meanSOC * totalHa;
+      const socValue = meanSOC ?? 0;
+      const totalHa = farm?.total_area_ha || 0;
+      const totalC = socValue * totalHa;
       const co2e = totalC * 3.67;
       const price = parseInt(priceInput.replace(/\./g, ''), 10) || 200000;
       const value = co2e * price;
       setCarbonResult({ value, co2e, totalC });
     }
-  }, [selectedLayer, priceInput, farm]);
+  }, [selectedLayer, priceInput, farm, meanSOC]);
 
   const handlePriceChange = (e) => {
     let val = e.target.value.replace(/\D/g, '');
@@ -52,30 +47,36 @@ const PanelRightTrends = ({ selectedLayer, periodIdx, farm }) => {
           Tren Lintas Waktu
         </div>
         <div className="agro-chart-wrapper-tall">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={MOCK_TREND} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-              <XAxis dataKey="period" tick={{ fontSize: 9 }} />
-              <YAxis tick={{ fontSize: 9 }} domain={['dataMin - 2', 'dataMax + 2']} />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 11,
-                  borderRadius: 6,
-                  border: '1px solid #E0EBE4',
-                  boxShadow: 'none',
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="#116a3a"
-                strokeWidth={2}
-                fill="#116a3a"
-                fillOpacity={0.1}
-                dot={{ fill: '#116a3a', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          {trendData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trendData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <XAxis dataKey="period" tick={{ fontSize: 9 }} />
+                <YAxis tick={{ fontSize: 9 }} domain={['dataMin - 2', 'dataMax + 2']} />
+                <Tooltip
+                  contentStyle={{
+                    fontSize: 11,
+                    borderRadius: 6,
+                    border: '1px solid #E0EBE4',
+                    boxShadow: 'none',
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#116a3a"
+                  strokeWidth={2}
+                  fill="#116a3a"
+                  fillOpacity={0.1}
+                  dot={{ fill: '#116a3a', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 12, color: '#9CA3AF' }}>
+              Belum ada data tren
+            </div>
+          )}
         </div>
       </div>
 

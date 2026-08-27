@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, BarChart3 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ArrowLeft, TrendingUp, AlertTriangle, BarChart3 } from 'lucide-react';
 import PanelLeftStats from './PanelLeftStats';
 import MapCanvasToolbar from './MapCanvasToolbar';
 import PanelRightTrends from './PanelRightTrends';
+import api from '../../../shared/api/axios';
 
-const PERIODS = [
+const FALLBACK_PERIODS = [
   { id: 'Q1_2025', label: 'Jan - Mar 2025' },
   { id: 'Q2_2025', label: 'Apr - Jun 2025' },
   { id: 'Q3_2025', label: 'Jul - Sep 2025' },
@@ -13,20 +14,12 @@ const PERIODS = [
 ];
 
 const PARAMS = {
-  ndvi:    { label: 'Kesehatan Tanaman (NDVI)', unit: 'index',      desc: 'Indeks kehijauan daun (0-1). Menunjukkan tingkat fotosintesis dan kesehatan tanaman.' },
-  yield:   { label: 'Estimasi Produksi (Yield)', unit: 'Ton/Ha',     desc: 'Estimasi produksi buah kopi (Ton/Ha).' },
-  soc:     { label: 'Stok Karbon Tanah (SOC)',  unit: 'Ton C/Ha',   desc: 'Kandungan Karbon Organik Tanah (Ton C/Ha) pada kedalaman 20cm.' },
-  biomass: { label: 'Biomassa Karbon',          unit: 'Kg C/Ha',    desc: 'Estimasi biomassa karbon di atas permukaan tanah.' },
-  soilnpk: { label: 'Nutrisi Tanah (NPK)',      unit: 'kg NPK/Ha',  desc: 'Total NPK tanah (kg/Ha) pada kedalaman 20cm.' },
+  ndvi:    { label: 'Kesehatan Tanaman (NDVI)', unit: 'index' },
+  yield:   { label: 'Estimasi Produksi (Yield)', unit: 'Ton/Ha' },
+  soc:     { label: 'Stok Karbon Tanah (SOC)',  unit: 'Ton C/Ha' },
+  biomass: { label: 'Biomassa Karbon',          unit: 'Kg C/Ha' },
+  soilnpk: { label: 'Nutrisi Tanah (NPK)',      unit: 'kg NPK/Ha' },
 };
-
-const MOCK_KPI = [
-  { label: 'Rerata', value: '42.156', unit: 'Ton C/Ha', icon: BarChart3, trend: null },
-  { label: 'Perubahan (Q-o-Q)', value: '+1.24', unit: 'Ton C/Ha', icon: TrendingUp, trend: 'up' },
-  { label: 'Min', value: '28.340', unit: 'Ton C/Ha', icon: null, trend: null },
-  { label: 'Max', value: '55.120', unit: 'Ton C/Ha', icon: null, trend: null },
-  { label: 'Area Anomali', value: '2.50 Ha (10%)', unit: '', icon: AlertTriangle, trend: 'down' },
-];
 
 const AgronomyDetailView = ({
   farm,
@@ -36,12 +29,70 @@ const AgronomyDetailView = ({
   onBack,
   onLayerChange,
   selectedLayer,
-  permissions
+  permissions,
 }) => {
-  const [currentPeriodIdx, setCurrentPeriodIdx] = useState(4);
+  const [periods, setPeriods] = useState(FALLBACK_PERIODS);
+  const [currentPeriodIdx, setCurrentPeriodIdx] = useState(0);
   const [opacity, setOpacity] = useState(82);
+  const [statsData, setStatsData] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
-  const currentPeriod = PERIODS[currentPeriodIdx];
+  useEffect(() => {
+    const fetchPeriods = async () => {
+      try {
+        const res = await api.get('/manager/available-periods');
+        if (res.data.success && res.data.data.length > 0) {
+          setPeriods(res.data.data);
+          setCurrentPeriodIdx(res.data.data.length - 1);
+        }
+      } catch (err) {
+        console.warn('Gagal memuat daftar periode, menggunakan fallback:', err);
+      }
+    };
+    fetchPeriods();
+  }, []);
+
+  const fetchStats = useCallback(async (farmId, layer, period) => {
+    setStatsLoading(true);
+    try {
+      const res = await api.get(
+        `/manager/farms/${farmId}/agronomy-stats?layer=${layer}&period=${period}`
+      );
+      if (res.data.success) {
+        setStatsData(res.data.data);
+      }
+    } catch (err) {
+      console.warn('Gagal memuat statistik agronomi:', err);
+      setStatsData(null);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!farm?.id || periods.length === 0) return;
+    const period = periods[currentPeriodIdx]?.id ?? periods[periods.length - 1]?.id;
+    fetchStats(farm.id, selectedLayer, period);
+  }, [farm?.id, selectedLayer, currentPeriodIdx, fetchStats, periods]);
+
+  const unit = PARAMS[selectedLayer]?.unit ?? '';
+
+  const buildKpi = () => {
+    if (!statsData?.has_data) return [];
+    const { stats, anomaly } = statsData;
+    const anomalyHa = anomaly?.count != null && farm?.total_area_ha
+      ? ((anomaly.count / (statsData.stats.total_count || 1)) * farm.total_area_ha).toFixed(2)
+      : '-';
+    return [
+      { label: 'Rerata',          value: stats.mean?.toFixed(3) ?? '-', unit, icon: BarChart3,     trend: null },
+      { label: 'Min',             value: stats.min?.toFixed(3) ?? '-',  unit, icon: null,          trend: null },
+      { label: 'Max',             value: stats.max?.toFixed(3) ?? '-',  unit, icon: null,          trend: null },
+      { label: 'Std Deviasi',     value: stats.std_dev?.toFixed(3) ?? '-', unit, icon: null,       trend: null },
+      { label: 'Area Anomali',    value: `${anomalyHa} Ha (${anomaly?.percent?.toFixed(1) ?? 0}%)`, unit: '', icon: AlertTriangle, trend: 'down' },
+    ];
+  };
+
+  const kpiItems = buildKpi();
 
   return (
     <div>
@@ -70,6 +121,9 @@ const AgronomyDetailView = ({
             selectedLayer={selectedLayer}
             periodIdx={currentPeriodIdx}
             farm={farm}
+            statsData={statsData}
+            statsLoading={statsLoading}
+            periods={periods}
           />
         </div>
 
@@ -85,6 +139,7 @@ const AgronomyDetailView = ({
             onOpacityChange={setOpacity}
             permissions={permissions}
             loading={loading}
+            periods={periods}
           />
         </div>
 
@@ -94,26 +149,29 @@ const AgronomyDetailView = ({
             selectedLayer={selectedLayer}
             periodIdx={currentPeriodIdx}
             farm={farm}
+            statsData={statsData}
           />
         </div>
       </div>
 
       {/* KPI Strip */}
-      <div className="agro-kpi-strip">
-        {MOCK_KPI.map((kpi, idx) => {
-          const Icon = kpi.icon;
-          const valClass = kpi.trend === 'up' ? 'agro-kpi-up' : kpi.trend === 'down' ? 'agro-kpi-down' : '';
-          return (
-            <div key={idx} className="agro-kpi-card">
-              <div className="agro-kpi-label">{kpi.label}</div>
-              <div className={`agro-kpi-val ${valClass}`}>
-                {Icon && <Icon size={14} style={{ display: 'inline', marginRight: 4, verticalAlign: 'text-bottom' }} />}
-                {kpi.value} {kpi.unit}
+      {kpiItems.length > 0 && (
+        <div className="agro-kpi-strip">
+          {kpiItems.map((kpi, idx) => {
+            const Icon = kpi.icon;
+            const valClass = kpi.trend === 'up' ? 'agro-kpi-up' : kpi.trend === 'down' ? 'agro-kpi-down' : '';
+            return (
+              <div key={idx} className="agro-kpi-card">
+                <div className="agro-kpi-label">{kpi.label}</div>
+                <div className={`agro-kpi-val ${valClass}`}>
+                  {Icon && <Icon size={14} style={{ display: 'inline', marginRight: 4, verticalAlign: 'text-bottom' }} />}
+                  {kpi.value} {kpi.unit}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

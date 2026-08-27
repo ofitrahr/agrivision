@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Map, Leaf, Maximize, Calendar, Sprout, Upload, FileCode, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Plus, Map, Leaf, Maximize, Calendar, Sprout, Upload, FileCode, CheckCircle2, AlertCircle, ArrowLeft, UploadCloud } from 'lucide-react';
 import InputNumber from '../../shared/components/UI/InputNumber';
+import AdminGISUploader from './AdminGISUploader';
 
 
 const FarmMapThumbnail = ({ farmId }) => {
@@ -46,6 +47,7 @@ const GIS = () => {
 
     // State for creating farm (GeoJSON view)
     const [isCreatingFarm, setIsCreatingFarm] = useState(false);
+    const [isUploadingData, setIsUploadingData] = useState(false);
     const [companies, setCompanies] = useState([]);
     const [projects, setProjects] = useState([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState('');
@@ -351,15 +353,39 @@ const GIS = () => {
         );
     }
 
+    if (isUploadingData) {
+        return (
+            <div style={{ padding: '24px 30px', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <div>
+                        <h1 style={{ color: '#1B4332', fontSize: '24px', margin: '0 0 6px 0', fontWeight: '700' }}>Import Data ML</h1>
+                        <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>Unggah file hasil prediksi (Sentinel-2) untuk diintegrasikan ke Lahan.</p>
+                    </div>
+                    <button className="secondary-btn" onClick={() => setIsUploadingData(false)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <ArrowLeft size={16} />
+                        Kembali
+                    </button>
+                </div>
+                <AdminGISUploader />
+            </div>
+        );
+    }
+
     // Default view: Grid
     return (
         <div>
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h1 className="page-title" style={{ fontSize: '24px', margin: 0 }}>Global GIS & Lahan</h1>
-                <button className="primary-btn" onClick={() => setIsCreatingFarm(true)}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
-                    Add New Farm
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button className="secondary-btn" onClick={() => setIsUploadingData(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #10b981', color: '#10b981', background: 'transparent' }}>
+                        <UploadCloud size={16} />
+                        Import Data ML
+                    </button>
+                    <button className="primary-btn" onClick={() => setIsCreatingFarm(true)}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                        Add New Farm
+                    </button>
+                </div>
             </div>
             
             {/* Overview Cards */}

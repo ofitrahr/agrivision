@@ -153,6 +153,13 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
 
+  const ROLE_HISTORY_PATHS = {
+    super_admin: '/admin/activities',
+    manager: '/manager/activities',
+  };
+
+  const historyPath = ROLE_HISTORY_PATHS[user.role] ?? null;
+
   const profilePath = user?.role === 'super_admin'
     ? '/admin/profile'
     : user?.role === 'manager'
@@ -192,20 +199,34 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
 
 
           {/* Tombol Notifikasi */}
-          <button 
-            className="topnav-icon-btn" 
-            title="Notifikasi" 
-            aria-label="Notifikasi"
-            onClick={() => setShowNotifications(!showNotifications)}
-            style={{ position: 'relative' }}
-          >
-            <span className="material-symbols-outlined">notifications</span>
-            <span style={{
-              position: 'absolute', top: '2px', right: '2px', width: '8px', height: '8px',
-              borderRadius: '50%', background: 'var(--color-main-gold)'
-            }} />
-          </button>
+          {user?.role !== 'super_admin' && user?.role !== 'board' && (
+            <button 
+              className="topnav-icon-btn" 
+              title="Notifikasi" 
+              aria-label="Notifikasi"
+              onClick={() => setShowNotifications(!showNotifications)}
+              style={{ position: 'relative' }}
+            >
+              <span className="material-symbols-outlined">notifications</span>
+              <span style={{
+                position: 'absolute', top: '2px', right: '2px', width: '8px', height: '8px',
+                borderRadius: '50%', background: 'var(--color-main-gold)'
+              }} />
+            </button>
+          )}
 
+          {/* Tombol Histori Aktivitas */}
+          {user?.role !== 'board' && 
+            <button 
+              className="topnav-icon-btn" 
+              title="Hitori Aktivitas" 
+              aria-label="Histori"
+              onClick={() => navigate(historyPath)}
+            >
+              <span className="material-symbols-outlined">history</span>
+            </button>
+          }
+          
           {/* Tombol Pengaturan */}
           <button 
             className="topnav-icon-btn" 
@@ -226,7 +247,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
             {(user?.full_name || user?.user || user?.username || 'U').charAt(0).toUpperCase()}
           </div>
           {/* Dropdown Notifikasi */}
-          {showNotifications && (
+          { user?.role !== 'super_admin' && user?.role !== 'board' && showNotifications && (
             <div style={{
               position: 'absolute', top: '48px', right: '0', width: '320px',
               background: 'var(--color-surface-white)', border: '1px solid var(--color-border-muted)',

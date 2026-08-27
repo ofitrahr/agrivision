@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
+import { Building2, ShieldCheck, Layers, MapPin, Maximize2, Users } from 'lucide-react';
 import StatCard from '../../shared/components/UI/StatCard';
 import Card from '../../shared/components/UI/Card';
 
@@ -14,7 +15,6 @@ const AdminDashboard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch stats, companies, and activities concurrently
                 const [statsRes, companiesRes, activitiesRes] = await Promise.allSettled([
                     api.get('/admin/dashboard/stats'),
                     api.get('/admin/companies'),
@@ -73,34 +73,36 @@ const AdminDashboard = () => {
                 ) : (
                     <>
                         <StatCard 
-                            title="Total Klien" 
+                            title="TOTAL KLIEN" 
                             value={stats?.total_companies || 0} 
-                            icon="business" 
+                            icon={Building2}
                         />
                         <StatCard 
-                            title="Klien Aktif" 
+                            title="KLIEN AKTIF" 
                             value={stats?.active_companies || 0} 
-                            icon="verified" 
+                            badgeText="Aktif"
+                            badgeType="success"
+                            icon={ShieldCheck}
                         />
                         <StatCard 
-                            title="Total Proyek" 
+                            title="TOTAL PROYEK" 
                             value={stats?.total_projects || 0} 
-                            icon="account_tree" 
+                            icon={Layers}
                         />
                         <StatCard 
-                            title="Total Lahan" 
+                            title="TOTAL LAHAN" 
                             value={stats?.total_farms || 0} 
-                            icon="landscape" 
+                            icon={MapPin}
                         />
                         <StatCard 
-                            title="Total Luas (Ha)" 
-                            value={stats?.total_area_ha || 0} 
-                            icon="map" 
+                            title="TOTAL LUAS" 
+                            value={`${stats?.total_area_ha || 0} Ha`} 
+                            icon={Maximize2}
                         />
                         <StatCard 
-                            title="Total Pengguna" 
+                            title="TOTAL PENGGUNA" 
                             value={stats?.total_users || 0} 
-                            icon="group" 
+                            icon={Users}
                         />
                     </>
                 )}
@@ -109,7 +111,7 @@ const AdminDashboard = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 'var(--gutter)' }}>
                 {/* Recent Companies Section */}
                 <Card title="Daftar Klien (Perusahaan)" actionLabel="Lihat Semua" onAction={() => navigate('/admin/companies')}>
-                    <div className="table-container" style={{ margin: '0 -24px -24px -24px', border: 'none', boxShadow: 'none' }}>
+                    <div className="table-container" style={{ margin: '0 -20px -20px -20px', border: 'none', boxShadow: 'none' }}>
                         <table className="data-table">
                             <thead>
                                 <tr>
@@ -133,7 +135,7 @@ const AdminDashboard = () => {
                                     recentCompanies.length > 0 ? (
                                         recentCompanies.map(company => (
                                             <tr key={company.id}>
-                                                <td>{company.name}</td>
+                                                <td style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>{company.name}</td>
                                                 <td>
                                                     <span className={`badge badge-${company.is_active ? 'active' : 'expired'}`}>
                                                         {company.is_active ? 'Aktif' : 'Non-Aktif'}
@@ -156,9 +158,8 @@ const AdminDashboard = () => {
                     </div>
                 </Card>
 
-                {/* Sidebar widgets (Quick Actions & Activity) */}
+                {/* Sidebar widgets (Activity) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--gutter)' }}>
-                    {/* Activity Feed */}
                     <Card title="Log Aktivitas Terbaru">
                         {loading ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} aria-busy="true">
@@ -170,14 +171,14 @@ const AdminDashboard = () => {
                                 Belum ada aktivitas tercatat.
                             </p>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                {activities.slice(0,5).map((act) => (
-                                    <div key={act.id} style={{ display: 'flex', gap: '12px' }}>
-                                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-text-main)' }}>{act.icon}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                {activities.slice(0, 5).map((act) => (
+                                    <div key={act.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-text-muted)' }}>{act.icon || 'history'}</span>
                                         </div>
                                         <div>
-                                            <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--color-text-main)', fontWeight: 600 }}>{act.text}</p>
+                                            <p style={{ margin: '0 0 2px 0', fontSize: '13px', color: 'var(--color-text-main)', fontWeight: 600 }}>{act.text}</p>
                                             <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>{act.subtext}</p>
                                         </div>
                                     </div>

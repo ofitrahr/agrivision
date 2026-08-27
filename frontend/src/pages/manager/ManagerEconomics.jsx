@@ -33,51 +33,13 @@ const ManagerEconomics = () => {
   const [reportPeriod, setReportPeriod] = useState('current_month');
   const [reportFormat, setReportFormat] = useState('pdf');
 
-  const [recentReports, setRecentReports] = useState([
-    {
-      id: 'rep-01',
-      title: 'Laporan Evaluasi Agronomi & Kesehatan Kanopi',
-      type: 'Agronomi',
-      farmName: 'Kebon Kopi Kadatuan',
-      period: 'Agustus 2026',
-      format: 'PDF',
-      status: 'Tersedia',
-      date: '2026-08-20',
-    },
-    {
-      id: 'rep-02',
-      title: 'Laporan Neraca Penyerapan Karbon Tanah (SOC)',
-      type: 'Karbon & MRV',
-      farmName: 'Semua Lahan',
-      period: 'Kuartal II 2026',
-      format: 'PDF',
-      status: 'Tersedia',
-      date: '2026-08-15',
-    },
-    {
-      id: 'rep-03',
-      title: 'Laporan Produktivitas & Neraca Keuangan',
-      type: 'Keuangan',
-      farmName: 'Kebon Kopi Kadatuan',
-      period: 'Juli 2026',
-      format: 'XLSX',
-      status: 'Tersedia',
-      date: '2026-08-01',
-    },
-    {
-      id: 'rep-04',
-      title: 'Laporan Verifikasi Traceability Panen',
-      type: 'Traceability',
-      farmName: 'Kebon Kopi Kadatuan',
-      period: 'Juli 2026',
-      format: 'PDF',
-      status: 'Tersedia',
-      date: '2026-07-28',
-    },
-  ]);
+  const [recentReports, setRecentReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [observationSummary, setObservationSummary] = useState(null);
 
   useEffect(() => {
     fetchFarms();
+    fetchReports();
   }, []);
 
   const fetchFarms = async () => {
@@ -116,10 +78,37 @@ const ManagerEconomics = () => {
     }
   };
 
+  const fetchReports = async () => {
+    setReportsLoading(true);
+    try {
+      const response = await api.get('/manager/reports');
+      if (response.data.success) {
+        setRecentReports(response.data.data);
+      }
+    } catch (error) {
+      console.error('Gagal memuat daftar laporan', error);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+  const fetchObservationSummary = async (farmId) => {
+    try {
+      const response = await api.get(`/manager/farms/${farmId}/observation-summary`);
+      if (response.data.success) {
+        setObservationSummary(response.data.data);
+      }
+    } catch (error) {
+      console.error('Gagal memuat ringkasan observasi', error);
+      setObservationSummary(null);
+    }
+  };
+
   useEffect(() => {
     if (selectedFarm) {
       fetchFinanceRecords(selectedFarm);
       fetchAnalyticsData(selectedFarm);
+      fetchObservationSummary(selectedFarm);
     }
   }, [selectedFarm]);
 
@@ -179,7 +168,7 @@ const ManagerEconomics = () => {
     }
   };
 
-  const handleGenerateReport = (e) => {
+  const handleGenerateReport = async (e) => {
     e.preventDefault();
     setGenerating(true);
 
@@ -194,29 +183,40 @@ const ManagerEconomics = () => {
       ? 'Semua Lahan'
       : (farms.find((f) => String(f.id) === String(reportFarm))?.name || 'Lahan Terpilih');
 
+    const now = new Date();
+    const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const currentMonth = monthNames[now.getMonth()];
+    const currentYear = now.getFullYear();
+    const currentQuarter = Math.ceil((now.getMonth() + 1) / 3);
+
     const periodNames = {
-      current_month: 'Agustus 2026',
-      current_quarter: 'Kuartal III 2026',
-      year_to_date: 'Tahun 2026 (YTD)',
+      current_month: `${currentMonth} ${currentYear}`,
+      current_quarter: `Kuartal ${currentQuarter === 1 ? 'I' : currentQuarter === 2 ? 'II' : currentQuarter === 3 ? 'III' : 'IV'} ${currentYear}`,
+      year_to_date: `Tahun ${currentYear} (YTD)`,
     };
 
-    setTimeout(() => {
-      const newReport = {
-        id: `rep-${Date.now()}`,
+    try {
+      const payload = {
         title: typeNames[reportType] || 'Laporan Operasional Baru',
-        type: reportType === 'carbon' ? 'Karbon & MRV' : (reportType === 'agronomy' ? 'Agronomi' : 'Keuangan'),
-        farmName: targetFarmName,
-        period: periodNames[reportPeriod] || 'Agustus 2026',
-        format: reportFormat.toUpperCase(),
-        status: 'Tersedia',
-        date: new Date().toISOString().split('T')[0],
+        report_type: reportType === 'carbon' ? 'Karbon & MRV' : (reportType === 'agronomy' ? 'Agronomi' : 'Keuangan'),
+        farm_id: reportFarm === 'all' ? null : reportFarm,
+        farm_name: targetFarmName,
+        period: periodNames[reportPeriod] || `${currentMonth} ${currentYear}`,
+        format: reportFormat,
       };
 
-      setRecentReports((prev) => [newReport, ...prev]);
+      const response = await api.post('/manager/reports', payload);
+      if (response.data.success) {
+        setRecentReports((prev) => [response.data.data, ...prev]);
+        setShowGenerateModal(false);
+        alert(`Berhasil membuat dokumen: ${response.data.data.title} (${response.data.data.format})`);
+      }
+    } catch (error) {
+      alert('Gagal membuat laporan.');
+      console.error('Error generate report:', error);
+    } finally {
       setGenerating(false);
-      setShowGenerateModal(false);
-      alert(`Berhasil membuat dokumen: ${newReport.title} (${newReport.format})`);
-    }, 800);
+    }
   };
 
   const handleDownload = (report) => {
@@ -226,10 +226,12 @@ const ManagerEconomics = () => {
   const currentFarmObj = farms.find((f) => String(f.id) === String(selectedFarm));
   const currentAreaHa = parseFloat(currentFarmObj?.total_area_ha) || 1;
   const totalHarvestKg = harvests.reduce((sum, h) => sum + (parseFloat(h.yield_kg) || 0), 0);
-  const productivityTonPerHa = (totalHarvestKg / 1000 / currentAreaHa).toFixed(2);
+  const productivityTonPerHa = observationSummary?.productivity ?? (totalHarvestKg > 0 ? (totalHarvestKg / 1000 / currentAreaHa).toFixed(2) : null);
 
-  const socCarbon = (currentAreaHa * 18.5).toFixed(1);
-  const agbBiomass = (currentAreaHa * 42.1).toFixed(1);
+  const socCarbon = observationSummary?.soc_carbon;
+  const agbBiomass = observationSummary?.agb_biomass;
+  const plantHealth = observationSummary?.plant_health;
+  const soilNutrition = observationSummary?.soil_nutrition;
 
   return (
     <div>
@@ -317,31 +319,31 @@ const ManagerEconomics = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
               <StatCard
                 title="Panen & Produktivitas"
-                value={totalHarvestKg > 0 ? `${productivityTonPerHa}` : '3.8'}
+                value={productivityTonPerHa !== null ? `${productivityTonPerHa}` : '-'}
                 unit="ton/ha"
                 icon="eco"
               />
               <StatCard
                 title="Penyerapan Karbon Tanah"
-                value={socCarbon}
+                value={socCarbon !== null ? socCarbon : '-'}
                 unit="ton CO2e"
                 icon="co2"
               />
               <StatCard
                 title="Total Biomassa Karbon"
-                value={agbBiomass}
+                value={agbBiomass !== null ? agbBiomass : '-'}
                 unit="ton CO2e"
                 icon="park"
               />
               <StatCard
                 title="Kesehatan Tanaman"
-                value="88%"
+                value={plantHealth !== null ? `${plantHealth}%` : '-'}
                 unit="Sehat"
                 icon="vital_signs"
               />
               <StatCard
                 title="Nutrisi Tanaman"
-                value="76%"
+                value={soilNutrition !== null ? `${soilNutrition}%` : '-'}
                 unit="Kaya NPK"
                 icon="science"
               />
@@ -366,7 +368,20 @@ const ManagerEconomics = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentReports.map((rep) => (
+                  {reportsLoading ? (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: 'var(--color-text-muted)' }}>
+                        Memuat daftar laporan...
+                      </td>
+                    </tr>
+                  ) : recentReports.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '24px', color: 'var(--color-text-muted)' }}>
+                        Belum ada laporan yang dibuat. Klik "Generate Laporan" untuk membuat laporan baru.
+                      </td>
+                    </tr>
+                  ) : (
+                    recentReports.map((rep) => (
                     <tr key={rep.id}>
                       <td style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -398,7 +413,8 @@ const ManagerEconomics = () => {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -701,9 +717,20 @@ const ManagerEconomics = () => {
                     value={reportPeriod}
                     onChange={(e) => setReportPeriod(e.target.value)}
                   >
-                    <option value="current_month">Bulan Ini (Agustus 2026)</option>
-                    <option value="current_quarter">Kuartal Ini (Q3 2026)</option>
-                    <option value="year_to_date">Tahun 2026 (YTD)</option>
+                    {(() => {
+                      const now = new Date();
+                      const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                      const m = monthNames[now.getMonth()];
+                      const y = now.getFullYear();
+                      const q = Math.ceil((now.getMonth() + 1) / 3);
+                      return (
+                        <>
+                          <option value="current_month">{`Bulan Ini (${m} ${y})`}</option>
+                          <option value="current_quarter">{`Kuartal Ini (Q${q} ${y})`}</option>
+                          <option value="year_to_date">{`Tahun ${y} (YTD)`}</option>
+                        </>
+                      );
+                    })()}
                   </select>
                 </div>
                 <div>
