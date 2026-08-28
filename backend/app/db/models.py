@@ -172,10 +172,7 @@ class FarmCrop(db.Model):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id', ondelete='CASCADE'), nullable=False)
     crop_type = db.Column(db.String(100), nullable=False)
-    variety = db.Column(db.String(255))
-    planting_date = db.Column(db.Date)
-    area_ha = db.Column(db.Numeric(10, 2))
-    status = db.Column(db.String(20), nullable=False, default='active')
+    area_ha = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 class Farmer(db.Model):

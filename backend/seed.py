@@ -157,8 +157,8 @@ def seed_comprehensive_data():
     db.session.commit()
 
     # 7. FarmCrops
-    db.session.add(FarmCrop(farm_id=farm1.id, crop_type="Kopi", variety="Typica", planting_date=date(2018, 10, 1), area_ha=2.0))
-    db.session.add(FarmCrop(farm_id=farm2.id, crop_type="Kopi", variety="Sigararutang", planting_date=date(2019, 11, 15), area_ha=1.5))
+    db.session.add(FarmCrop(farm_id=farm1.id, crop_type="Kopi", area_ha=2.0))
+    db.session.add(FarmCrop(farm_id=farm2.id, crop_type="Kopi", area_ha=1.5))
     db.session.commit()
 
     # 8. Financial Records & Harvest Records & ESG Metrics

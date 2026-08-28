@@ -40,10 +40,10 @@ def get_dashboard_summary(current_user):
             
             crops = FarmCrop.query.filter_by(farm_id=f.id).all()
             if crops:
-                area_per_crop = area / len(crops)
                 for c in crops:
                     crop_name = c.crop_type or f.crop_variety or 'Tidak Diketahui'
-                    crop_distribution[crop_name] = crop_distribution.get(crop_name, 0) + area_per_crop
+                    crop_area = float(c.area_ha) if (c.area_ha is not None and float(c.area_ha) > 0) else (area / len(crops))
+                    crop_distribution[crop_name] = crop_distribution.get(crop_name, 0) + crop_area
             else:
                 crop_name = f.crop_variety or (project.commodity if project and project.commodity else 'Tanaman Utama')
                 crop_distribution[crop_name] = crop_distribution.get(crop_name, 0) + area

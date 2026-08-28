@@ -39,7 +39,7 @@ def get_manager_stats(current_user):
         if farm.crops:
             crop = next((c for c in farm.crops if c.crop_type), None)
             if crop:
-                primary_commodity = crop.variety or crop.crop_type
+                primary_commodity = crop.crop_type
                 break
 
     # Revenue dan produksi dari FinancialRecord
@@ -299,7 +299,13 @@ def manager_farms(current_user):
             'project_name': current_user.project.name if current_user.project else '-',
             'crop_variety': f.crop_variety,
             'farmers': [farmer.name for farmer in farm_farmers],
-            'crops': [crop.crop_type for crop in farm_crops],
+            'crops': [
+                {
+                    'id': str(crop.id),
+                    'crop_type': crop.crop_type,
+                    'area_ha': float(crop.area_ha) if crop.area_ha is not None else 0.0
+                } for crop in farm_crops
+            ],
             'total_area_ha': float(f.total_area_ha) if f.total_area_ha else 0,
             'altitude': f.altitude if f.altitude else None,
             'established_year': f.created_at.strftime('%Y') if f.created_at else None,
@@ -339,7 +345,13 @@ def manager_farm_details(current_user, farm_id):
             'established_year': farm.created_at.strftime('%Y') if farm.created_at else '',
             'agroforestry_system': getattr(farm, 'agroforestry_system', None) or 'Agroforestri Organik',
             'farmers': [{'id': f.id, 'name': f.name} for f in farmers],
-            'crops': [c.crop_type for c in crops]
+            'crops': [
+                {
+                    'id': str(c.id),
+                    'crop_type': c.crop_type,
+                    'area_ha': float(c.area_ha) if c.area_ha is not None else 0.0
+                } for c in crops
+            ]
         }
     }), 200
 
@@ -355,10 +367,13 @@ def manager_update_farm_details(current_user, farm_id):
         from app.db.models import Farmer, FarmCrop
         data = request.json
 
+        farm_total_area = float(farm.total_area_ha) if farm.total_area_ha else 0.0
+        if 'total_area_ha' in data:
+            farm_total_area = float(data['total_area_ha']) if data['total_area_ha'] is not None else 0.0
+            farm.total_area_ha = farm_total_area
+
         if 'name' in data and data['name']:
             farm.name = data['name']
-        if 'total_area_ha' in data:
-            farm.total_area_ha = data['total_area_ha']
         if 'crop_variety' in data:
             farm.crop_variety = data['crop_variety']
         if 'altitude' in data:
@@ -367,7 +382,41 @@ def manager_update_farm_details(current_user, farm_id):
             setattr(farm, 'agroforestry_system', data['agroforestry_system'])
         
         farmer_ids = data.get('farmer_ids', [])
-        crop_types = data.get('crop_types', [])
+        
+        # Parse crops (supports array of objects [{crop_type, area_ha}] or array of strings)
+        raw_crops = data.get('crops', [])
+        if not raw_crops and 'crop_types' in data:
+            raw_crops = [{'crop_type': ct, 'area_ha': 0.0} for ct in data.get('crop_types', [])]
+
+        parsed_crops = []
+        total_crops_area = 0.0
+        for item in raw_crops:
+            if isinstance(item, str):
+                c_type = item.strip()
+                c_area = 0.0
+            elif isinstance(item, dict):
+                c_type = str(item.get('crop_type', '')).strip()
+                try:
+                    c_area = float(item.get('area_ha', 0) or 0)
+                except (ValueError, TypeError):
+                    c_area = 0.0
+            else:
+                continue
+
+            if not c_type:
+                continue
+            if c_area < 0:
+                return jsonify({'success': False, 'message': f'Luas komoditas {c_type} tidak boleh bernilai negatif'}), 400
+
+            parsed_crops.append({'crop_type': c_type, 'area_ha': round(c_area, 2)})
+            total_crops_area += c_area
+
+        total_crops_area = round(total_crops_area, 2)
+        if farm_total_area > 0 and total_crops_area > (farm_total_area + 0.0001):
+            return jsonify({
+                'success': False,
+                'message': f'Total luas komoditas ({total_crops_area} Ha) melebihi total luas lahan ({farm_total_area} Ha)'
+            }), 400
         
         # Update Farmers
         valid_farmers = Farmer.query.filter(Farmer.id.in_(farmer_ids), Farmer.company_id == current_user.project.company_id).all()
@@ -375,8 +424,8 @@ def manager_update_farm_details(current_user, farm_id):
         
         # Update Crops
         FarmCrop.query.filter_by(farm_id=farm.id).delete()
-        for c in crop_types:
-            new_crop = FarmCrop(farm_id=farm.id, crop_type=c)
+        for c in parsed_crops:
+            new_crop = FarmCrop(farm_id=farm.id, crop_type=c['crop_type'], area_ha=c['area_ha'])
             db.session.add(new_crop)
             
         db.session.commit()

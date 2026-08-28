@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Settings, Leaf, MapPin, Plus, X, Save, Users, Calendar, Mountain, TreePine, Activity } from 'lucide-react';
+import { ArrowLeft, Settings, Leaf, MapPin, Plus, X, Save, Users, Calendar, Mountain, TreePine, Activity, AlertCircle, Trash2, CheckCircle2, Circle } from 'lucide-react';
 import InputNumber from '../../shared/components/UI/InputNumber';
 
 
@@ -58,8 +58,7 @@ const ManagerFarmManagement = () => {
   const [establishedYear, setEstablishedYear] = useState('');
   const [agroforestrySystem, setAgroforestrySystem] = useState('');
   const [selectedFarmerIds, setSelectedFarmerIds] = useState([]);
-  const [crops, setCrops] = useState([]);
-  const [newCropInput, setNewCropInput] = useState('');
+  const [crops, setCrops] = useState([]); // [{ id?, crop_type: string, area_ha: number | string }]
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -106,13 +105,19 @@ const ManagerFarmManagement = () => {
       if (farmRes.data.success) {
         const d = farmRes.data.data;
         setFarmName(d.name || '');
-        setTotalAreaHa(d.total_area_ha || '');
+        setTotalAreaHa(d.total_area_ha !== undefined && d.total_area_ha !== null ? d.total_area_ha : '');
         setCropVariety(d.crop_variety || '');
         setAltitude(d.altitude || '');
         setEstablishedYear(d.established_year || '');
         setAgroforestrySystem(d.agroforestry_system || 'Agroforestri Organik');
         setSelectedFarmerIds(d.farmers ? d.farmers.map(f => f.id) : []);
-        setCrops(d.crops || []);
+        setCrops(
+          (d.crops || []).map(c =>
+            typeof c === 'string'
+              ? { crop_type: c, area_ha: '' }
+              : { id: c.id, crop_type: c.crop_type, area_ha: c.area_ha ?? '' }
+          )
+        );
       }
       if (farmersRes.data.success) {
         setAllFarmers(farmersRes.data.data);
@@ -137,17 +142,18 @@ const ManagerFarmManagement = () => {
     initFarms();
   };
 
-  const handleAddCrop = (e) => {
-    e.preventDefault();
-    const trimmed = newCropInput.trim();
-    if (trimmed && !crops.includes(trimmed)) {
-      setCrops([...crops, trimmed]);
-    }
-    setNewCropInput('');
+  const handleAddNewCropRow = () => {
+    setCrops([...crops, { crop_type: '', area_ha: '' }]);
   };
 
-  const handleRemoveCrop = (cropToRemove) => {
-    setCrops(crops.filter(c => c !== cropToRemove));
+  const handleUpdateCrop = (index, field, value) => {
+    const updated = [...crops];
+    updated[index] = { ...updated[index], [field]: value };
+    setCrops(updated);
+  };
+
+  const handleRemoveCrop = (index) => {
+    setCrops(crops.filter((_, idx) => idx !== index));
   };
 
   const toggleFarmer = (farmerId) => {
@@ -158,21 +164,41 @@ const ManagerFarmManagement = () => {
     }
   };
 
+  const parsedTotalFarmArea = parseFloat(totalAreaHa) || 0;
+  const totalAllocatedCropArea = crops.reduce((sum, c) => sum + (parseFloat(c.area_ha) || 0), 0);
+  const remainingFarmArea = parsedTotalFarmArea - totalAllocatedCropArea;
+  const allocationPercent = parsedTotalFarmArea > 0
+    ? Math.min(100, Math.round((totalAllocatedCropArea / parsedTotalFarmArea) * 100))
+    : 0;
+  const isOverAllocated = parsedTotalFarmArea > 0 && totalAllocatedCropArea > parsedTotalFarmArea + 0.0001;
+
   const handleSave = async () => {
     if (!farmName.trim()) {
       alert('Nama lahan tidak boleh kosong.');
       return;
     }
+    if (isOverAllocated) {
+      alert(`Total alokasi luasan komoditas (${totalAllocatedCropArea.toFixed(2)} Ha) melebihi total luas lahan (${parsedTotalFarmArea.toFixed(2)} Ha). Harap sesuaikan luas komoditas.`);
+      return;
+    }
+
     setSaving(true);
     try {
+      const payloadCrops = crops
+        .filter(c => c.crop_type && c.crop_type.trim())
+        .map(c => ({
+          crop_type: c.crop_type.trim(),
+          area_ha: parseFloat(c.area_ha) || 0
+        }));
+
       const res = await api.put(`/manager/farms/${selectedFarmId}/details`, {
         name: farmName,
-        total_area_ha: parseFloat(totalAreaHa) || 0,
+        total_area_ha: parsedTotalFarmArea,
         crop_variety: cropVariety,
         altitude: altitude,
         agroforestry_system: agroforestrySystem,
         farmer_ids: selectedFarmerIds,
-        crop_types: crops
+        crops: payloadCrops
       });
       if (res.data.success) {
         alert('Berhasil menyimpan semua perubahan lahan!');
@@ -180,7 +206,8 @@ const ManagerFarmManagement = () => {
       }
     } catch (err) {
       console.error('Gagal menyimpan perubahan:', err);
-      alert('Gagal menyimpan perubahan data lahan.');
+      const msg = err.response?.data?.message || 'Gagal menyimpan perubahan data lahan.';
+      alert(msg);
     } finally {
       setSaving(false);
     }
@@ -208,8 +235,14 @@ const ManagerFarmManagement = () => {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
             {farmList.map((f) => {
-              const tanamanText = f.crops && f.crops.length > 0 ? f.crops.join(', ') : (f.crop_variety || '-');
+              const tanamanText = f.crops && f.crops.length > 0
+                ? f.crops.map(c => typeof c === 'object' && c.crop_type ? `${c.crop_type}${c.area_ha && parseFloat(c.area_ha) > 0 ? ` (${parseFloat(c.area_ha)} Ha)` : ''}` : c).join(', ')
+                : (f.crop_variety || '-');
               const farmersText = f.farmers && f.farmers.length > 0 ? f.farmers.join(', ') : '-';
+              const firstCropTitle = f.crops && f.crops.length > 0
+                ? (typeof f.crops[0] === 'object' ? `${f.crops[0].crop_type}${f.crops.length > 1 ? ` (+${f.crops.length - 1})` : ''}` : f.crops[0])
+                : f.crop_variety;
+
               return (
                 <div key={f.id} className="agro-card" style={{ display: 'flex', flexDirection: 'column', padding: '20px' }}>
                   <FarmMapThumbnail farmId={f.id} />
@@ -221,13 +254,13 @@ const ManagerFarmManagement = () => {
                   <div className="agro-chip-group" style={{ marginBottom: '16px' }}>
                     <span className="agro-chip">{f.total_area_ha} Ha</span>
 
-                    {(f.crop_variety || f.crops?.length > 0) && (
+                    {firstCropTitle && (
                       <span
                         className="agro-chip agro-chip-active"
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
                         <Leaf size={12} />
-                        {f.crop_variety || f.crops[0]}
+                        {firstCropTitle}
                       </span>
                     )}
 
@@ -393,11 +426,11 @@ const ManagerFarmManagement = () => {
               <Users size={18} />
               Penugasan Petani
             </h2>
-            <p className="agro-card-subtitle" style={{ marginBottom: '20px' }}>
+            <p className="agro-card-subtitle" style={{ marginBottom: '16px' }}>
               Pilih petani pengelola yang bertanggung jawab atas lahan ini.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxHeight: '360px', overflowY: 'auto' }}>
               {allFarmers.length === 0 ? (
                 <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Belum ada data petani terdaftar di perusahaan ini.</p>
               ) : (
@@ -410,24 +443,36 @@ const ManagerFarmManagement = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '12px',
-                        padding: '12px 14px',
-                        border: `1px solid ${isChecked ? 'var(--color-main-green)' : 'var(--color-border-muted)'}`,
-                        borderRadius: '10px',
+                        padding: '10px 10px 10px 12px',
+                        borderRadius: '0 6px 6px 0',
                         cursor: 'pointer',
-                        background: isChecked ? '#e6f4eb' : 'var(--color-surface-white)',
-                        transition: 'all 0.2s ease'
+                        background: isChecked ? '#f8fafc' : 'transparent',
+                        borderLeft: isChecked ? '3px solid var(--color-main-green)' : '3px solid transparent',
+                        borderBottom: '1px solid #f1f5f9',
+                        transition: 'all 0.15s ease'
                       }}
                     >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {isChecked ? (
+                          <CheckCircle2 size={19} color="var(--color-main-green)" />
+                        ) : (
+                          <Circle size={19} color="#cbd5e1" />
+                        )}
+                      </div>
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => toggleFarmer(farmer.id)}
-                        style={{ width: '18px', height: '18px', accentColor: 'var(--color-main-green)' }}
+                        style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
                       />
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-text-main)' }}>{farmer.name}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{farmer.phone || 'Tidak ada no telepon'}</div>
-                      </div>
+                      <span style={{ fontSize: '14px', fontWeight: isChecked ? 600 : 400, color: 'var(--color-text-main)' }}>
+                        {farmer.name}
+                      </span>
+                      {farmer.phone && (
+                        <span style={{ fontSize: '12px', color: isChecked ? 'var(--color-text-main)' : 'var(--color-text-muted)', marginLeft: 'auto', fontWeight: isChecked ? 500 : 400 }}>
+                          {farmer.phone}
+                        </span>
+                      )}
                     </label>
                   );
                 })
@@ -435,50 +480,144 @@ const ManagerFarmManagement = () => {
             </div>
           </div>
 
-          {/* Section 3: Jenis Tanaman (Komoditas) */}
+          {/* Section 3: Jenis Tanaman & Alokasi Luas Komoditas */}
           <div className="agro-card">
             <h2 className="agro-card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
               <Leaf size={18} />
-              Jenis Tanaman (Komoditas)
+              Jenis Tanaman & Luas Komoditas
             </h2>
-            <p className="agro-card-subtitle" style={{ marginBottom: '20px' }}>
-              Tambahkan komoditas tanaman yang dibudidayakan di lahan ini.
+            <p className="agro-card-subtitle" style={{ marginBottom: '14px' }}>
+              Tentukan jenis tanaman dan luas masing-masing di lahan ini.
             </p>
 
-            <form onSubmit={handleAddCrop} style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-              <input
-                type="text"
-                className="form-input"
-                value={newCropInput}
-                onChange={(e) => setNewCropInput(e.target.value)}
-                placeholder="Cth: Kopi Arabika, Jagung"
-                style={{ flex: 1 }}
-              />
-              <button type="submit" className="agro-btn-export" style={{ width: 'auto', padding: '8px 16px', background: 'var(--color-primary)', color: 'white', borderColor: 'var(--color-primary)' }}>
-                <Plus size={16} />
-                Tambah
-              </button>
-            </form>
+            {/* Ringkasan Status Luas (Tanpa Bar) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px', fontSize: '13px' }}>
+              <span style={{ color: 'var(--color-text-main)' }}>
+                Total terpakai: <strong style={{ color: isOverAllocated ? '#dc2626' : 'var(--color-text-main)' }}>{totalAllocatedCropArea.toFixed(2)} Ha</strong> dari <strong>{parsedTotalFarmArea.toFixed(2)} Ha</strong>
+              </span>
+              <span style={{ fontWeight: 600, color: isOverAllocated ? '#dc2626' : 'var(--color-text-muted)' }}>
+                {isOverAllocated
+                  ? `Kelebihan ${(totalAllocatedCropArea - parsedTotalFarmArea).toFixed(2)} Ha!`
+                  : `Sisa Luas: ${Math.max(0, remainingFarmArea).toFixed(2)} Ha`}
+              </span>
+            </div>
 
-            <div className="agro-chip-group">
+            {isOverAllocated && (
+              <div style={{
+                marginBottom: '14px',
+                padding: '8px 12px',
+                background: '#fee2e2',
+                borderRadius: '6px',
+                color: '#991b1b',
+                fontSize: '12px',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                <span>Total luas tanaman melebihi total luas lahan ({parsedTotalFarmArea} Ha). Harap kurangi luas tanaman.</span>
+              </div>
+            )}
+
+            {/* Daftar Baris Tanaman Langsung */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
               {crops.length === 0 ? (
-                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Belum ada tanaman yang ditambahkan.</p>
+                <div style={{
+                  padding: '20px 16px',
+                  textAlign: 'center',
+                  background: '#f8fafc',
+                  border: '1px solid var(--color-border-muted)',
+                  borderRadius: '8px',
+                  color: 'var(--color-text-muted)',
+                  fontSize: '13px'
+                }}>
+                  Belum ada data tanaman. Klik tombol <strong>Tambah Tanaman</strong> di bawah untuk menambahkan.
+                </div>
               ) : (
                 crops.map((crop, idx) => (
-                  <span key={idx} className="agro-chip agro-chip-active" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '13px' }}>
-                    {crop}
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '10px 14px',
+                      background: '#ffffff',
+                      border: '1px solid var(--color-border-muted)',
+                      borderRadius: '8px'
+                    }}
+                  >
+                    <div style={{ flex: 2 }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        style={{ width: '100%', padding: '8px 12px', fontSize: '14px' }}
+                        value={crop.crop_type}
+                        onChange={(e) => handleUpdateCrop(idx, 'crop_type', e.target.value)}
+                        placeholder="Nama tanaman (misal: Kopi Arabika)"
+                      />
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: '110px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <InputNumber
+                        className="form-input"
+                        style={{ width: '100%', padding: '8px 12px', fontSize: '14px' }}
+                        value={crop.area_ha}
+                        onChange={(e) => handleUpdateCrop(idx, 'area_ha', e.target.value)}
+                        placeholder="0.0"
+                        step="0.01"
+                        min="0"
+                      />
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-muted)', flexShrink: 0 }}>Ha</span>
+                    </div>
+
                     <button
                       type="button"
-                      onClick={() => handleRemoveCrop(crop)}
-                      style={{ background: 'none', border: 'none', color: '#12513c', cursor: 'pointer', padding: 0, display: 'flex' }}
+                      onClick={() => handleRemoveCrop(idx)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'none',
+                        border: 'none',
+                        color: '#dc2626',
+                        cursor: 'pointer',
+                        padding: '6px 8px',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        flexShrink: 0
+                      }}
+                      title="Hapus tanaman"
                     >
-                      <X size={14} />
+                      <Trash2 size={16} />
                     </button>
-                  </span>
+                  </div>
                 ))
               )}
             </div>
+
+            {/* Tombol Tambah Baris Tanaman Baru */}
+            <button
+              type="button"
+              className="agro-btn-export"
+              style={{
+                width: 'auto',
+                padding: '9px 18px',
+                fontSize: '13px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer'
+              }}
+              onClick={handleAddNewCropRow}
+            >
+              <Plus size={16} />
+              Tambah Tanaman
+            </button>
           </div>
+
         </div>
       )}
 
@@ -488,7 +627,17 @@ const ManagerFarmManagement = () => {
           <button className="agro-btn-export" style={{ width: 'auto', padding: '12px 24px' }} onClick={handleBackToList}>
             Batal
           </button>
-          <button className="agro-btn-detail" style={{ width: 'auto', padding: '12px 32px' }} onClick={handleSave} disabled={saving}>
+          <button
+            className="agro-btn-detail"
+            style={{
+              width: 'auto',
+              padding: '12px 32px',
+              opacity: isOverAllocated ? 0.6 : 1,
+              cursor: isOverAllocated ? 'not-allowed' : 'pointer'
+            }}
+            onClick={handleSave}
+            disabled={saving || isOverAllocated}
+          >
             <Save size={18} />
             {saving ? 'Menyimpan...' : 'Simpan Semua Perubahan'}
           </button>
