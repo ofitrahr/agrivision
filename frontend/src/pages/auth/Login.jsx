@@ -157,7 +157,7 @@ const Login = () => {
           <div style={{ textAlign: 'center', marginTop: '28px', fontSize: '13px', color: 'var(--color-text-muted)' }}>
             Butuh bantuan?{' '}
             <a
-              href="mailto:support@agrivision.id"
+              href="mailto:agrivisionconnect@gmail.com"
               style={{ color: 'var(--color-primary-container)', fontWeight: 600 }}
             >
               Hubungi Support
