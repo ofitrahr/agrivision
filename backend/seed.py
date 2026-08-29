@@ -131,9 +131,9 @@ def seed_comprehensive_data():
 
     # 5. Farmers
     farmers = [
-        Farmer(company_id=company.id, name="Budi Santoso", address="Desa A, Mandailing", phone="081234567890", gender="Male", birth_year=1980, join_year=2020),
-        Farmer(company_id=company.id, name="Siti Aminah", address="Desa B, Mandailing", phone="081234567891", gender="Female", birth_year=1985, join_year=2021),
-        Farmer(company_id=company.id, name="Ucok Harahap", address="Desa C, Mandailing", phone="081234567892", gender="Male", birth_year=1975, join_year=2019)
+        Farmer(company_id=company.id, name="Budi Santoso", address="Desa A, Mandailing", phone="081234567890", gender="Laki-laki", birth_year=1980, join_year=2020),
+        Farmer(company_id=company.id, name="Siti Aminah", address="Desa B, Mandailing", phone="081234567891", gender="Perempuan", birth_year=1985, join_year=2021),
+        Farmer(company_id=company.id, name="Ucok Harahap", address="Desa C, Mandailing", phone="081234567892", gender="Laki-laki", birth_year=1975, join_year=2019)
     ]
     db.session.add_all(farmers)
     db.session.commit()

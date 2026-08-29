@@ -28,8 +28,8 @@ const ManagerEconomics = () => {
 
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [reportType, setReportType] = useState('comprehensive');
-  const [reportFarm, setReportFarm] = useState('all');
+  const [reportType, setReportType] = useState(['comprehensive']);
+  const [reportFarm, setReportFarm] = useState(['all']);
   const [reportPeriod, setReportPeriod] = useState('current_month');
   const [reportFormat, setReportFormat] = useState('pdf');
 
@@ -177,11 +177,13 @@ const ManagerEconomics = () => {
       agronomy: 'Laporan Indeks Observasi & Kesehatan Tanaman',
       carbon: 'Laporan Neraca Karbon & MRV',
       finance: 'Laporan Produktivitas & Finansial Panen',
+      traceability: 'Laporan Traceability & Keterlacakan',
     };
 
-    const targetFarmName = reportFarm === 'all'
+    const isAllFarms = reportFarm.includes('all') || reportFarm.length === 0;
+    const targetFarmName = isAllFarms
       ? 'Semua Lahan'
-      : (farms.find((f) => String(f.id) === String(reportFarm))?.name || 'Lahan Terpilih');
+      : reportFarm.map(id => farms.find((f) => String(f.id) === String(id))?.name).filter(Boolean).join(', ');
 
     const now = new Date();
     const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -197,9 +199,9 @@ const ManagerEconomics = () => {
 
     try {
       const payload = {
-        title: typeNames[reportType] || 'Laporan Operasional Baru',
-        report_type: reportType === 'carbon' ? 'Karbon & MRV' : (reportType === 'agronomy' ? 'Agronomi' : 'Keuangan'),
-        farm_id: reportFarm === 'all' ? null : reportFarm,
+        title: reportType.length > 1 ? 'Laporan Gabungan Multi-Metrik' : (typeNames[reportType[0]] || 'Laporan Operasional Baru'),
+        report_type: reportType.join(','),
+        farm_id: isAllFarms ? null : reportFarm.join(','),
         farm_name: targetFarmName,
         period: periodNames[reportPeriod] || `${currentMonth} ${currentYear}`,
         format: reportFormat,
@@ -232,6 +234,18 @@ const ManagerEconomics = () => {
   const agbBiomass = observationSummary?.agb_biomass;
   const plantHealth = observationSummary?.plant_health;
   const soilNutrition = observationSummary?.soil_nutrition;
+
+  const peningkatanPendapatan = observationSummary?.peningkatan_pendapatan || '-';
+  const penghematanBiaya = observationSummary?.penghematan_biaya || '-';
+  const estimasiPendapatanCarbon = observationSummary?.estimasi_pendapatan_carbon || '-';
+  
+  const nValue = observationSummary?.n_value || '-';
+  const pValue = observationSummary?.p_value || '-';
+  const kValue = observationSummary?.k_value || '-';
+
+  const petaniTerberdayakan = observationSummary?.petani_terberdayakan || '-';
+  const sebaranGender = observationSummary?.sebaran_gender || '-';
+  const sebaranUsia = observationSummary?.sebaran_usia || '-';
 
   return (
     <div>
@@ -310,43 +324,112 @@ const ManagerEconomics = () => {
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <section aria-label="Kesimpulan Index Observasi">
-            <div style={{ marginBottom: '12px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-main)', margin: 0 }}>
+            <div style={{ marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-main)', margin: 0 }}>
                 Kesimpulan Index Observasi
               </h2>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
-              <StatCard
-                title="Panen & Produktivitas"
-                value={productivityTonPerHa !== null ? `${productivityTonPerHa}` : '-'}
-                unit="ton/ha"
-                icon="eco"
-              />
-              <StatCard
-                title="Penyerapan Karbon Tanah"
-                value={socCarbon !== null ? socCarbon : '-'}
-                unit="ton CO2e"
-                icon="co2"
-              />
-              <StatCard
-                title="Total Biomassa Karbon"
-                value={agbBiomass !== null ? agbBiomass : '-'}
-                unit="ton CO2e"
-                icon="park"
-              />
-              <StatCard
-                title="Kesehatan Tanaman"
-                value={plantHealth !== null ? `${plantHealth}%` : '-'}
-                unit="Sehat"
-                icon="vital_signs"
-              />
-              <StatCard
-                title="Nutrisi Tanaman"
-                value={soilNutrition !== null ? `${soilNutrition}%` : '-'}
-                unit="Kaya NPK"
-                icon="science"
-              />
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary-container)' }}>payments</span>
+                Ekonomi
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+                <StatCard
+                  title="Produktivitas Tanaman"
+                  headerUnit="(ton/ha)"
+                  value={productivityTonPerHa !== null ? `${productivityTonPerHa}` : '-'}
+                  icon="eco"
+                />
+                <StatCard
+                  title="Peningkatan Pendapatan"
+                  headerUnit="(%)"
+                  value={peningkatanPendapatan}
+                  icon="trending_up"
+                />
+                <StatCard
+                  title="Penghematan Biaya Produksi"
+                  headerUnit="(%)"
+                  value={penghematanBiaya}
+                  icon="savings"
+                />
+                <StatCard
+                  title="Estimasi Pendapatan Carbon"
+                  headerUnit="(IDR)"
+                  value={estimasiPendapatanCarbon}
+                  icon="payments"
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary-container)' }}>eco</span>
+                Ekologi
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+                <StatCard
+                  title="Kesehatan Tanaman"
+                  headerUnit="(% Sehat)"
+                  value={plantHealth !== null ? `${plantHealth}` : '-'}
+                  icon="vital_signs"
+                />
+                <StatCard
+                  title="Nutrisi Tanaman"
+                  value={
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                      <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--color-border-muted)', background: 'var(--color-surface-container-low)', color: 'var(--color-text-main)' }}>
+                        N: {nValue}
+                      </span>
+                      <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--color-border-muted)', background: 'var(--color-surface-container-low)', color: 'var(--color-text-main)' }}>
+                        P: {pValue}
+                      </span>
+                      <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '14px', fontWeight: 600, border: '1px solid var(--color-border-muted)', background: 'var(--color-surface-container-low)', color: 'var(--color-text-main)' }}>
+                        K: {kValue}
+                      </span>
+                    </div>
+                  }
+                  icon="science"
+                />
+                <StatCard
+                  title="Penyerapan Karbon Tanah"
+                  headerUnit="(ton CO2e)"
+                  value={socCarbon !== null ? socCarbon : '-'}
+                  icon="co2"
+                />
+                <StatCard
+                  title="Biomassa Karbon"
+                  headerUnit="(ton CO2e)"
+                  value={agbBiomass !== null ? agbBiomass : '-'}
+                  icon="park"
+                />
+              </div>
+            </div>
+
+            <div>
+              <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--color-primary-container)' }}>groups</span>
+                Sosial
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+                <StatCard
+                  title="Petani Terberdayakan"
+                  headerUnit="(Orang)"
+                  value={petaniTerberdayakan}
+                  icon="groups"
+                />
+                <StatCard
+                  title="Sebaran Gender"
+                  value={sebaranGender}
+                  icon="wc"
+                />
+                <StatCard
+                  title="Sebaran Usia"
+                  value={sebaranUsia}
+                  icon="cake"
+                />
+              </div>
             </div>
           </section>
 
@@ -664,49 +747,101 @@ const ManagerEconomics = () => {
                     { id: 'agronomy', title: 'Laporan Observasi & Kesehatan Tanaman', desc: 'Indeks vegetasi (NDVI) dan nutrisi tanah NPK.' },
                     { id: 'carbon', title: 'Laporan Neraca Karbon & MRV', desc: 'Penyerapan karbon tanah (SOC) dan biomassa.' },
                     { id: 'finance', title: 'Laporan Produktivitas & Keuangan', desc: 'Hasil panen, biaya operasional, dan laba/rugi.' },
-                  ].map((opt) => (
-                    <label
-                      key={opt.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '10px',
-                        padding: '10px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        border: `1px solid ${reportType === opt.id ? 'var(--color-primary-container)' : 'var(--color-border-muted)'}`,
-                        background: reportType === opt.id ? 'var(--color-surface-container-low)' : 'var(--color-surface-white)',
-                        cursor: 'pointer',
-                        transition: 'all var(--transition)',
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="reportType"
-                        checked={reportType === opt.id}
-                        onChange={() => setReportType(opt.id)}
-                        style={{ marginTop: '3px', accentColor: 'var(--color-primary-container)' }}
-                      />
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-main)' }}>{opt.title}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{opt.desc}</div>
+                    { id: 'traceability', title: 'Laporan Traceability & Keterlacakan', desc: 'Data jejak asal usul komoditas dan petani.' },
+                  ].map((opt) => {
+                    const isSelected = reportType.includes(opt.id);
+                    return (
+                      <div
+                        key={opt.id}
+                        onClick={() => {
+                          if (opt.id === 'comprehensive') {
+                            setReportType(isSelected ? [] : ['comprehensive']);
+                          } else {
+                            setReportType(prev => {
+                              const newPrev = prev.filter(t => t !== 'comprehensive');
+                              return isSelected ? newPrev.filter(t => t !== opt.id) : [...newPrev, opt.id];
+                            });
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '10px',
+                          padding: '10px 12px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: `1px solid ${isSelected ? 'var(--color-primary-container)' : 'var(--color-border-muted)'}`,
+                          background: isSelected ? 'var(--color-surface-container-low)' : 'var(--color-surface-white)',
+                          cursor: 'pointer',
+                          transition: 'all var(--transition)',
+                        }}
+                      >
+                        {isSelected ? (
+                          <span className="material-symbols-outlined" style={{ color: 'var(--color-main-green)', fontSize: '22px', fontVariationSettings: '"FILL" 1' }}>
+                            check_circle
+                          </span>
+                        ) : (
+                          <span className="material-symbols-outlined" style={{ color: 'var(--color-border-muted)', fontSize: '22px' }}>
+                            radio_button_unchecked
+                          </span>
+                        )}
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-main)' }}>{opt.title}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{opt.desc}</div>
+                        </div>
                       </div>
-                    </label>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
               <div>
-                <label className="form-label">Cakupan Lahan</label>
-                <select
-                  className="form-input"
-                  value={reportFarm}
-                  onChange={(e) => setReportFarm(e.target.value)}
-                >
-                  <option value="all">Semua Lahan Proyek</option>
-                  {farms.map((f) => (
-                    <option key={f.id} value={f.id}>{f.name}</option>
-                  ))}
-                </select>
+                <label className="form-label" style={{ marginBottom: '8px', display: 'block' }}>Cakupan Lahan</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {[{ id: 'all', name: 'Semua Lahan Proyek' }, ...farms].map((f) => {
+                    const isSelected = reportFarm.includes(f.id);
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => {
+                          if (f.id === 'all') {
+                            setReportFarm(['all']);
+                          } else {
+                            setReportFarm(prev => {
+                              const newPrev = prev.filter(v => v !== 'all');
+                              if (prev.includes(f.id)) {
+                                return newPrev.filter(v => v !== f.id);
+                              } else {
+                                return [...newPrev, f.id];
+                              }
+                            });
+                          }
+                        }}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '20px',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          cursor: 'pointer',
+                          background: isSelected ? 'var(--color-main-green)' : 'var(--color-surface-white)',
+                          color: isSelected ? '#fff' : 'var(--color-text-main)',
+                          border: isSelected ? '1px solid var(--color-main-green)' : '1px solid var(--color-border-muted)',
+                          transition: 'all 0.2s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {isSelected && (
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 1' }}>
+                            check_circle
+                          </span>
+                        )}
+                        {f.name}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

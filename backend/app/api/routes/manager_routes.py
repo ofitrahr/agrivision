@@ -1052,6 +1052,10 @@ def get_farm_observation_summary(current_user, farm_id):
     biomass_mean = get_layer_mean('biomass')
     npk_mean = get_layer_mean('soilnpk')
     yield_mean = get_layer_mean('yield')
+    
+    n_mean = get_layer_mean('nitrogen')
+    p_mean = get_layer_mean('phosphorus')
+    k_mean = get_layer_mean('potassium')
 
     area = float(farm.total_area_ha) if farm.total_area_ha else 0
 
@@ -1071,5 +1075,77 @@ def get_farm_observation_summary(current_user, farm_id):
 
     if yield_mean is not None:
         result['productivity'] = round(yield_mean, 2)
+        
+    # Ekologi (N, P, K)
+    result['n_value'] = round(n_mean, 1) if n_mean is not None else '-'
+    result['p_value'] = round(p_mean, 1) if p_mean is not None else '-'
+    result['k_value'] = round(k_mean, 1) if k_mean is not None else '-'
+    
+    # Sosial (Demographics)
+    farm_farmers = farm.farmers
+    total_farmers = len(farm_farmers)
+    result['petani_terberdayakan'] = total_farmers if total_farmers > 0 else '-'
+    
+    if total_farmers > 0:
+        male_count = 0
+        female_count = 0
+        for f in farm_farmers:
+            g = str(getattr(f, 'gender', '') or '').lower()
+            if g.startswith('l') or g.startswith('m'):
+                male_count += 1
+            elif g.startswith('p') or g.startswith('f') or g.startswith('w'):
+                female_count += 1
+        result['sebaran_gender'] = f"{male_count}L / {female_count}P"
+        
+        ages = [f.age for f in farm_farmers if getattr(f, 'age', None) is not None]
+        if ages:
+            muda = sum(1 for a in ages if a < 30)
+            dewasa = sum(1 for a in ages if 30 <= a <= 50)
+            tua = sum(1 for a in ages if a > 50)
+            
+            parts = []
+            if muda > 0: parts.append(f"<30: {muda}")
+            if dewasa > 0: parts.append(f"30-50: {dewasa}")
+            if tua > 0: parts.append(f">50: {tua}")
+            
+            result['sebaran_usia'] = " | ".join(parts) if parts else '-'
+        else:
+            result['sebaran_usia'] = '-'
+    else:
+        result['sebaran_gender'] = '-'
+        result['sebaran_usia'] = '-'
+
+    # Ekonomi
+    from app.db.models import FinancialRecord
+    fin_records = FinancialRecord.query.filter_by(farm_id=farm.id).order_by(FinancialRecord.created_at.desc()).limit(2).all()
+    
+    if len(fin_records) >= 2:
+        curr = fin_records[0]
+        prev = fin_records[1]
+        
+        rev_curr = curr.estimated_revenue or 0
+        rev_prev = prev.estimated_revenue or 0
+        if rev_prev > 0:
+            pct_inc = ((rev_curr - rev_prev) / rev_prev) * 100
+            result['peningkatan_pendapatan'] = f"{'+' if pct_inc >= 0 else ''}{round(pct_inc, 1)}"
+        else:
+            result['peningkatan_pendapatan'] = '-'
+            
+        cost_curr = curr.operational_cost or 0
+        cost_prev = prev.operational_cost or 0
+        if cost_prev > 0:
+            cost_sav = ((cost_prev - cost_curr) / cost_prev) * 100
+            result['penghematan_biaya'] = f"{'+' if cost_sav >= 0 else ''}{round(cost_sav, 1)}"
+        else:
+            result['penghematan_biaya'] = '-'
+    else:
+        result['peningkatan_pendapatan'] = '-'
+        result['penghematan_biaya'] = '-'
+
+    if result['soc_carbon'] is not None and isinstance(result['soc_carbon'], (int, float)):
+        carbon_revenue = result['soc_carbon'] * 150000
+        result['estimasi_pendapatan_carbon'] = f"{carbon_revenue:,.0f}".replace(',', '.')
+    else:
+        result['estimasi_pendapatan_carbon'] = '-'
 
     return jsonify({'success': True, 'data': result}), 200
