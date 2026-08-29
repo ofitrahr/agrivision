@@ -58,7 +58,7 @@ const MapCanvasToolbar = ({
         <div className="agro-layer-pills-list">
           {LAYER_OPTIONS.map((layer) => {
             if (permissions && !permissions[layer.permKey]) return null;
-            const isActive = selectedLayer === layer.id;
+            const isActive = selectedLayer === layer.id || (layer.id === 'soilnpk' && ['nitrogen', 'phosphorus', 'potassium'].includes(selectedLayer));
             return (
               <button
                 key={layer.id}

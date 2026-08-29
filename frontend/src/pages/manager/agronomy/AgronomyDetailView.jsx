@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, TrendingUp, AlertTriangle, BarChart3 } from 'lucide-react';
-import PanelLeftStats from './PanelLeftStats';
+import { ArrowLeft } from 'lucide-react';
 import MapCanvasToolbar from './MapCanvasToolbar';
-import PanelRightTrends from './PanelRightTrends';
+import KpiStrip from './KpiStrip';
+import NdviPanel from './panels/NdviPanel';
+import SocPanel from './panels/SocPanel';
+import BiomassPanel from './panels/BiomassPanel';
+import NpkPanel from './panels/NpkPanel';
+import YieldPanel from './panels/YieldPanel';
 import api from '../../../shared/api/axios';
 
 const FALLBACK_PERIODS = [
@@ -12,14 +16,6 @@ const FALLBACK_PERIODS = [
   { id: 'Q4_2025', label: 'Okt - Des 2025' },
   { id: 'Q1_2026', label: 'Jan - Mar 2026' },
 ];
-
-const PARAMS = {
-  ndvi:    { label: 'Kesehatan Tanaman (NDVI)', unit: 'index' },
-  yield:   { label: 'Estimasi Produksi (Yield)', unit: 'Ton/Ha' },
-  soc:     { label: 'Stok Karbon Tanah (SOC)',  unit: 'Ton C/Ha' },
-  biomass: { label: 'Biomassa Karbon',          unit: 'Kg C/Ha' },
-  soilnpk: { label: 'Nutrisi Tanah (NPK)',      unit: 'kg NPK/Ha' },
-};
 
 const AgronomyDetailView = ({
   farm,
@@ -36,6 +32,7 @@ const AgronomyDetailView = ({
   const [opacity, setOpacity] = useState(82);
   const [statsData, setStatsData] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [activeSubLayer, setActiveSubLayer] = useState('nitrogen');
 
   useEffect(() => {
     const fetchPeriods = async () => {
@@ -72,27 +69,60 @@ const AgronomyDetailView = ({
   useEffect(() => {
     if (!farm?.id || periods.length === 0) return;
     const period = periods[currentPeriodIdx]?.id ?? periods[periods.length - 1]?.id;
-    fetchStats(farm.id, selectedLayer, period);
-  }, [farm?.id, selectedLayer, currentPeriodIdx, fetchStats, periods]);
+    
+    // When selectedLayer is soilnpk, we fetch based on activeSubLayer
+    let fetchLayer = selectedLayer;
+    if (selectedLayer === 'soilnpk') {
+      fetchLayer = activeSubLayer;
+      onLayerChange(activeSubLayer); // Keep map in sync
+    } else if (['nitrogen', 'phosphorus', 'potassium'].includes(selectedLayer)) {
+      fetchLayer = selectedLayer;
+    }
+    
+    fetchStats(farm.id, fetchLayer, period);
+  }, [farm?.id, selectedLayer, currentPeriodIdx, fetchStats, periods, activeSubLayer, onLayerChange]);
 
-  const unit = PARAMS[selectedLayer]?.unit ?? '';
-
-  const buildKpi = () => {
-    if (!statsData?.has_data) return [];
-    const { stats, anomaly } = statsData;
-    const anomalyHa = anomaly?.count != null && farm?.total_area_ha
-      ? ((anomaly.count / (statsData.stats.total_count || 1)) * farm.total_area_ha).toFixed(2)
-      : '-';
-    return [
-      { label: 'Rerata',          value: stats.mean?.toFixed(3) ?? '-', unit, icon: BarChart3,     trend: null },
-      { label: 'Min',             value: stats.min?.toFixed(3) ?? '-',  unit, icon: null,          trend: null },
-      { label: 'Max',             value: stats.max?.toFixed(3) ?? '-',  unit, icon: null,          trend: null },
-      { label: 'Std Deviasi',     value: stats.std_dev?.toFixed(3) ?? '-', unit, icon: null,       trend: null },
-      { label: 'Area Anomali',    value: `${anomalyHa} Ha (${anomaly?.percent?.toFixed(1) ?? 0}%)`, unit: '', icon: AlertTriangle, trend: 'down' },
-    ];
+  const handleSubLayerChange = (layer) => {
+    setActiveSubLayer(layer);
+    onLayerChange(layer); // Tell parent to load map for new sublayer
   };
 
-  const kpiItems = buildKpi();
+  const handleParentLayerChange = (layer) => {
+    if (layer === 'soilnpk') {
+      onLayerChange(activeSubLayer);
+    } else {
+      onLayerChange(layer);
+    }
+  };
+
+  // Determine which panel to render
+  const renderLeftPanel = () => {
+    const actualLayer = ['nitrogen', 'phosphorus', 'potassium'].includes(selectedLayer) 
+      ? 'soilnpk' : selectedLayer;
+      
+    switch(actualLayer) {
+      case 'ndvi':
+        return <NdviPanel statsData={statsData} statsLoading={statsLoading} farm={farm} />;
+      case 'soc':
+        return <SocPanel statsData={statsData} statsLoading={statsLoading} farm={farm} />;
+      case 'biomass':
+        return <BiomassPanel statsData={statsData} statsLoading={statsLoading} farm={farm} />;
+      case 'soilnpk':
+        return (
+          <NpkPanel 
+            statsData={statsData} 
+            statsLoading={statsLoading} 
+            farm={farm} 
+            activeSubLayer={['nitrogen', 'phosphorus', 'potassium'].includes(selectedLayer) ? selectedLayer : activeSubLayer}
+            onSubLayerChange={handleSubLayerChange}
+          />
+        );
+      case 'yield':
+        return <YieldPanel statsData={statsData} statsLoading={statsLoading} />;
+      default:
+        return <div className="agro-panel agro-panel-left">Pilih layer di peta</div>;
+    }
+  };
 
   return (
     <div>
@@ -113,26 +143,16 @@ const AgronomyDetailView = ({
         </div>
       )}
 
-      {/* 3-Column Grid */}
+      {/* 2-Column Grid */}
       <div className="agro-dashboard-grid">
-        {/* Left Panel */}
-        <div className="agro-panel agro-panel-left">
-          <PanelLeftStats
-            selectedLayer={selectedLayer}
-            periodIdx={currentPeriodIdx}
-            farm={farm}
-            statsData={statsData}
-            statsLoading={statsLoading}
-            periods={periods}
-          />
-        </div>
+        {renderLeftPanel()}
 
         {/* Center Panel - Map */}
         <div className="agro-map-section">
           <MapCanvasToolbar
             mapHtml={mapHtml}
             selectedLayer={selectedLayer}
-            onLayerChange={onLayerChange}
+            onLayerChange={handleParentLayerChange}
             periodIdx={currentPeriodIdx}
             onPeriodChange={setCurrentPeriodIdx}
             opacity={opacity}
@@ -142,36 +162,15 @@ const AgronomyDetailView = ({
             periods={periods}
           />
         </div>
-
-        {/* Right Panel */}
-        <div className="agro-panel agro-panel-right">
-          <PanelRightTrends
-            selectedLayer={selectedLayer}
-            periodIdx={currentPeriodIdx}
-            farm={farm}
-            statsData={statsData}
-          />
-        </div>
       </div>
 
-      {/* KPI Strip */}
-      {kpiItems.length > 0 && (
-        <div className="agro-kpi-strip">
-          {kpiItems.map((kpi, idx) => {
-            const Icon = kpi.icon;
-            const valClass = kpi.trend === 'up' ? 'agro-kpi-up' : kpi.trend === 'down' ? 'agro-kpi-down' : '';
-            return (
-              <div key={idx} className="agro-kpi-card">
-                <div className="agro-kpi-label">{kpi.label}</div>
-                <div className={`agro-kpi-val ${valClass}`}>
-                  {Icon && <Icon size={14} style={{ display: 'inline', marginRight: 4, verticalAlign: 'text-bottom' }} />}
-                  {kpi.value} {kpi.unit}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* Sticky KPI Strip */}
+      <KpiStrip 
+        selectedLayer={selectedLayer} 
+        activeSubLayer={['nitrogen', 'phosphorus', 'potassium'].includes(selectedLayer) ? selectedLayer : activeSubLayer} 
+        statsData={statsData} 
+        farm={farm} 
+      />
     </div>
   );
 };

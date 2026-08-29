@@ -632,6 +632,9 @@ def get_agronomy_stats(current_user, farm_id):
         'biomass': 'can_access_biomass',
         'yield': 'can_access_yield',
         'soilnpk': 'can_access_soilnpk',
+        'nitrogen': 'can_access_soilnpk',
+        'phosphorus': 'can_access_soilnpk',
+        'potassium': 'can_access_soilnpk',
     }
     perm_key = layer_perm_map.get(layer_type, 'can_access_ndvi')
     if not getattr(perms, perm_key, True):
@@ -649,6 +652,14 @@ def get_agronomy_stats(current_user, farm_id):
     ).all()
 
     values = [float(r.numerical_value) for r in rows if r.numerical_value is not None]
+    
+    # Calculate previous period for change delta
+    all_periods = ['Q1_2025', 'Q2_2025', 'Q3_2025', 'Q4_2025', 'Q1_2026']
+    prev_period = None
+    if period in all_periods:
+        idx = all_periods.index(period)
+        if idx > 0:
+            prev_period = all_periods[idx - 1]
 
     if not values:
         return jsonify({
@@ -657,10 +668,12 @@ def get_agronomy_stats(current_user, farm_id):
                 'layer': layer_type,
                 'period': period,
                 'has_data': False,
-                'stats': {'mean': None, 'min': None, 'max': None, 'std_dev': None, 'total_count': 0},
+                'stats': {'mean': None, 'min': None, 'max': None, 'std_dev': None, 'total_count': 0, 'change': None},
                 'anomaly': {'count': 0, 'total': 0, 'percent': 0.0},
                 'histogram': [],
-                'trend': []
+                'trend': [],
+                'sensor_data': None,
+                'forecast': None
             }
         }), 200
 
@@ -669,6 +682,18 @@ def get_agronomy_stats(current_user, farm_id):
     min_val = min(values)
     max_val = max(values)
     std_val = statistics.stdev(values) if len(values) > 1 else 0.0
+    
+    # Calculate change
+    change = None
+    if prev_period:
+        prev_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type=layer_type, period=prev_period).all()
+        prev_vals = [float(r.numerical_value) for r in prev_rows if r.numerical_value is not None]
+        if prev_vals:
+            prev_mean = statistics.mean(prev_vals)
+            change = mean_val - prev_mean
+
+    total_count = len(values)
+    area_per_pixel = float(farm.total_area_ha) / total_count if total_count > 0 and farm.total_area_ha else 0
 
     # Histogram 10 bin
     histogram = []
@@ -678,16 +703,14 @@ def get_agronomy_stats(current_user, farm_id):
         for v in values:
             idx = min(int((v - min_val) / bin_width), 9)
             bins[idx]['count'] += 1
-        histogram = [{'bin': str(b['bin']), 'count': b['count']} for b in bins]
+        histogram = [{'bin': str(b['bin']), 'count': b['count'], 'area_ha': round(b['count'] * area_per_pixel, 2)} for b in bins]
 
     # Anomali
     anomaly_rows = [r for r in rows if r.is_anomaly]
     anomaly_count = len(anomaly_rows)
-    total_count = len(values)
     anomaly_percent = round((anomaly_count / total_count) * 100, 2) if total_count > 0 else 0.0
 
     # Tren lintas waktu
-    all_periods = ['Q1_2025', 'Q2_2025', 'Q3_2025', 'Q4_2025', 'Q1_2026']
     period_labels = {
         'Q1_2025': 'Jan-Mar 2025', 'Q2_2025': 'Apr-Jun 2025',
         'Q3_2025': 'Jul-Sep 2025', 'Q4_2025': 'Okt-Des 2025', 'Q1_2026': 'Jan-Mar 2026'
@@ -701,8 +724,53 @@ def get_agronomy_stats(current_user, farm_id):
         if period_vals:
             trend.append({
                 'period': period_labels.get(p, p),
+                'period_id': p,
                 'value': round(statistics.mean(period_vals), 4)
             })
+
+    # Sensor Data
+    sensor_data = None
+    if layer_type in ['nitrogen', 'phosphorus', 'potassium', 'soilnpk']:
+        from app.db.models import SensorData
+        sensor = SensorData.query.filter_by(farm_id=farm_id, period=period).first()
+        if sensor:
+            sensor_data = {
+                'ph': float(sensor.ph) if sensor.ph else None,
+                'temperature': float(sensor.temperature) if sensor.temperature else None,
+                'ec': float(sensor.ec) if sensor.ec else None,
+                'humidity': float(sensor.humidity) if sensor.humidity else None,
+            }
+            
+        # Get N, P, K averages for KPI strip
+        n_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='nitrogen', period=period).all()
+        p_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='phosphorus', period=period).all()
+        k_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='potassium', period=period).all()
+        
+        n_vals = [float(r.numerical_value) for r in n_rows if r.numerical_value is not None]
+        p_vals = [float(r.numerical_value) for r in p_rows if r.numerical_value is not None]
+        k_vals = [float(r.numerical_value) for r in k_rows if r.numerical_value is not None]
+        
+        if sensor_data is None:
+            sensor_data = {}
+        sensor_data['nitrogen_mean'] = round(statistics.mean(n_vals), 2) if n_vals else None
+        sensor_data['phosphorus_mean'] = round(statistics.mean(p_vals), 2) if p_vals else None
+        sensor_data['potassium_mean'] = round(statistics.mean(k_vals), 2) if k_vals else None
+
+    # Forecast (Yield)
+    forecast = None
+    if layer_type == 'yield':
+        # Get forecast for next period
+        next_period_idx = all_periods.index(period) + 1 if period in all_periods else -1
+        if next_period_idx > 0 and next_period_idx <= len(all_periods):
+            # For simplicity, if we are at Q1_2026, next is Q2_2026
+            next_p = 'Q2_2026' if period == 'Q1_2026' else all_periods[next_period_idx]
+            fc_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='yield_forecast', period=next_p).all()
+            fc_vals = [float(r.numerical_value) for r in fc_rows if r.numerical_value is not None]
+            if fc_vals:
+                forecast = {
+                    'period': next_p,
+                    'value': round(statistics.mean(fc_vals), 4)
+                }
 
     return jsonify({
         'success': True,
@@ -715,7 +783,8 @@ def get_agronomy_stats(current_user, farm_id):
                 'min': round(min_val, 4),
                 'max': round(max_val, 4),
                 'std_dev': round(std_val, 4),
-                'total_count': total_count
+                'total_count': total_count,
+                'change': round(change, 4) if change is not None else None
             },
             'anomaly': {
                 'count': anomaly_count,
@@ -723,7 +792,9 @@ def get_agronomy_stats(current_user, farm_id):
                 'percent': anomaly_percent
             },
             'histogram': histogram,
-            'trend': trend
+            'trend': trend,
+            'sensor_data': sensor_data,
+            'forecast': forecast
         }
     }), 200
 
@@ -906,18 +977,28 @@ def get_available_periods(current_user):
 
     rows = db.session.query(GisLayer.period)\
         .filter(GisLayer.farm_id.in_(farm_ids))\
+        .filter(GisLayer.parameter_type != 'yield_forecast')\
         .distinct()\
-        .order_by(GisLayer.period)\
         .all()
 
     period_label_map = {
         'Q1': 'Jan - Mar', 'Q2': 'Apr - Jun',
         'Q3': 'Jul - Sep', 'Q4': 'Okt - Des',
     }
+    
+    def parse_period_for_sort(p):
+        try:
+            q, y = p.split('_')
+            return int(y) * 10 + int(q.replace('Q', ''))
+        except:
+            return 0
+
+    period_strs = [p[0] for p in rows if p[0]]
+    period_strs.sort(key=parse_period_for_sort)
 
     periods = []
-    for (p,) in rows:
-        parts = p.split('_') if p else []
+    for p in period_strs:
+        parts = p.split('_')
         if len(parts) == 2:
             quarter, year = parts[0], parts[1]
             label = f"{period_label_map.get(quarter, quarter)} {year}"

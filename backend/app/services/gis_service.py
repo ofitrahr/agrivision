@@ -152,11 +152,21 @@ class GISService:
             elif value > 1.2:
                 return '#f03b20'
             return '#ffeda0'
+        elif layer_type == 'nitrogen':
+            if value > 40: return '#1c9099'
+            elif value > 20: return '#a6bddb'
+            return '#ece2f0'
+        elif layer_type == 'phosphorus':
+            if value > 20: return '#1c9099'
+            elif value > 10: return '#a6bddb'
+            return '#ece2f0'
+        elif layer_type == 'potassium':
+            if value > 45: return '#1c9099'
+            elif value > 30: return '#a6bddb'
+            return '#ece2f0'
         elif layer_type == 'soilnpk':
-            if value > 180:
-                return '#1c9099'
-            elif value > 100:
-                return '#a6bddb'
+            if value > 180: return '#1c9099'
+            elif value > 100: return '#a6bddb'
             return '#ece2f0'
         return '#6b7280'
 
@@ -168,6 +178,9 @@ class GISService:
             'biomass': [('#228b22', 'Tinggi (>150)'), ('#32cd32', 'Sedang (80-150)'), ('#90ee90', 'Rendah (<80)')],
             'yield': [('#feb24c', 'Tinggi (>2.0)'), ('#f03b20', 'Sedang (1.2-2.0)'), ('#ffeda0', 'Rendah (<1.2)')],
             'soilnpk': [('#1c9099', 'Tinggi (>180)'), ('#a6bddb', 'Sedang (100-180)'), ('#ece2f0', 'Rendah (<100)')],
+            'nitrogen': [('#1c9099', 'Tinggi (>40)'), ('#a6bddb', 'Sedang (20-40)'), ('#ece2f0', 'Rendah (<20)')],
+            'phosphorus': [('#1c9099', 'Tinggi (>20)'), ('#a6bddb', 'Sedang (10-20)'), ('#ece2f0', 'Rendah (<10)')],
+            'potassium': [('#1c9099', 'Tinggi (>45)'), ('#a6bddb', 'Sedang (30-45)'), ('#ece2f0', 'Rendah (<30)')],
         }
         items = legends.get(layer_type, [])
         rows_html = ''.join(
@@ -229,6 +242,18 @@ class GISService:
                         value = round(random.uniform(60.0, 280.0), 1)
                         color = GISService._get_color_for_value(value, layer_type)
                         popup_html = f"<b>Nutrisi Tanah (NPK):</b> {value} kg NPK/Ha"
+                    elif layer_type == 'nitrogen':
+                        value = round(random.uniform(10.0, 50.0), 1)
+                        color = GISService._get_color_for_value(value, layer_type)
+                        popup_html = f"<b>Nitrogen (N):</b> {value} kg/Ha"
+                    elif layer_type == 'phosphorus':
+                        value = round(random.uniform(5.0, 30.0), 1)
+                        color = GISService._get_color_for_value(value, layer_type)
+                        popup_html = f"<b>Fosfor (P):</b> {value} kg/Ha"
+                    elif layer_type == 'potassium':
+                        value = round(random.uniform(20.0, 60.0), 1)
+                        color = GISService._get_color_for_value(value, layer_type)
+                        popup_html = f"<b>Kalium (K):</b> {value} kg/Ha"
                     else:
                         value = round(random.uniform(0.4, 0.9), 2)
                         color = GISService._get_color_for_value(value, layer_type)

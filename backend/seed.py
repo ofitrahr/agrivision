@@ -7,7 +7,7 @@ from app.db.models import (
     Farm, FarmCrop, Farmer, farm_farmers, GisLayer,
     TraceTemplate, TraceTemplateStep, Batch, BatchCheckpoint, QrCode,
     AgronomyActivity, HarvestRecord, FinancialRecord, EsgMetric,
-    ActivityLog, RecentActivity, ProjectTraceability
+    ActivityLog, RecentActivity, ProjectTraceability, SensorData
 )
 import bcrypt
 
@@ -149,11 +149,62 @@ def seed_comprehensive_data():
     farm1.farmers.append(farmers[1])
     farm2.farmers.append(farmers[2])
     db.session.commit()
-    
     # GisLayers
+    periods = ["Q1_2025", "Q2_2025", "Q3_2025", "Q4_2025", "Q1_2026"]
     for farm, center_pt in [(farm1, "POINT(99.61075 0.68675)"), (farm2, "POINT(99.6136 0.6886)")]:
-        for param in ["NDVI", "SOC", "Biomass", "Yield", "SoilNPK"]:
-            db.session.add(GisLayer(farm_id=farm.id, coordinate=f"SRID=4326;{center_pt}", parameter_type=param, period="Jun-24", numerical_value=random.uniform(0.1, 0.9) if param == "NDVI" else random.uniform(10, 100), unit="index" if param == "NDVI" else "units", is_anomaly=random.choice([True, False]), source="Sentinel-2"))
+        for period in periods:
+            # Seed 50 points per farm/period to simulate distribution
+            for _ in range(50):
+                # Small random offset for points
+                pt_x = float(center_pt.split('(')[1].split(' ')[0]) + random.uniform(-0.0005, 0.0005)
+                pt_y = float(center_pt.split(' ')[1].split(')')[0]) + random.uniform(-0.0005, 0.0005)
+                pt_str = f"POINT({pt_x} {pt_y})"
+                
+                for param in ["ndvi", "soc", "biomass", "yield", "nitrogen", "phosphorus", "potassium"]:
+                    if param == "ndvi":
+                        val, unit = random.uniform(0.1, 0.9), "index"
+                    elif param == "soc":
+                        val, unit = random.uniform(20, 80), "Ton C/Ha"
+                    elif param == "biomass":
+                        val, unit = random.uniform(1000, 5000), "Kg C/Ha"
+                    elif param == "yield":
+                        val, unit = random.uniform(2, 6), "Ton/Ha" # Yield in Ton/Ha
+                    elif param == "nitrogen":
+                        val, unit = random.uniform(10, 50), "kg N/Ha"
+                    elif param == "phosphorus":
+                        val, unit = random.uniform(5, 30), "kg P/Ha"
+                    elif param == "potassium":
+                        val, unit = random.uniform(20, 60), "kg K/Ha"
+
+                    db.session.add(GisLayer(
+                        farm_id=farm.id, coordinate=f"SRID=4326;{pt_str}",
+                        parameter_type=param, period=period, numerical_value=val,
+                        unit=unit, is_anomaly=random.random() < 0.05, source="Sentinel-2"
+                    ))
+            
+            # Forecast Yield for the next period (e.g. Q2_2026)
+            if period == "Q1_2026":
+                # Create forecast points for Q2_2026
+                for _ in range(50):
+                    pt_x = float(center_pt.split('(')[1].split(' ')[0]) + random.uniform(-0.0005, 0.0005)
+                    pt_y = float(center_pt.split(' ')[1].split(')')[0]) + random.uniform(-0.0005, 0.0005)
+                    pt_str = f"POINT({pt_x} {pt_y})"
+                    db.session.add(GisLayer(
+                        farm_id=farm.id, coordinate=f"SRID=4326;{pt_str}",
+                        parameter_type="yield_forecast", period="Q2_2026", 
+                        numerical_value=random.uniform(2.5, 6.5), unit="Ton/Ha", 
+                        is_anomaly=False, source="Model"
+                    ))
+            
+            # SensorData
+            db.session.add(SensorData(
+                farm_id=farm.id, period=period,
+                ph=random.uniform(5.5, 7.5),
+                temperature=random.uniform(22, 30),
+                ec=random.uniform(100, 500),
+                humidity=random.uniform(50, 90)
+            ))
+            
     db.session.commit()
 
     # 7. FarmCrops

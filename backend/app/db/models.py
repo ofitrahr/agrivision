@@ -217,6 +217,18 @@ class GisLayer(db.Model):
     source = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
+class SensorData(db.Model):
+    __tablename__ = 'sensor_data'
+    
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id', ondelete='CASCADE'), nullable=False)
+    period = db.Column(db.String(50), nullable=False)
+    ph = db.Column(db.Numeric(5, 2))
+    temperature = db.Column(db.Numeric(5, 2))
+    ec = db.Column(db.Numeric(8, 2))
+    humidity = db.Column(db.Numeric(5, 2))
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 class TraceTemplate(db.Model):
     __tablename__ = 'trace_templates'
     
