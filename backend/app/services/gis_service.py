@@ -212,15 +212,39 @@ class GISService:
 
         if has_access:
             if sample_points:
+                from folium.plugins import HeatMap
+                heat_data = [[point['lat'], point['lon'], float(point['value'])] for point in sample_points]
+                
+                gradients = {
+                    'ndvi': {0.4: '#ef4444', 0.65: '#f59e0b', 1.0: '#10b981'},
+                    'soc': {0.3: '#deb887', 0.6: '#cd853f', 1.0: '#8b5a2b'},
+                    'biomass': {0.4: '#90ee90', 0.7: '#32cd32', 1.0: '#228b22'},
+                    'yield': {0.4: '#ffeda0', 0.7: '#f03b20', 1.0: '#feb24c'},
+                    'soilnpk': {0.4: '#ece2f0', 0.7: '#a6bddb', 1.0: '#1c9099'},
+                    'nitrogen': {0.4: '#ece2f0', 0.7: '#a6bddb', 1.0: '#1c9099'},
+                    'phosphorus': {0.4: '#ece2f0', 0.7: '#a6bddb', 1.0: '#1c9099'},
+                    'potassium': {0.4: '#ece2f0', 0.7: '#a6bddb', 1.0: '#1c9099'},
+                }
+                gradient = gradients.get(layer_type, {0.4: 'blue', 0.65: 'lime', 1.0: 'red'})
+                
+                HeatMap(
+                    heat_data,
+                    min_opacity=0.4,
+                    radius=25,
+                    blur=15,
+                    gradient=gradient
+                ).add_to(m)
+
                 for point in sample_points:
-                    color = GISService._get_color_for_value(point['value'], layer_type)
                     folium.CircleMarker(
                         location=[point['lat'], point['lon']],
-                        radius=8,
-                        color=color,
+                        radius=15,
+                        weight=0,
+                        color='transparent',
                         fill=True,
-                        fill_color=color,
-                        fill_opacity=0.75,
+                        fill_color='transparent',
+                        fill_opacity=0,
+                        opacity=0,
                         tooltip=f"<b>{layer_type.upper()}:</b> {point['value']}"
                     ).add_to(m)
             else:

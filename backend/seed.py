@@ -151,36 +151,51 @@ def seed_comprehensive_data():
     db.session.commit()
     # GisLayers
     periods = ["Q1_2025", "Q2_2025", "Q3_2025", "Q4_2025", "Q1_2026"]
-    for farm, center_pt in [(farm1, "POINT(99.61075 0.68675)"), (farm2, "POINT(99.6136 0.6886)")]:
+    
+    for farm, bounds in [
+        (farm1, (99.6100, 99.6115, 0.6860, 0.6875)), 
+        (farm2, (99.6130, 99.6142, 0.6880, 0.6892))
+    ]:
+        lon_min, lon_max, lat_min, lat_max = bounds
+        step = 0.0001
+        center_pt = f"POINT({(lon_min+lon_max)/2} {(lat_min+lat_max)/2})"
+        
         for period in periods:
-            # Seed 50 points per farm/period to simulate distribution
-            for _ in range(50):
-                # Small random offset for points
-                pt_x = float(center_pt.split('(')[1].split(' ')[0]) + random.uniform(-0.0005, 0.0005)
-                pt_y = float(center_pt.split(' ')[1].split(')')[0]) + random.uniform(-0.0005, 0.0005)
-                pt_str = f"POINT({pt_x} {pt_y})"
-                
-                for param in ["ndvi", "soc", "biomass", "yield", "nitrogen", "phosphorus", "potassium"]:
-                    if param == "ndvi":
-                        val, unit = random.uniform(0.1, 0.9), "index"
-                    elif param == "soc":
-                        val, unit = random.uniform(20, 80), "Ton C/Ha"
-                    elif param == "biomass":
-                        val, unit = random.uniform(1000, 5000), "Kg C/Ha"
-                    elif param == "yield":
-                        val, unit = random.uniform(2, 6), "Ton/Ha" # Yield in Ton/Ha
-                    elif param == "nitrogen":
-                        val, unit = random.uniform(10, 50), "kg N/Ha"
-                    elif param == "phosphorus":
-                        val, unit = random.uniform(5, 30), "kg P/Ha"
-                    elif param == "potassium":
-                        val, unit = random.uniform(20, 60), "kg K/Ha"
+            lon = lon_min
+            while lon <= lon_max:
+                lat = lat_min
+                while lat <= lat_max:
+                    is_anomaly = (lon > lon_max - 0.0005 and lat > lat_max - 0.0005)
+                    pt_str = f"POINT({lon} {lat})"
+                    
+                    for param in ["ndvi", "soc", "biomass", "yield", "nitrogen", "phosphorus", "potassium"]:
+                        if param == "ndvi":
+                            val = random.uniform(0.1, 0.3) if is_anomaly else random.uniform(0.75, 1.0)
+                            unit = "index"
+                        elif param == "soc":
+                            val = random.uniform(5.0, 15.0) if is_anomaly else random.uniform(20.0, 30.0)
+                            unit = "t/ha"
+                        elif param == "biomass":
+                            val = random.uniform(10.0, 30.0) if is_anomaly else random.uniform(80.0, 120.0)
+                            unit = "t/ha"
+                        elif param == "yield":
+                            val = random.uniform(0.5, 1.5) if is_anomaly else random.uniform(2.5, 4.0)
+                            unit = "t/ha"
+                        else:
+                            val = random.uniform(10.0, 20.0) if is_anomaly else random.uniform(40.0, 60.0)
+                            unit = "kg/ha"
 
-                    db.session.add(GisLayer(
-                        farm_id=farm.id, coordinate=f"SRID=4326;{pt_str}",
-                        parameter_type=param, period=period, numerical_value=val,
-                        unit=unit, is_anomaly=random.random() < 0.05, source="Sentinel-2"
-                    ))
+                        db.session.add(GisLayer(
+                            farm_id=farm.id,
+                            parameter_type=param,
+                            coordinate=f"SRID=4326;{pt_str}",
+                            numerical_value=val,
+                            unit=unit,
+                            period=period,
+                            source="Dense_Dummy"
+                        ))
+                    lat += step
+                lon += step
             
             # Forecast Yield for the next period (e.g. Q2_2026)
             if period == "Q1_2026":
