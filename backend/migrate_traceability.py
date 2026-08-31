@@ -1,30 +1,45 @@
+"""
+Migrasi arsitektur traceability (project-based questionnaire -> SDG).
+
+Non-destructive: hanya membuat tabel & view baru yang belum ada.
+Tidak menghapus tabel lama sehingga aman dijalankan berulang.
+
+Menjalankan db.create_all() akan membuat semua tabel yang belum ada
+(termskuk tabel baru traceability), lalu membuat VIEW company_sdg_summary.
+"""
 from sqlalchemy import text
 
 from app import create_app
 from app.db.database import db
-from app.db import models
+from app.db import models  # noqa: F401  (registrasi semua model)
 
 app = create_app()
 
 
+def create_company_sdg_view():
+    """Buat VIEW agregasi Company SDG (plan.md #8). Idempoten."""
+    view_sql = text("""
+        CREATE OR REPLACE VIEW company_sdg_summary AS
+        SELECT DISTINCT
+            p.company_id AS company_id,
+            sm.id AS sdg_id,
+            sm.goal_number,
+            sm.name AS sdg_name
+        FROM projects p
+        JOIN project_traceability_profiles ptp ON ptp.project_id = p.id
+        JOIN project_sdgs_new ps ON ps.project_traceability_id = ptp.id
+        JOIN sdg_masters sm ON sm.id = ps.sdg_id;
+    """)
+    db.session.execute(view_sql)
+    db.session.commit()
+
+
 def migrate():
     with app.app_context():
-        # Skema lama traceability project-level (per-SDG) dihapus karena
-        # SDG sekarang level company. Isi hanya data test, aman di-recreate.
-        db.session.execute(text("DROP TABLE IF EXISTS project_sdg_evidences CASCADE;"))
-        db.session.execute(text("DROP TABLE IF EXISTS project_sdgs CASCADE;"))
-        db.session.execute(text("DROP TABLE IF EXISTS project_traceabilities CASCADE;"))
-        db.session.execute(text("DROP TABLE IF EXISTS company_sdg_verifications CASCADE;"))
-        db.session.execute(text("DROP TABLE IF EXISTS company_sdgs CASCADE;"))
-        db.session.execute(text("DROP TABLE IF EXISTS sdgs CASCADE;"))
-        db.session.commit()
-
+        # Senin hanya membuat tabel yang BELUM ada (tabel lama dipertahankan).
         db.create_all()
-
-        db.session.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS commodity VARCHAR(100);"))
-        db.session.commit()
-
-        print("Migrasi selesai: tabel traceability dibuat ulang sesuai skema company-level, kolom commodity ditambahkan.")
+        create_company_sdg_view()
+        print("Migrasi selesai: tabel & view traceability baru dibuat (paralel dengan skema lama).")
 
 
 if __name__ == "__main__":

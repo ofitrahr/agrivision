@@ -221,7 +221,7 @@ if __name__ == "__main__":
 
     # ==========================================
     # Arsitektur traceability BARU (plan revisi terbaru).
-    # Tanam SDG Master + Questionnaire kontribusi SDG dari soal.md (105 pertanyaan).
+    # Tanam SDG Master + Questionnaire kontribusi SDG (105 pertanyaan hardcoded).
     # ==========================================
     from seed_sdg_contribution import run as seed_sdg_contribution
     seed_sdg_contribution()

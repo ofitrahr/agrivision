@@ -22,11 +22,7 @@ const StatusBadge = ({ status }) => {
   const m = STATUS_MAP[status] || STATUS_MAP.NOT_ASSESSED;
   const Icon = m.icon;
   return (
-    <span className="badge" style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6, background: m.bg, color: '#fff',
-      borderRadius: 9999, padding: '4px 10px', fontSize: 11, fontWeight: 600,
-      letterSpacing: '0.03em', whiteSpace: 'nowrap'
-    }}>
+    <span className="status-badge" style={{ background: m.bg, color: '#fff' }}>
       <Icon size={12} /> {m.text}
     </span>
   );
@@ -263,7 +259,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
         setSdgResults(d.sdg_results || []);
         setAllSdgs(d.all_sdgs || []);
         setAssessmentMeta(d.assessment || null);
-        setProjectInfo({ project: { id: d.assessment?.project_id, name: d.assessment?.project_name, company_name: null, company_id: null } });
+        setProjectInfo({ project: { id: d.assessment?.project_id, name: d.assessment?.project_name, company_name: d.assessment?.company_name || null, company_id: d.assessment?.company_id || null } });
         setExpandedGoals([]);
         setAnswersDetail(null);
         setShowAnswers(false);
@@ -300,7 +296,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
   const totalQuestions = questionnaire?.sections?.reduce((a, s) => a + s.questions.length, 0) || 0;
 
   return (
-    <div style={{ paddingBottom: 100 }}>
+    <div className="assessment-page" style={{ paddingBottom: 100 }}>
       <div className="page-header">
         <div>
           {crumbs}
@@ -416,7 +412,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
 
       {/* ---------- STEP: QUESTIONNAIRE FORM ---------- */}
       {step === 'form' && questionnaire && (
-        <div>
+        <div className="step-body">
           <div className="stat-card panel-emphasized">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
               <div>
@@ -501,7 +497,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
         const fulfilledSdgs = assessed.filter(r => r.status === 'FULFILLED');
 
         return (
-          <div>
+          <div className="step-body">
             <div className="stat-card">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
                 <CheckCircle2 size={20} style={{ color: '#116c4a' }} />
@@ -510,7 +506,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
                   {statusText(meta.status)}
                 </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '18px 24px' }}>
                 <Field icon={<FolderOpen size={14} />} label="Project" value={projectInfo?.project?.name || meta.project_name || '-'} />
                 <Field icon={<Building2 size={14} />} label="Perusahaan" value={projectInfo?.project?.company_name || '-'} />
                 <Field icon={<FileText size={14} />} label="Questionnaire" value={meta.questionnaire_name ? `${meta.questionnaire_name} (v${meta.questionnaire_version})` : (questionnaire ? `${questionnaire.name} (v${questionnaire.version})` : '-')} />

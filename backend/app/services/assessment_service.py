@@ -369,6 +369,10 @@ def serialize_assessment(assessment):
         "project_traceability_id": str(assessment.project_traceability_id),
         "project_id": str(assessment.project_traceability.project_id),
         "project_name": assessment.project_traceability.project.name,
+        "company_id": str(assessment.project_traceability.project.company_id)
+            if assessment.project_traceability.project.company_id else None,
+        "company_name": assessment.project_traceability.project.company.name
+            if assessment.project_traceability.project.company else None,
         "questionnaire_id": str(q.id) if q else None,
         "questionnaire_name": q.name if q else None,
         "questionnaire_version": q.version if q else None,
