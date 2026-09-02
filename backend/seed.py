@@ -1,28 +1,31 @@
+import os
+import json
+
 from app import create_app
 from app.db.database import db
-from app.db.models import User, Company, Project, ProjectPermission, Sdg, Farm
+from app.db.models import User, Company, Project, ProjectPermission, Sdg, SdgMaster, Farm
 import bcrypt
 
 app = create_app()
 
 SDG_CATALOG = [
-    (1, "No Poverty", "Mengakhiri kemiskinan dalam segala bentuknya di mana pun."),
-    (2, "Zero Hunger", "Mengakhiri kelaparan, mencapai ketahanan pangan dan gizi yang lebih baik, serta mendukung pertanian berkelanjutan."),
-    (3, "Good Health and Well-being", "Memastikan kehidupan yang sehat dan mendukung kesejahteraan bagi semua orang di segala usia."),
-    (4, "Quality Education", "Memastikan pendidikan yang inklusif dan bermutu serta mendukung kesempatan belajar sepanjang hayat."),
-    (5, "Gender Equality", "Mencapai kesetaraan gender dan memberdayakan semua perempuan dan anak perempuan."),
-    (6, "Clean Water and Sanitation", "Memastikan ketersediaan dan pengelolaan air bersih serta sanitasi yang berkelanjutan."),
-    (7, "Affordable and Clean Energy", "Memastikan akses terhadap energi yang terjangkau, andal, berkelanjutan, dan modern."),
-    (8, "Decent Work and Economic Growth", "Mendukung pertumbuhan ekonomi yang inklusif dan berkelanjutan serta pekerjaan layak bagi semua."),
-    (9, "Industry, Innovation and Infrastructure", "Membangun infrastruktur yang tangguh, mendukung industrialisasi inklusif, dan mendorong inovasi."),
-    (10, "Reduced Inequalities", "Mengurangi ketimpangan di dalam dan antar negara."),
-    (11, "Sustainable Cities and Communities", "Membangun kota dan pemukiman yang inklusif, aman, tangguh, dan berkelanjutan."),
-    (12, "Responsible Consumption and Production", "Mendukung pola konsumsi dan produksi yang bertanggung jawab."),
-    (13, "Climate Action", "Mengambil tindakan segera untuk memerangi perubahan iklim dan dampaknya."),
-    (14, "Life Below Water", "Melestarikan dan memanfaatkan samudera, laut, dan sumber daya kelautan secara berkelanjutan."),
-    (15, "Life on Land", "Melindungi, memulihkan, dan mendukung pemanfaatan ekosistem daratan secara berkelanjutan."),
-    (16, "Peace, Justice and Strong Institutions", "Mendukung masyarakat yang damai dan inklusif serta institusi yang kuat."),
-    (17, "Partnerships for the Goals", "Memperkuat sarana pelaksanaan dan menghidupkan kembali kemitraan global untuk pembangunan berkelanjutan."),
+    (1, "No Poverty", "Menghapus kemiskinan dalam segala bentuknya di mana-mana"),
+    (2, "Zero Hunger", "Menghapus kelaparan, mencapai ketahanan pangan dan gizi yang lebih baik, dan mendukung pertanian berkelanjutan"),
+    (3, "Good Health and Well-being", "Memastikan kehidupan yang sehat dan mendukung kesejahteraan bagi semua orang di segala usia"),
+    (4, "Quality Education", "Memastikan pendidikan yang inklusif dan bermutu serta mendukung kesempatan belajar sepanjang hayat"),
+    (5, "Gender Equality", "Mencapai kesetaraan gender dan memberdayakan semua perempuan dan anak perempuan"),
+    (6, "Clean Water and Sanitation", "Memastikan ketersediaan dan pengelolaan air bersih serta sanitasi yang berkelanjutan untuk semua"),
+    (7, "Affordable and Clean Energy", "Memastikan akses terhadap energi yang terjangkau, andal, berkelanjutan, dan modern untuk semua"),
+    (8, "Decent Work and Economic Growth", "Mendukung pertumbuhan ekonomi yang inklusif dan berkelanjutan, pekerjaan yang layak bagi semua"),
+    (9, "Industry, Innovation and Infrastructure", "Membangun infrastruktur yang tangguh, mendukung industrialisasi inklusif, dan mendorong inovasi"),
+    (10, "Reduced Inequalities", "Mengurangi ketimpangan di dalam dan antar negara"),
+    (11, "Sustainable Cities and Communities", "Membangun kota dan pemukiman yang inklusif, aman, tangguh, dan berkelanjutan"),
+    (12, "Responsible Consumption and Production", "Memastikan pola konsumsi dan produksi yang berkelanjutan"),
+    (13, "Climate Action", "Mengambil tindakan segera untuk memerangi perubahan iklim dan dampaknya"),
+    (14, "Life Below Water", "Melestarikan dan memanfaatkan samudera, laut, dan sumber daya kelautan secara berkelanjutan"),
+    (15, "Life on Land", "Melindungi, memulihkan, dan mendukung pemanfaatan ekosistem daratan secara berkelanjutan"),
+    (16, "Peace, Justice and Strong Institutions", "Mendukung masyarakat yang damai dan inklusif serta institusi yang kuat"),
+    (17, "Partnerships for the Goals", "Memperkuat sarana pelaksanaan dan menghidupkan kembali kemitraan global untuk pembangunan berkelanjutan"),
 ]
 
 
@@ -33,7 +36,12 @@ def seed_sdgs():
             return
 
         for num, title, goal in SDG_CATALOG:
-            db.session.add(Sdg(code=str(num), title=title, goal=goal))
+            db.session.add(Sdg(
+                code=str(num),
+                title=title,
+                goal=goal,
+                image_url=f"/static/uploads/sdg-logos/{num}.png",
+            ))
         db.session.commit()
         print(f"Berhasil menanam {len(SDG_CATALOG)} data SDG ke database.")
 
@@ -214,6 +222,87 @@ def seed_kopi_test():
             print("Lahan 'Monumen Nasional' berhasil dibuat.")
 
 
+def upload_sdg_logos_to_minio():
+    """Upload 17 SDG logo ke MinIO dan update image_url di database.
+
+    Jalankan setelah seed_sdgs() dan seed_sdg_contribution().
+    Idempotent: skip goal yang sudah punya URL MinIO.
+    """
+    use_minio = os.getenv('USE_MINIO', 'false').lower() == 'true'
+    if not use_minio:
+        print("[SDG Logos] USE_MINIO=false. Logo tetap menggunakan path lokal.")
+        return
+
+    try:
+        import boto3
+        from botocore.client import Config
+    except ImportError:
+        print("[SDG Logos] boto3 tidak terinstall. Logo tetap menggunakan path lokal.")
+        return
+
+    endpoint = os.getenv('MINIO_ENDPOINT', 'http://localhost:9000')
+    access_key = os.getenv('MINIO_ACCESS_KEY', 'admin_utama')
+    secret_key = os.getenv('MINIO_SECRET_KEY', 'password_sangat_kuat_32karakter')
+    bucket_name = os.getenv('MINIO_BUCKET_NAME', 'agrivision-uploads')
+    subfolder = 'sdg-logos'
+    logo_dir = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'sdg-logos')
+
+    client = boto3.client(
+        's3',
+        endpoint_url=endpoint,
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        config=Config(signature_version='s3v4', connect_timeout=5, read_timeout=10),
+        region_name='us-east-1',
+    )
+
+    # Pastikan bucket ada
+    try:
+        client.head_bucket(Bucket=bucket_name)
+    except Exception:
+        client.create_bucket(Bucket=bucket_name)
+        policy = {
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": ["s3:GetObject"],
+                "Resource": [f"arn:aws:s3:::{bucket_name}/*"],
+            }],
+        }
+        client.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(policy))
+
+    with app.app_context():
+        success = 0
+        for goal_number in range(1, 18):
+            filename = f"{goal_number}.png"
+            filepath = os.path.join(logo_dir, filename)
+
+            if not os.path.isfile(filepath):
+                print(f"  [SKIP] SDG {goal_number:02d}: file tidak ditemukan ({filepath})")
+                continue
+
+            object_name = f"{subfolder}/{filename}"
+            public_url = f"{endpoint}/{bucket_name}/{object_name}"
+
+            # Cek apakah sudah ada URL MinIO
+            master = SdgMaster.query.filter_by(goal_number=goal_number).first()
+            if master and master.image_url and 'localhost:9000' in str(master.image_url):
+                print(f"  [SKIP] SDG {goal_number:02d}: sudah ada di MinIO")
+                continue
+
+            with open(filepath, 'rb') as f:
+                client.upload_fileobj(f, bucket_name, object_name, ExtraArgs={'ContentType': 'image/png'})
+
+            SdgMaster.query.filter_by(goal_number=goal_number).update({"image_url": public_url})
+            Sdg.query.filter_by(code=str(goal_number)).update({"image_url": public_url})
+            print(f"  [OK] SDG {goal_number:02d}: {public_url}")
+            success += 1
+
+        db.session.commit()
+        print(f"[SDG Logos] {success} logo berhasil di-upload ke MinIO.")
+
+
 if __name__ == "__main__":
     seed_sdgs()
     seed_super_admin()
@@ -225,3 +314,8 @@ if __name__ == "__main__":
     # ==========================================
     from seed_sdg_contribution import run as seed_sdg_contribution
     seed_sdg_contribution()
+
+    # ==========================================
+    # Upload SDG logos ke MinIO (jika USE_MINIO=true).
+    # ==========================================
+    upload_sdg_logos_to_minio()

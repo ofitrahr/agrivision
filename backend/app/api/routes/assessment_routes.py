@@ -1,11 +1,64 @@
-﻿from flask import Blueprint, jsonify, request
+﻿import uuid
+from flask import Blueprint, jsonify, request
 from app.core.security import token_required, roles_required
 from app.services import assessment_service as svc
+from app.db.models import Project, ProjectTraceabilityProfile, ProjectSdg, SdgMaster
 
 
 assessment_bp = Blueprint('assessment_bp', __name__)
 
 ASSESS_ROLES = ['super_admin', 'manager']
+
+
+# ---------------------------------------------------------------
+# PUBLIC TRACEABILITY (no auth required - accessed via QR code)
+# ---------------------------------------------------------------
+@assessment_bp.route('/public/trace/<project_ref>', methods=['GET'])
+def api_public_traceability(project_ref):
+    """Public endpoint for traceability dashboard (QR code scan)."""
+    try:
+        project_uuid = uuid.UUID(project_ref)
+        project = Project.query.filter(
+            (Project.id == project_uuid) | (Project.name == project_ref)
+        ).first()
+    except ValueError:
+        project = Project.query.filter_by(name=project_ref).first()
+    if not project:
+        return jsonify({"success": False, "message": "Project tidak ditemukan"}), 404
+
+    profile = ProjectTraceabilityProfile.query.filter_by(project_id=project.id).first()
+    project_sdgs = []
+    if profile:
+        for ps in ProjectSdg.query.filter_by(project_traceability_id=profile.id).all():
+            sdg = ps.sdg_master
+            project_sdgs.append({
+                "goal_number": sdg.goal_number,
+                "name": sdg.name,
+                "description": sdg.description,
+                "image_url": sdg.image_url,
+            })
+
+    return jsonify({
+        "success": True,
+        "data": {
+            "project": {
+                "id": str(project.id),
+                "name": project.name,
+                "commodity": project.commodity,
+                "location": project.location,
+                "company_name": project.company.name if project.company else None,
+            },
+            "profile": {
+                "title": profile.title if profile else None,
+                "tagline": profile.tagline if profile else None,
+                "origin_story": profile.origin_story if profile else None,
+                "description": profile.description if profile else None,
+                "hero_image_url": profile.hero_image_url if profile else None,
+                "status": profile.status if profile else 'draft',
+            },
+            "sdgs": project_sdgs,
+        }
+    }), 200
 
 
 # ---------------------------------------------------------------

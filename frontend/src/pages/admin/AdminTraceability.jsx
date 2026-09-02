@@ -583,9 +583,18 @@ const AdminTraceability = () => {
                       width: 48, height: 48, borderRadius: 8,
                       background: isActive ? meta.color : `${meta.color}1A`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      marginBottom: 12, transition: 'all 0.2s ease'
+                      marginBottom: 12, transition: 'all 0.2s ease',
+                      overflow: 'hidden'
                     }}>
-                      <Icon size={24} style={{ color: isActive ? '#ffffff' : meta.color }} />
+                      {sdg.image_url ? (
+                        <img
+                          src={sdg.image_url}
+                          alt={`SDG ${sdg.goal_number}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
+                      ) : (
+                        <Icon size={24} style={{ color: isActive ? '#ffffff' : meta.color }} />
+                      )}
                     </div>
                     <p style={{
                       fontSize: 12, fontWeight: 700, letterSpacing: '0.03em',

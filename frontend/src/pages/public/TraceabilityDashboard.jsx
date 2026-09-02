@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Building2, Package, MapPin, Sprout, Leaf, Users, TrendingUp, Trees, BadgeCheck, QrCode } from 'lucide-react';
 import DetailCard from '../../shared/components/traceability/DetailCard';
 import ImpactSection from '../../shared/components/traceability/ImpactSection';
+import api from '../../shared/api/axios';
 
 const ImpactStat = ({ label, value }) => (
   <div style={{ background: '#f8f9fa', padding: 8, borderRadius: 12, border: '1px solid rgba(233,236,239,0.5)', textAlign: 'center' }}>
@@ -17,46 +18,6 @@ const ImpactRow = ({ label, value, valueColor }) => (
     <span style={{ fontWeight: 700, color: valueColor || '#191c1d' }}>{value}</span>
   </div>
 );
-
-const MOCK_DATA = {
-  batch_number: 'BATCH-2025-001',
-  company_name: 'Kadatuan Coffee',
-  project_name: 'Arabica Highland Program',
-  commodity: 'Coffee',
-  location: 'Aceh Tengah',
-  tagline: 'Sustainable Coffee Producer',
-  hero_image_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD28qUbQqnnZph3tfC8qS_yYSQn5ogy6Ue8gc7371ubmxLE5RCoaHlXqHhB1H0qv1_-XHdfYi2SwwAZru1NO5V4qIyCfOW8MkQA0peEXLqDRxuLGTEZcBoNWmg8gVLWHo3NhJ4V8xd1eJRVQRs5zHudcDpJYKTk0tIj0scstDVaCHU4qLDQ99abm-nyqB2ijQRMKMkKbUNpaXNqjTMVZwCU5qu2Y68WTtJ_GjiGn_c9f3SmJthIGD58IQ0v3Fw6aKub82RQ7udeb74',
-  description: 'Kadatuan Coffee is dedicated to producing premium Arabica beans while fostering a regenerative agricultural ecosystem. Our philosophy centers on the harmony between nature and community, ensuring that every harvest supports biodiversity and provides sustainable livelihoods for our partner farmers in the highlands of Central Aceh.',
-  sustainability: {
-    social: {
-      partners: 42,
-      female: 38,
-      programs: 12,
-      description: 'Our social initiatives focus on gender equity and community resilience through dedicated training programs and fair trade partnerships.'
-    },
-    economic: {
-      active_farm_area: '25 Ha',
-      annual_yield: '1,250 Kg',
-      carbon_credit: 'Rp136.7M',
-      description: 'Kontribusi ekonomi dari kegiatan pertanian, skala produksi, dan potensi nilai ekonomi dari pengelolaan karbon berkelanjutan.'
-    },
-    environmental: {
-      land_area: '186 Ha',
-      carbon_stock: '186 Ton C',
-      farm_practice: 'Organic',
-      description: 'Indikator kondisi lingkungan yang mendukung praktik pertanian berkelanjutan dan penyimpanan karbon.'
-    }
-  },
-  sdgs: ['2', '8', '12', '13', '15']
-};
-
-const SDG_IMAGES = {
-  '2': 'https://lh3.googleusercontent.com/aida-public/AB6AXuAm4g6v_eTbbeQsJezN-rSqHmJ9_KxvpMi04-iBdi2ZaWRdUZWRKTL3x9NY-Suuwd3z_SF3DHM7aw60RDuZRDPmjYwqfa6G5_BSKI2dgsqAEJ34_7Z9foM6MXIx8Rl6ilXM4K-78u5v2E0cqPx_Rk0w_qvtZXPBHG8CCHgEt7ySLwxVth1_Zs8orO6YChGDB84DUzEjMkU7rmVH4Rxn8WWV73Bc8o2Xa9hOk6YJ8wFQVf5FsfD09WCqXnxgo9vjjoVlXesAgDX3B9E',
-  '8': 'https://lh3.googleusercontent.com/aida-public/AB6AXuBcCPdTdFZdLq_duR68QXBRRuwQbsXuYGJzWtFUQqRQaAKsu3S753F9FVg9Guj0i6xOKUpVGDXnj_gpFytpe8ctbJ1IF48A95fEn5JFL2qi23OwLaheKxqgDbhcuTPntTj4pMJsuYQregcMcuQlRtPd_TGdJhS_nz716ZW6Tm7praBIzdB4MEMeyt2vs8yKrw3XnE834Zfw2E1U_fbzoVXkIOMxAEY3V4GL7p9qxeBsdSyhedPmHkKEiuDC7WmYNI8yShtFXZimpQ0',
-  '12': 'https://lh3.googleusercontent.com/aida-public/AB6AXuBx4D1Wx4gRnEcXczORBRC8V8vkdAWknjO4E-_Dp6_hzzmfa8g5r0ObM_pMEYE9cSyy5lpCqEosdoURibJSF4pSY4IZijVPzi1WCsoQ-__D7YlJREhdX5WHidjHzMNZ8EwxUe80Xjo3fHQn22VspOQuG3vJT2Zc8BeBEpgM1F3ww0Z4shmb-u_oLHkkz9dOCE79PGMhxLkljw4ACKHcUTOtWiq_ZijR2uxSjRHei_SZdzXBb7K8yFW1Juu4plSfjuobhXvwmS54FZk',
-  '13': 'https://lh3.googleusercontent.com/aida-public/AB6AXuCMnpvd59rR1VWtQFcw6eMHRVgUzu-gqlTeS9EK4xV6ho-F1VceKiVAR1VYzCceCS-my2hFkBrZYIhr5NOo84IA0rNAduUuGN6OnpfUtQAw5hK45UBA-CnAylrFw-6daJXI9i2TuXA8xA40fjwAtc-HJQysZnVEyYEdzstqLy9bYBNNdjHtuQSXh2h-WphRnPw6WKMlDa8w7oRaSy_1MnGqN4UKVbnMAOte26hovZnCLaD7GZQlgrBXZejInM4M_j1FXKT0uammxJo',
-  '15': 'https://lh3.googleusercontent.com/aida-public/AB6AXuDHU9nSAia2vTcliNuWy-XTAlNUMfUqh8BClbo1RTGkbg7YLGi6wEAcNrJ2_lqoHSEgzfYgKIPm5lU-Iot_HAMCu2bY1jE-hD5D-lltWzE0QdvLPYjoUS8yddjLznRP9XsCg75CZpBCR24Nss0v3bv7yU3xf4OyM6s1G7HHfzlVD8Nke76XFJ8NW9ozX-PvxJEty-9q9wfQhMxJpaYJcrsMw7Gcm6ahy3GwV3AmWsVkprm1bPLf9WIbXmmDYY-_pT-HP529-PqzHRU'
-};
 
 const loadingSkeleton = (
   <div style={{ minHeight: '100vh', background: '#f8f9fa', color: '#191c1d', fontFamily: '"Hanken Grotesk", sans-serif' }}>
@@ -78,22 +39,47 @@ const loadingSkeleton = (
 
 const TraceabilityDashboard = () => {
   const { projectRef } = useParams();
-  const [data] = useState(MOCK_DATA);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(t);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get(`/assessment/public/trace/${projectRef}`);
+        if (res.data.success) {
+          setData(res.data.data);
+        } else {
+          setError(res.data.message || 'Data tidak ditemukan');
+        }
+      } catch (err) {
+        setError('Gagal memuat data traceability');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (projectRef) fetchData();
   }, [projectRef]);
 
   if (loading) return loadingSkeleton;
+  if (error) return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#6C757D', fontFamily: '"Hanken Grotesk", sans-serif' }}>
+      {error}
+    </div>
+  );
   if (!data) return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#6C757D', fontFamily: '"Hanken Grotesk", sans-serif' }}>
       Data tidak ditemukan
     </div>
   );
 
-  const s = data.sustainability;
+  const { project, profile, sdgs } = data;
+  const projectName = profile?.title || project?.name || '';
+  const companyName = project?.company_name || '';
+  const tagline = profile?.tagline || '';
+  const heroImage = profile?.hero_image_url || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200';
+  const description = profile?.origin_story || profile?.description || '';
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8f9fa', color: '#191c1d', fontFamily: '"Hanken Grotesk", sans-serif', paddingBottom: 96 }}>
@@ -128,8 +114,8 @@ const TraceabilityDashboard = () => {
           border: '1px solid #E9ECEF'
         }}>
           <img
-            src={data.hero_image_url}
-            alt={data.company_name}
+            src={heroImage}
+            alt={companyName}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
           <div style={{
@@ -169,10 +155,10 @@ const TraceabilityDashboard = () => {
               letterSpacing: '-0.02em',
               lineHeight: '40px'
             }}>
-              {data.project_name || data.company_name}
+              {projectName || companyName}
             </h1>
             <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.8)', margin: 0, fontStyle: 'italic' }}>
-              {data.company_name && data.project_name && data.company_name !== data.project_name ? `${data.company_name} · ` : ''}{data.tagline}
+              {companyName && projectName && companyName !== projectName ? `${companyName} · ` : ''}{tagline}
             </p>
           </div>
         </div>
@@ -184,158 +170,91 @@ const TraceabilityDashboard = () => {
           gap: 16,
           marginBottom: 32
         }}>
-          <DetailCard icon={<Sprout size={20} />} label="Project" value={data.project_name} />
-          <DetailCard icon={<Building2 size={20} />} label="Company" value={data.company_name} />
-          <DetailCard icon={<Package size={20} />} label="Commodity" value={data.commodity} />
-          <DetailCard icon={<MapPin size={20} />} label="Location" value={data.location} />
+          <DetailCard icon={<Sprout size={20} />} label="Project" value={projectName} />
+          <DetailCard icon={<Building2 size={20} />} label="Company" value={companyName} />
+          <DetailCard icon={<Package size={20} />} label="Commodity" value={project?.commodity} />
+          <DetailCard icon={<MapPin size={20} />} label="Location" value={project?.location} />
         </div>
 
         {/* Origin Story */}
-        <div style={{
-          background: '#ffffff',
-          border: '1px solid #b3cdb7',
-          borderRadius: 12,
-          padding: 24,
-          marginBottom: 32,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
-        }}>
-          <h2 style={{
-            fontSize: 24,
-            fontWeight: 600,
-            color: '#191c1d',
-            margin: 0,
-            marginBottom: 12,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            lineHeight: '32px'
+        {description && (
+          <div style={{
+            background: '#ffffff',
+            border: '1px solid #b3cdb7',
+            borderRadius: 12,
+            padding: 24,
+            marginBottom: 32,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
           }}>
-            <Sprout size={24} style={{ color: '#012d1d' }} />
-            Origin Story
-          </h2>
-          <p style={{ fontSize: 16, lineHeight: '24px', color: '#414844', margin: 0 }}>
-            {data.description}
-          </p>
-        </div>
-
-        {/* Sustainability Impact */}
-        <section style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
             <h2 style={{
               fontSize: 24,
               fontWeight: 600,
               color: '#191c1d',
               margin: 0,
+              marginBottom: 12,
               display: 'flex',
               alignItems: 'center',
               gap: 8,
               lineHeight: '32px'
             }}>
-              <Leaf size={24} style={{ color: '#012d1d' }} />
-              Sustainability Impact
+              <Sprout size={24} style={{ color: '#012d1d' }} />
+              Origin Story
             </h2>
+            <p style={{ fontSize: 16, lineHeight: '24px', color: '#414844', margin: 0 }}>
+              {description}
+            </p>
           </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            {/* Social Impact */}
-            <ImpactSection
-              icon={<Users size={24} />}
-              title="Social Impact"
-              subtitle="Community & Equity"
-              description={s.social.description}
-            >
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
-                <ImpactStat label="Partners" value={s.social.partners} />
-                <ImpactStat label="Female" value={s.social.female} />
-                <ImpactStat label="Programs" value={s.social.programs} />
-              </div>
-            </ImpactSection>
-
-            {/* Economic Impact */}
-            <ImpactSection
-              icon={<TrendingUp size={24} />}
-              title="Economic Impact"
-              subtitle="Growth & Value"
-              description={s.economic.description}
-            >
-              <div style={{ marginBottom: 16 }}>
-                <ImpactRow label="Active Farm Area" value={s.economic.active_farm_area} />
-                <ImpactRow label="Annual Yield" value={s.economic.annual_yield} />
-                <ImpactRow label="Carbon Credit" value={s.economic.carbon_credit} valueColor="#2D6A4F" />
-              </div>
-            </ImpactSection>
-
-            {/* Environmental Impact */}
-            <ImpactSection
-              icon={<Trees size={24} />}
-              title="Environmental Impact"
-              subtitle="Regeneration"
-              description={s.environmental.description}
-            >
-              <div style={{ marginBottom: 16 }}>
-                <ImpactRow label="Land Area" value={s.environmental.land_area} />
-                <ImpactRow label="Carbon Stock" value={s.environmental.carbon_stock} />
-                <ImpactRow label="Farm Practice" value={(
-                  <span style={{
-                    padding: '4px 12px',
-                    background: '#a1f4c8',
-                    color: '#1b724f',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    borderRadius: 9999,
-                    textTransform: 'uppercase'
-                  }}>
-                    {s.environmental.farm_practice}
-                  </span>
-                )} />
-              </div>
-            </ImpactSection>
-          </div>
-
-
-        </section>
+        )}
 
         {/* SDGs Contribution */}
-        <section style={{ marginBottom: 32 }}>
-          <h2 style={{
-            fontSize: 24,
-            fontWeight: 600,
-            color: '#191c1d',
-            margin: 0,
-            marginBottom: 12,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            lineHeight: '32px'
-          }}>
-            <BadgeCheck size={24} style={{ color: '#012d1d' }} />
-            SDGs Contribution
-          </h2>
-          <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', marginBottom: 24 }}>
-            This farm contributes to the following Sustainable Development Goals based on Agrivision assessment and verification.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
-            {data.sdgs.map(sdg => (
-              <div key={sdg} style={{
-                aspectRatio: '1',
-                background: '#ffffff',
-                border: '1px solid #E9ECEF',
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 8,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-              }}>
-                <img
-                  src={SDG_IMAGES[sdg]}
-                  alt={`SDG ${sdg}`}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                />
-              </div>
-            ))}
-          </div>
-        </section>
+        {sdgs && sdgs.length > 0 && (
+          <section style={{ marginBottom: 32 }}>
+            <h2 style={{
+              fontSize: 24,
+              fontWeight: 600,
+              color: '#191c1d',
+              margin: 0,
+              marginBottom: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              lineHeight: '32px'
+            }}>
+              <BadgeCheck size={24} style={{ color: '#012d1d' }} />
+              SDGs Contribution
+            </h2>
+            <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', marginBottom: 24 }}>
+              This farm contributes to the following Sustainable Development Goals based on Agrivision assessment and verification.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+              {sdgs.map((sdg) => (
+                <div key={sdg.goal_number} style={{
+                  aspectRatio: '1',
+                  background: '#ffffff',
+                  border: '1px solid #E9ECEF',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 8,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                }}>
+                  {sdg.image_url ? (
+                    <img
+                      src={sdg.image_url}
+                      alt={`SDG ${sdg.goal_number}: ${sdg.name}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <div style={{ textAlign: 'center', fontSize: 12, color: '#6C757D' }}>
+                      SDG {sdg.goal_number}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Mobile Bottom Nav */}

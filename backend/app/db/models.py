@@ -381,6 +381,7 @@ class SdgMaster(db.Model):
     goal_number = db.Column(db.Integer, nullable=False, unique=True)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
+    image_url = db.Column(db.Text)
     # Threshold/methodology config (plan revisi #15, #44) -- configurable per goal
     fulfilled_score = db.Column(db.Numeric(5, 2), nullable=False, default=70.00)
     minimum_applicable_questions = db.Column(db.Integer, nullable=False, default=2)
@@ -430,6 +431,7 @@ class ProjectTraceabilityProfile(db.Model):
     project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False, unique=True)
     title = db.Column(db.String(255))
     tagline = db.Column(db.String(255))
+    hero_image_url = db.Column(db.Text)
     origin_story = db.Column(db.Text)
     description = db.Column(db.Text)
     status = db.Column(db.String(20), nullable=False, default='draft')
