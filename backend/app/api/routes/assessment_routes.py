@@ -2,6 +2,7 @@
 from flask import Blueprint, jsonify, request
 from app.core.security import token_required, roles_required
 from app.services import assessment_service as svc
+from app.services.assessment_service import get_or_create_profile
 from app.db.models import Project, ProjectTraceabilityProfile, ProjectSdg, SdgMaster
 
 
@@ -26,17 +27,16 @@ def api_public_traceability(project_ref):
     if not project:
         return jsonify({"success": False, "message": "Project tidak ditemukan"}), 404
 
-    profile = ProjectTraceabilityProfile.query.filter_by(project_id=project.id).first()
+    profile = get_or_create_profile(project.id)
     project_sdgs = []
-    if profile:
-        for ps in ProjectSdg.query.filter_by(project_traceability_id=profile.id).all():
-            sdg = ps.sdg_master
-            project_sdgs.append({
-                "goal_number": sdg.goal_number,
-                "name": sdg.name,
-                "description": sdg.description,
-                "image_url": sdg.image_url,
-            })
+    for ps in ProjectSdg.query.filter_by(project_traceability_id=profile.id).all():
+        sdg = ps.sdg_master
+        project_sdgs.append({
+            "goal_number": sdg.goal_number,
+            "name": sdg.name,
+            "description": sdg.description,
+            "image_url": sdg.image_url,
+        })
 
     return jsonify({
         "success": True,
@@ -49,12 +49,12 @@ def api_public_traceability(project_ref):
                 "company_name": project.company.name if project.company else None,
             },
             "profile": {
-                "title": profile.title if profile else None,
-                "tagline": profile.tagline if profile else None,
-                "origin_story": profile.origin_story if profile else None,
-                "description": profile.description if profile else None,
-                "hero_image_url": profile.hero_image_url if profile else None,
-                "status": profile.status if profile else 'draft',
+                "title": profile.title,
+                "tagline": profile.tagline,
+                "origin_story": profile.origin_story,
+                "description": profile.description,
+                "hero_image_url": profile.hero_image_url,
+                "status": profile.status,
             },
             "sdgs": project_sdgs,
         }

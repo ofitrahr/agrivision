@@ -10,7 +10,7 @@ const DetailCard = ({ icon, label, value }) => (
       {icon}
       <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em' }}>{label}</span>
     </div>
-    <p style={{ fontSize: 20, fontWeight: 600, color: '#191c1d', margin: 0 }}>{value}</p>
+    <p style={{ fontSize: 20, fontWeight: 600, color: value ? '#191c1d' : '#adb5bd', margin: 0 }}>{value || '-'}</p>
   </div>
 );
 

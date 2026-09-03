@@ -3,7 +3,7 @@ import string
 import random
 from datetime import datetime
 from app.db.database import db
-from app.db.models import Company, User, Farm, Batch, ProjectPermission, Project, ProjectTraceability, Sdg, CompanySdg, CompanySdgVerification
+from app.db.models import Company, User, Farm, Batch, ProjectPermission, Project, ProjectTraceability, ProjectTraceabilityProfile, Sdg, CompanySdg, CompanySdgVerification
 from app.services.upload_service import save_file_locally
 
 def get_dashboard_stats():
@@ -257,6 +257,9 @@ def create_project(company_id, data):
 
         default_permissions = ProjectPermission(project_id=new_project.id)
         db.session.add(default_permissions)
+
+        traceability = ProjectTraceabilityProfile(project_id=new_project.id)
+        db.session.add(traceability)
 
         db.session.commit()
         return {"success": True, "message": "Project berhasil dibuat", "data": {"id": str(new_project.id)}}

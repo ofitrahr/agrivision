@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Building2, Package, MapPin, Sprout, Leaf, Users, TrendingUp, Trees, BadgeCheck, QrCode } from 'lucide-react';
 import DetailCard from '../../shared/components/traceability/DetailCard';
-import ImpactSection from '../../shared/components/traceability/ImpactSection';
 import api from '../../shared/api/axios';
 
 const ImpactStat = ({ label, value }) => (
@@ -81,6 +80,11 @@ const TraceabilityDashboard = () => {
   const heroImage = profile?.hero_image_url || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200';
   const description = profile?.origin_story || profile?.description || '';
 
+  // TODO: Hapus dummy data ini setelah backend mengembalikan field narrative
+  const socialNarrative = profile?.social_narrative || 'Inisiatif sosial kami berfokus pada kesetaraan gender dan ketahanan komunitas melalui program pelatihan khusus serta kemitraan perdagangan adil. Kami telah melatih 42 petani mitra, 38 di antaranya perempuan, dalam praktik pertanian berkelanjutan.';
+  const economicNarrative = profile?.economic_narrative || 'Kontribusi ekonomi dari kegiatan pertanian mencakup area aktif 25 hektar dengan hasil panen tahunan 1.250 Kg. Potensi nilai ekonomi dari pengelolaan karbon berkelanjutan mencapai Rp136,7 Juta melalui skema kredit karbon.';
+  const environmentalNarrative = profile?.environmental_narrative || 'Indikator kondisi lingkungan mendukung praktik pertanian berkelanjutan dengan area lahan 186 hektar dan stok karbon 186 Ton C. Praktik pertanian organik diterapkan untuk menjaga kelestarian tanah dan air.';
+
   return (
     <div style={{ minHeight: '100vh', background: '#f8f9fa', color: '#191c1d', fontFamily: '"Hanken Grotesk", sans-serif', paddingBottom: 96 }}>
       {/* Header */}
@@ -130,22 +134,6 @@ const TraceabilityDashboard = () => {
             padding: 24,
             width: '100%'
           }}>
-            <span style={{
-              display: 'inline-block',
-              padding: '4px 16px',
-              background: 'rgba(255,255,255,0.1)',
-              backdropFilter: 'blur(8px)',
-              borderRadius: 9999,
-              fontSize: 12,
-              fontWeight: 600,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              color: '#ffffff',
-              marginBottom: 12,
-              border: '1px solid rgba(255,255,255,0.2)'
-            }}>
-              Verified Origin
-            </span>
             <h1 style={{
               fontSize: 32,
               fontWeight: 700,
@@ -177,55 +165,150 @@ const TraceabilityDashboard = () => {
         </div>
 
         {/* Origin Story */}
-        {description && (
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #b3cdb7',
-            borderRadius: 12,
-            padding: 24,
-            marginBottom: 32,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
+        <div style={{
+          background: '#ffffff',
+          border: '1px solid #b3cdb7',
+          borderRadius: 12,
+          padding: 24,
+          marginBottom: 32,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
+        }}>
+          <h2 style={{
+            fontSize: 24,
+            fontWeight: 600,
+            color: '#191c1d',
+            margin: 0,
+            marginBottom: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            lineHeight: '32px'
           }}>
-            <h2 style={{
-              fontSize: 24,
-              fontWeight: 600,
-              color: '#191c1d',
-              margin: 0,
-              marginBottom: 12,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              lineHeight: '32px'
-            }}>
-              <Sprout size={24} style={{ color: '#012d1d' }} />
-              Origin Story
-            </h2>
+            <Sprout size={24} style={{ color: '#012d1d' }} />
+            Origin Story
+          </h2>
+          {description ? (
             <p style={{ fontSize: 16, lineHeight: '24px', color: '#414844', margin: 0 }}>
               {description}
             </p>
+          ) : (
+            <p style={{ fontSize: 16, lineHeight: '24px', color: '#adb5bd', fontStyle: 'italic', margin: 0 }}>
+              Belum diisi
+            </p>
+          )}
+        </div>
+
+        {/* Sustainability Impact */}
+        <section style={{ marginBottom: 32 }}>
+          <h2 style={{
+            fontSize: 24,
+            fontWeight: 600,
+            color: '#191c1d',
+            margin: 0,
+            marginBottom: 24,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            lineHeight: '32px'
+          }}>
+            <Leaf size={24} style={{ color: '#012d1d' }} />
+            Sustainability Impact
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
+            {/* Social Impact */}
+            <div style={{ background: '#ffffff', border: '1px solid #E9ECEF', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: '#1b4332', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+                  <Users size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 20, fontWeight: 600, color: '#191c1d', margin: 0, lineHeight: '28px' }}>Social Impact</h3>
+                  <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', margin: 0, textTransform: 'uppercase' }}>Community & Equity</p>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+                {[{ label: 'Partners', value: '42' }, { label: 'Female', value: '38' }, { label: 'Programs', value: '12' }].map((m) => (
+                  <div key={m.label} style={{ background: '#f8f9fa', padding: 8, borderRadius: 12, border: '1px solid rgba(233,236,239,0.5)', textAlign: 'center' }}>
+                    <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', textTransform: 'uppercase', margin: '0 0 4px 0' }}>{m.label}</p>
+                    <p style={{ fontSize: 24, fontWeight: 700, color: '#012d1d', margin: 0 }}>{m.value}</p>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', margin: 0 }}>{socialNarrative}</p>
+            </div>
+
+            {/* Economic Impact */}
+            <div style={{ background: '#ffffff', border: '1px solid #E9ECEF', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: '#1b4332', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+                  <TrendingUp size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 20, fontWeight: 600, color: '#191c1d', margin: 0, lineHeight: '28px' }}>Economic Impact</h3>
+                  <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', margin: 0, textTransform: 'uppercase' }}>Growth & Value</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 16 }}>
+                {[{ label: 'Active Farm Area', value: '25 Ha' }, { label: 'Annual Yield', value: '1,250 Kg' }, { label: 'Carbon Credit', value: 'Rp136.7M' }].map((m, i, arr) => (
+                  <div key={m.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < arr.length - 1 ? '1px solid rgba(233,236,239,0.4)' : 'none' }}>
+                    <span style={{ fontSize: 14, color: '#414844' }}>{m.label}</span>
+                    <span style={{ fontWeight: 700, color: '#191c1d' }}>{m.value}</span>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', margin: 0 }}>{economicNarrative}</p>
+            </div>
+
+            {/* Environmental Impact */}
+            <div style={{ background: '#ffffff', border: '1px solid #E9ECEF', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: '#1b4332', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+                  <Trees size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 20, fontWeight: 600, color: '#191c1d', margin: 0, lineHeight: '28px' }}>Environmental Impact</h3>
+                  <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', margin: 0, textTransform: 'uppercase' }}>Regeneration</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(233,236,239,0.4)' }}>
+                  <span style={{ fontSize: 14, color: '#414844' }}>Land Area</span>
+                  <span style={{ fontWeight: 700, color: '#191c1d' }}>186 Ha</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(233,236,239,0.4)' }}>
+                  <span style={{ fontSize: 14, color: '#414844' }}>Carbon Stock</span>
+                  <span style={{ fontWeight: 700, color: '#191c1d' }}>186 Ton C</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
+                  <span style={{ fontSize: 14, color: '#414844' }}>Farm Practice</span>
+                  <span style={{ display: 'inline-block', padding: '4px 12px', background: '#d4edda', color: '#155724', fontSize: 11, fontWeight: 700, borderRadius: 9999, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Organic</span>
+                </div>
+              </div>
+              <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', margin: 0 }}>{environmentalNarrative}</p>
+            </div>
           </div>
-        )}
+        </section>
 
         {/* SDGs Contribution */}
-        {sdgs && sdgs.length > 0 && (
-          <section style={{ marginBottom: 32 }}>
-            <h2 style={{
-              fontSize: 24,
-              fontWeight: 600,
-              color: '#191c1d',
-              margin: 0,
-              marginBottom: 12,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              lineHeight: '32px'
-            }}>
-              <BadgeCheck size={24} style={{ color: '#012d1d' }} />
-              SDGs Contribution
-            </h2>
-            <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', marginBottom: 24 }}>
-              This farm contributes to the following Sustainable Development Goals based on Agrivision assessment and verification.
-            </p>
+        <section style={{ marginBottom: 32 }}>
+          <h2 style={{
+            fontSize: 24,
+            fontWeight: 600,
+            color: '#191c1d',
+            margin: 0,
+            marginBottom: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            lineHeight: '32px'
+          }}>
+            <BadgeCheck size={24} style={{ color: '#012d1d' }} />
+            SDGs Contribution
+          </h2>
+          <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', marginBottom: 24 }}>
+            This farm contributes to the following Sustainable Development Goals based on Agrivision assessment and verification.
+          </p>
+          {sdgs && sdgs.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
               {sdgs.map((sdg) => (
                 <div key={sdg.goal_number} style={{
@@ -253,8 +336,20 @@ const TraceabilityDashboard = () => {
                 </div>
               ))}
             </div>
-          </section>
-        )}
+          ) : (
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid #E9ECEF',
+              borderRadius: 12,
+              padding: 32,
+              textAlign: 'center'
+            }}>
+              <p style={{ fontSize: 14, color: '#adb5bd', fontStyle: 'italic', margin: 0 }}>
+                Kontribusi SDG belum ditentukan
+              </p>
+            </div>
+          )}
+        </section>
       </main>
 
       {/* Mobile Bottom Nav */}

@@ -27,7 +27,7 @@ const ImpactSection = ({ icon, title, subtitle, description, children }) => (
       </div>
     </div>
     {children}
-    <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', margin: 0 }}>{description}</p>
+    {description && <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', margin: 0 }}>{description}</p>}
   </div>
 );
 
