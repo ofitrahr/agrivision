@@ -127,7 +127,7 @@ const FarmCard = ({ farm, onManage, onAgronomy }) => {
 
 const formatCurrency = (value) => {
   if (!value && value !== 0) return null;
-  return `Rp ${Number(value).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return Number(value).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const ManagerDashboard = () => {
@@ -208,14 +208,13 @@ const ManagerDashboard = () => {
                   headerUnit="(TON CO2e)"
                   value={totalCarbonTon}
                   badgeText="Biomassa Lahan Aktif"
-                  variant="dark"
                   icon={TreePine}
                 />
               )}
 
               {/* Kartu 2: Nilai Ekonomi — data dari FinancialRecord.estimated_revenue */}
               <StatCard
-                title="NILAI EKONOMI (EST)"
+                title="ESTIMASI NILAI EKONOMI (IDR)"
                 value={formatCurrency(totalRevenue) ?? '-'}
                 icon={Coins}
                 silhouetteColor="var(--color-dark-amber)"
@@ -227,7 +226,7 @@ const ManagerDashboard = () => {
                 value={totalFarms !== null ? totalFarms : '-'}
                 inlineUnit="Lahan Terdaftar"
                 badgeText={totalFarmers !== null ? `${totalFarmers} Petani Terdaftar` : null}
-                badgeType="neutral"
+                badgeType="success"
                 icon={Users}
               />
 
@@ -237,7 +236,7 @@ const ManagerDashboard = () => {
                 headerUnit="(HA)"
                 value={totalAreaHa !== null ? totalAreaHa : '-'}
                 badgeText={primaryCommodity ? `Komoditas: ${primaryCommodity}` : null}
-                badgeType="neutral"
+                badgeType="success"
                 icon={Maximize2}
               />
             </>

@@ -705,8 +705,8 @@ img { max-width: 100%; display: block; }
 }
 
 .stat-badge-success {
-  background: var(--color-pale-mint);
-  color: var(--color-forest-green);
+  background: #e6f4eb;
+  color: #12513c;
 }
 
 .stat-badge-neutral {

@@ -70,7 +70,8 @@ const StatCard = ({
   style,
 }) => {
   const isDark = variant === 'dark';
-  const isTextValue = typeof value === 'string' && isNaN(Number(value)) && !value.startsWith('Rp');
+  const isFormattedNumber = typeof value === 'string' && /^[\sRpIDR\d.,+-]+$/.test(value) && /\d/.test(value);
+  const isTextValue = typeof value === 'string' && !isFormattedNumber && isNaN(Number(value));
   const SilhouetteIcon = SilhouetteProp || IconProp;
 
   return (
