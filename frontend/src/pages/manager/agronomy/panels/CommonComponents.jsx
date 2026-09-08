@@ -25,12 +25,12 @@ export const DistributionChart = ({ histogram, loading }) => (
 
 export const TrendChart = ({ trendData, loading, forecast }) => {
   // If forecast exists, we can append it to trend data for visualization
-  const data = [...(trendData || [])];
+  const data = (trendData || []).map((item) => ({ ...item }));
   if (forecast && data.length > 0) {
     data.push({
       period: forecast.period,
       value: null, // Will use forecast_value
-      forecast_value: forecast.value
+      forecast_value: Number(forecast.value) || 0
     });
     // Set the last actual data point to connect to forecast
     data[data.length - 2].forecast_value = data[data.length - 2].value;

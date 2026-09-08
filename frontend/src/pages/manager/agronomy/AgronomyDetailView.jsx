@@ -6,6 +6,7 @@ import SocPanel from './panels/SocPanel';
 import BiomassPanel from './panels/BiomassPanel';
 import NpkPanel from './panels/NpkPanel';
 import YieldPanel from './panels/YieldPanel';
+import ErrorBoundary from '../../../shared/components/ErrorBoundary';
 import api from '../../../shared/api/axios';
 
 const FALLBACK_PERIODS = [
@@ -154,7 +155,9 @@ const AgronomyDetailView = ({
 
       {/* 2-Column Grid */}
       <div className="agro-dashboard-grid">
-        {renderLeftPanel()}
+        <ErrorBoundary key={selectedLayer}>
+          {renderLeftPanel()}
+        </ErrorBoundary>
 
         {/* Center Panel - Map */}
         <div className="agro-map-section">
