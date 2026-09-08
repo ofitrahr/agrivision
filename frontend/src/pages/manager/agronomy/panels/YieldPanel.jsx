@@ -1,4 +1,5 @@
 import { TrendChart, SummaryStats } from './CommonComponents';
+import { TrendingUp } from 'lucide-react';
 
 const YieldPanel = ({ statsData, statsLoading }) => {
   return (
@@ -7,6 +8,21 @@ const YieldPanel = ({ statsData, statsLoading }) => {
       <TrendChart trendData={statsData?.trend} forecast={statsData?.forecast} loading={statsLoading} />
       <div className="agro-panel-divider" />
       <SummaryStats stats={statsData?.stats} loading={statsLoading} />
+      {statsData?.forecast && (
+        <>
+          <div className="agro-panel-divider" />
+          <div className="agro-panel-section">
+            <div className="agro-panel-label" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#d97706' }}>
+              <TrendingUp size={14} />
+              <span>Estimasi Panen Berikutnya ({statsData.forecast.period})</span>
+            </div>
+            <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#92400e', fontWeight: 600 }}>Prediksi Produktivitas</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: '#92400e' }}>{statsData.forecast.value?.toFixed(2) ?? '-'} Ton/Ha</span>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

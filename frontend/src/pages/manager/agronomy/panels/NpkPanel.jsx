@@ -1,5 +1,5 @@
-import { DistributionChart, AnomalyWarning } from './CommonComponents';
-import { Activity } from 'lucide-react';
+import { DistributionChart, AnomalyWarning, SummaryStats } from './CommonComponents';
+import { Activity, FlaskConical } from 'lucide-react';
 
 const NpkPanel = ({ statsData, statsLoading, farm, activeSubLayer, onSubLayerChange }) => {
   const anomalyHa = statsData?.anomaly?.count != null && farm?.total_area_ha && statsData?.stats?.total_count
@@ -30,6 +30,36 @@ const NpkPanel = ({ statsData, statsLoading, farm, activeSubLayer, onSubLayerCha
 
       <DistributionChart histogram={statsData?.histogram} loading={statsLoading} layerLabel={activeSubLayer} />
       <AnomalyWarning anomaly={statsData?.anomaly} anomalyHa={anomalyHa} anomalyPercent={statsData?.anomaly?.percent ?? 0} selectedLayer={activeSubLayer} />
+      
+      {statsData?.stats && (
+        <>
+          <div className="agro-panel-divider" />
+          <SummaryStats stats={statsData?.stats} loading={statsLoading} />
+        </>
+      )}
+
+      {sensor && (sensor.nitrogen_mean != null || sensor.phosphorus_mean != null || sensor.potassium_mean != null) && (
+        <>
+          <div className="agro-panel-divider" />
+          <div className="agro-panel-section">
+            <div className="agro-panel-label"><FlaskConical size={14} style={{ display: 'inline', marginRight: 6 }} /> Rata-Rata Unsur Hara Tanah</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
+              <div style={{ background: '#f4f6f5', padding: '8px 10px', borderRadius: 8, textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>Nitrogen (N)</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#116a3a' }}>{sensor.nitrogen_mean ?? '-'} <span style={{ fontSize: 10, fontWeight: 400 }}>kg/Ha</span></div>
+              </div>
+              <div style={{ background: '#f4f6f5', padding: '8px 10px', borderRadius: 8, textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>Fosfor (P)</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#116a3a' }}>{sensor.phosphorus_mean ?? '-'} <span style={{ fontSize: 10, fontWeight: 400 }}>kg/Ha</span></div>
+              </div>
+              <div style={{ background: '#f4f6f5', padding: '8px 10px', borderRadius: 8, textAlign: 'center' }}>
+                <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>Kalium (K)</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#116a3a' }}>{sensor.potassium_mean ?? '-'} <span style={{ fontSize: 10, fontWeight: 400 }}>kg/Ha</span></div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       
       <div className="agro-panel-divider" />
       <div className="agro-panel-section">

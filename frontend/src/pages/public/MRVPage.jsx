@@ -92,7 +92,7 @@ const MRVPage = () => {
           <span className="section-label">CORE FRAMEWORK</span>
           <h2 className="section-title text-center">Built for Data Integrity &amp; Transparency</h2>
           <p className="section-intro">
-            From initial satellite measurement to auditable verification, our framework ensures every carbon metric is grounded in robust science.
+            From initial satellite measurement to auditable verification, our framework ensures every carbon metric is grounded in verifiable science.
           </p>
         </div>
 

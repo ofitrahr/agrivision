@@ -65,7 +65,7 @@ class GISService:
         if farm_boundary_geojson:
             bounds_layer = folium.GeoJson(
                 farm_boundary_geojson,
-                style_function=lambda x: {'color': 'yellow', 'fillColor': 'transparent', 'weight': 3}
+                style_function=lambda x: {'color': '#fdb134', 'fillColor': 'transparent', 'weight': 3}
             )
             bounds_layer.add_to(m)
             m.fit_bounds(bounds_layer.get_bounds())
@@ -205,7 +205,7 @@ class GISService:
         if farm_boundary_geojson:
             bounds_layer = folium.GeoJson(
                 farm_boundary_geojson,
-                style_function=lambda x: {'color': 'yellow', 'fillColor': 'transparent', 'weight': 3}
+                style_function=lambda x: {'color': '#fdb134', 'fillColor': 'transparent', 'weight': 3}
             )
             bounds_layer.add_to(m)
             m.fit_bounds(bounds_layer.get_bounds())

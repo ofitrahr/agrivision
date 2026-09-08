@@ -48,7 +48,7 @@ const AboutPage = () => {
           <div className="hero-split-content">
             <h1>Bridging Technology &amp; Regenerative Farming</h1>
             <p>
-              We empower agribusinesses, project developers, and farming communities with satellite AI intelligence to accelerate food security and carbon neutrality.
+              We equip agribusinesses, project developers, and farming communities with satellite AI intelligence to accelerate food security and carbon neutrality.
             </p>
           </div>
           {/* Organic Vertical Seam Curve */}
@@ -116,12 +116,12 @@ const AboutPage = () => {
           <div className="solution-card">
             <img src="/assets/icons/farmer.png" alt="Farmer Livelihoods" />
             <h3>Farmer Livelihoods</h3>
-            <p>Empowering smallholder farmers with income stability, technical capacity, and premium market access.</p>
+            <p>Providing smallholder farmers with income stability, technical capacity, and premium market access.</p>
           </div>
           <div className="solution-card">
             <img src="/assets/icons/orbit.png" alt="Precision Agriculture" />
             <h3>AI &amp; Remote Sensing</h3>
-            <p>Harnessing satellite data streams and computer vision for continuous, non-invasive farm intelligence.</p>
+            <p>Using satellite data streams and computer vision for continuous, non-invasive farm intelligence.</p>
           </div>
           <div className="solution-card">
             <img src="/assets/icons/survey.png" alt="Multi-Stakeholder" />

@@ -1,8 +1,8 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../features/auth/AuthContext';
 
-const Sidebar = ({ role, user }) => {
+const Sidebar = ({ role, user, onToggleSidebar }) => {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -67,7 +67,7 @@ const Sidebar = ({ role, user }) => {
     <>
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flex: 1, minWidth: 0 }}>
             <img 
               src="/assets/images/logo_icon.png" 
               alt="Agrivision Logo" 
@@ -80,6 +80,21 @@ const Sidebar = ({ role, user }) => {
               <span className="sidebar-brand-tagline">See • Regenerate • Prosper</span>
             </div>
           </Link>
+          <div className="tooltip-wrapper">
+            <button 
+              className="sidebar-collapse-btn" 
+              onClick={onToggleSidebar}
+              aria-label="Sembunyikan Sidebar"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" />
+                <path d="M9 3v18" className="panel-split-line" />
+              </svg>
+            </button>
+            <div className="custom-tooltip custom-tooltip-bottom">
+              <span>Tutup Sidebar</span>
+            </div>
+          </div>
         </div>
 
         <nav className="sidebar-nav">
@@ -181,19 +196,24 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
   return (
     <>
       <header className="topnav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button 
-            className="topnav-toggle-btn"
-            onClick={onToggleSidebar}
-            title={isSidebarOpen ? "Sembunyikan Sidebar" : "Tampilkan Sidebar"}
-            aria-label="Toggle Sidebar"
-          >
-            <span className="material-symbols-outlined">menu</span>
-          </button>
-          <div className="search-input-wrap">
-            <span className="material-symbols-outlined">search</span>
-            <input type="text" className="search-input" placeholder="Cari data..." aria-label="Pencarian global" />
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {!isSidebarOpen && (
+            <div className="tooltip-wrapper">
+              <button 
+                className="topnav-toggle-btn"
+                onClick={onToggleSidebar}
+                aria-label="Tampilkan Sidebar"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2" />
+                  <path d="M9 3v18" className="panel-split-line" />
+                </svg>
+              </button>
+              <div className="custom-tooltip custom-tooltip-right">
+                <span>Buka Sidebar</span>
+              </div>
+            </div>
+          )}
         </div>
         <div className="topnav-actions" style={{ position: 'relative' }}>
 
@@ -302,9 +322,9 @@ const Layout = () => {
   
   return (
     <div className={`app-layout ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-      <Sidebar role={user?.role || 'guest'} user={user} />
-      <Header onToggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
+      <Sidebar role={user?.role || 'guest'} user={user} onToggleSidebar={toggleSidebar} />
       <main className="main-content">
+        <Header onToggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
         <Outlet />
       </main>
     </div>

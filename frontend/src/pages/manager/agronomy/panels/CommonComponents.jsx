@@ -84,18 +84,27 @@ export const AnomalyWarning = ({ anomaly, anomalyHa, anomalyPercent, selectedLay
   );
 };
 
-export const SummaryStats = ({ stats, loading }) => (
-  <div className="agro-panel-section">
-    <div className="agro-panel-label">Statistik Ringkasan</div>
-    {loading ? (
-      <div className="agro-stats-box" style={{ textAlign: 'center', fontSize: 12 }}>Memuat...</div>
-    ) : stats ? (
-      <div className="agro-stats-box">
-        <div className="agro-stat-item"><span className="agro-stat-label">Mean</span><span className="agro-stat-val">{stats.mean?.toFixed(3) ?? '-'}</span></div>
-        <div className="agro-stat-item"><span className="agro-stat-label">Min</span><span className="agro-stat-val">{stats.min?.toFixed(3) ?? '-'}</span></div>
-        <div className="agro-stat-item"><span className="agro-stat-label">Max</span><span className="agro-stat-val">{stats.max?.toFixed(3) ?? '-'}</span></div>
-        <div className="agro-stat-item"><span className="agro-stat-label">Std Dev</span><span className="agro-stat-val">{stats.std_dev?.toFixed(3) ?? '-'}</span></div>
-      </div>
-    ) : null}
-  </div>
-);
+export const SummaryStats = ({ stats, loading }) => {
+  const isUp = stats?.change > 0;
+  return (
+    <div className="agro-panel-section">
+      <div className="agro-panel-label">Statistik Ringkasan</div>
+      {loading ? (
+        <div className="agro-stats-box" style={{ textAlign: 'center', fontSize: 12 }}>Memuat...</div>
+      ) : stats ? (
+        <div className="agro-stats-box">
+          <div className="agro-stat-item"><span className="agro-stat-label">Mean</span><span className="agro-stat-val">{stats.mean?.toFixed(3) ?? '-'}</span></div>
+          <div className="agro-stat-item"><span className="agro-stat-label">Min</span><span className="agro-stat-val">{stats.min?.toFixed(3) ?? '-'}</span></div>
+          <div className="agro-stat-item"><span className="agro-stat-label">Max</span><span className="agro-stat-val">{stats.max?.toFixed(3) ?? '-'}</span></div>
+          <div className="agro-stat-item"><span className="agro-stat-label">Std Dev</span><span className="agro-stat-val">{stats.std_dev?.toFixed(3) ?? '-'}</span></div>
+          <div className="agro-stat-item">
+            <span className="agro-stat-label">Tren Q-to-Q</span>
+            <span className="agro-stat-val" style={{ color: isUp ? '#10b981' : (stats?.change < 0 ? '#ef4444' : 'inherit') }}>
+              {stats?.change != null ? (isUp ? `+${stats.change.toFixed(3)}` : stats.change.toFixed(3)) : '-'}
+            </span>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};

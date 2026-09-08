@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import MapCanvasToolbar from './MapCanvasToolbar';
-import KpiStrip from './KpiStrip';
 import NdviPanel from './panels/NdviPanel';
 import SocPanel from './panels/SocPanel';
 import BiomassPanel from './panels/BiomassPanel';
@@ -126,14 +125,24 @@ const AgronomyDetailView = ({
 
   return (
     <div>
-      {/* Breadcrumb */}
-      <div className="agro-breadcrumb">
-        <button className="agro-breadcrumb-link" onClick={onBack}>
-          <ArrowLeft size={16} />
-          <span>Agronomi</span>
-        </button>
-        <span className="agro-breadcrumb-separator">/</span>
-        <span className="agro-breadcrumb-current">{farm?.name || 'Detail Lahan'}</span>
+      {/* Breadcrumb Header */}
+      <div className="agro-breadcrumb" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button className="agro-breadcrumb-link" onClick={onBack}>
+            <ArrowLeft size={16} />
+            <span>Agronomi</span>
+          </button>
+          <span className="agro-breadcrumb-separator">/</span>
+          <span className="agro-breadcrumb-current">{farm?.name || 'Detail Lahan'}</span>
+        </div>
+        {farm && (
+          <div className="agro-chip-group" style={{ marginBottom: 0, display: 'flex', gap: '6px' }}>
+            {farm.total_area_ha && <span className="agro-chip">{farm.total_area_ha} Ha</span>}
+            {(farm.crop_variety || farm.crops?.[0]?.variety) && (
+              <span className="agro-chip agro-chip-active">{farm.crop_variety || farm.crops?.[0]?.variety}</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Error Message */}
@@ -163,14 +172,6 @@ const AgronomyDetailView = ({
           />
         </div>
       </div>
-
-      {/* Sticky KPI Strip */}
-      <KpiStrip 
-        selectedLayer={selectedLayer} 
-        activeSubLayer={['nitrogen', 'phosphorus', 'potassium'].includes(selectedLayer) ? selectedLayer : activeSubLayer} 
-        statsData={statsData} 
-        farm={farm} 
-      />
     </div>
   );
 };
