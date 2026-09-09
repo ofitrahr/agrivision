@@ -1127,7 +1127,10 @@ def get_farm_observation_summary(current_user, farm_id):
         rev_prev = prev.estimated_revenue or 0
         if rev_prev > 0:
             pct_inc = ((rev_curr - rev_prev) / rev_prev) * 100
-            result['peningkatan_pendapatan'] = f"{'+' if pct_inc >= 0 else ''}{round(pct_inc, 1)}"
+            pct_inc_rounded = round(pct_inc, 1)
+            if abs(pct_inc_rounded) < 0.05:
+                pct_inc_rounded = 0.0
+            result['peningkatan_pendapatan'] = f"{'+' if pct_inc_rounded >= 0 else ''}{pct_inc_rounded}"
         else:
             result['peningkatan_pendapatan'] = '-'
             
@@ -1135,7 +1138,10 @@ def get_farm_observation_summary(current_user, farm_id):
         cost_prev = prev.operational_cost or 0
         if cost_prev > 0:
             cost_sav = ((cost_prev - cost_curr) / cost_prev) * 100
-            result['penghematan_biaya'] = f"{'+' if cost_sav >= 0 else ''}{round(cost_sav, 1)}"
+            cost_sav_rounded = round(cost_sav, 1)
+            if abs(cost_sav_rounded) < 0.05:
+                cost_sav_rounded = 0.0
+            result['penghematan_biaya'] = f"{'+' if cost_sav_rounded >= 0 else ''}{cost_sav_rounded}"
         else:
             result['penghematan_biaya'] = '-'
     else:

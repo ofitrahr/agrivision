@@ -228,21 +228,62 @@ def seed_comprehensive_data():
     db.session.commit()
 
     # 8. Financial Records & Harvest Records & ESG Metrics
-    months = ["Jan-24", "Feb-24", "Mar-24", "Apr-24", "May-24", "Jun-24"]
-    for month in months:
-        for farm in [farm1, farm2]:
-            yield_val = random.uniform(300, 500)
-            area_ha = random.uniform(1.0, 2.5)
-            db.session.add(HarvestRecord(company_id=company.id, farm_id=farm.id, period=month, yield_kg=yield_val, area_harvested_ha=area_ha))
-            db.session.add(FinancialRecord(company_id=company.id, farm_id=farm.id, period=month, total_production_kg=yield_val, operational_cost=yield_val*15000, estimated_revenue=yield_val*80000))
-            db.session.add(EsgMetric(company_id=company.id, farm_id=farm.id, period=month, carbon_footprint=random.uniform(50, 100), water_usage=random.uniform(200, 400), biodiversity_index=random.uniform(3, 5), social_compliance_score=random.uniform(4, 5)))
+    financial_data_farm1 = [
+        ("Maret 2026", 350.0, 7800000.0, 24500000.0, 2.0),
+        ("April 2026", 375.0, 7650000.0, 26250000.0, 2.1),
+        ("Mei 2026", 390.0, 7500000.0, 27300000.0, 2.2),
+        ("Juni 2026", 405.0, 7350000.0, 28350000.0, 2.3),
+        ("Juli 2026", 420.0, 7500000.0, 29400000.0, 2.4),
+        ("Agustus 2026", 490.0, 6375000.0, 35868000.0, 2.5),
+    ]
+    financial_data_farm2 = [
+        ("Maret 2026", 260.0, 5900000.0, 18200000.0, 1.5),
+        ("April 2026", 275.0, 5750000.0, 19250000.0, 1.6),
+        ("Mei 2026", 290.0, 5600000.0, 20300000.0, 1.6),
+        ("Juni 2026", 300.0, 5450000.0, 21000000.0, 1.7),
+        ("Juli 2026", 310.0, 5600000.0, 21700000.0, 1.7),
+        ("Agustus 2026", 365.0, 4928000.0, 25606000.0, 1.8),
+    ]
+
+    for f_idx, (farm, farm_data) in enumerate([(farm1, financial_data_farm1), (farm2, financial_data_farm2)]):
+        for idx, (month_name, yield_val, cost_val, rev_val, area_val) in enumerate(farm_data):
+            rec_date = datetime(2026, 3 + idx, 28, 10, 0, 0)
+            db.session.add(HarvestRecord(
+                company_id=company.id,
+                farm_id=farm.id,
+                period=month_name,
+                yield_kg=yield_val,
+                area_harvested_ha=area_val,
+                notes=f"Panen ceri kopi matang petik merah ({yield_val} kg)",
+                created_at=rec_date
+            ))
+            db.session.add(FinancialRecord(
+                company_id=company.id,
+                farm_id=farm.id,
+                period=month_name,
+                total_production_kg=yield_val,
+                operational_cost=cost_val,
+                estimated_revenue=rev_val,
+                notes="Biaya operasional mencakup pemupukan organik, pemangkasan, dan upah panen",
+                created_at=rec_date
+            ))
+            db.session.add(EsgMetric(
+                company_id=company.id,
+                farm_id=farm.id,
+                period=month_name,
+                carbon_footprint=random.uniform(50, 80),
+                water_usage=random.uniform(200, 350),
+                biodiversity_index=random.uniform(3.5, 4.8),
+                social_compliance_score=random.uniform(4.2, 5.0),
+                created_at=rec_date
+            ))
     db.session.commit()
 
     # 9. Agronomy Activities
     activities = ["Pemupukan Organik", "Pemangkasan", "Penyemprotan Hama Organik", "Pembersihan Gulma"]
     for farm in [farm1, farm2]:
         for i in range(5):
-            db.session.add(AgronomyActivity(farm_id=farm.id, activity_type=random.choice(activities), quantity=random.uniform(10, 50), unit="Kg", notes="Kegiatan rutin", activity_date=date(2024, random.randint(1,6), random.randint(1,28)), created_by=manager.id))
+            db.session.add(AgronomyActivity(farm_id=farm.id, activity_type=random.choice(activities), quantity=random.uniform(10, 50), unit="Kg", notes="Kegiatan rutin", activity_date=date(2026, random.randint(3,8), random.randint(1,28)), created_by=manager.id))
     db.session.commit()
 
     # 10. Traceability Templates & Batches
@@ -259,22 +300,22 @@ def seed_comprehensive_data():
     db.session.add_all(steps)
     db.session.commit()
 
-    batch1 = Batch(company_id=company.id, farm_id=farm1.id, template_id=template.id, batch_number="BCH-2401", product_name="Arabika Typica Washed", harvest_date=date(2024, 5, 10), status="completed", completed_at=now - timedelta(days=5))
-    batch2 = Batch(company_id=company.id, farm_id=farm2.id, template_id=template.id, batch_number="BCH-2402", product_name="Arabika Sigararutang Washed", harvest_date=date(2024, 6, 1), status="in_progress")
+    batch1 = Batch(company_id=company.id, farm_id=farm1.id, template_id=template.id, batch_number="BCH-2601", product_name="Arabika Typica Washed", harvest_date=date(2026, 7, 10), status="completed", completed_at=now - timedelta(days=5))
+    batch2 = Batch(company_id=company.id, farm_id=farm2.id, template_id=template.id, batch_number="BCH-2602", product_name="Arabika Sigararutang Washed", harvest_date=date(2026, 8, 1), status="in_progress")
     db.session.add_all([batch1, batch2])
     db.session.commit()
     
     # Checkpoints & QR
     for step in steps:
         db.session.add(BatchCheckpoint(batch_id=batch1.id, step_id=step.id, status="completed", notes=f"Selesai tahap {step.name}", completed_at=now - timedelta(days=random.randint(1,4))))
-    db.session.add(QrCode(batch_id=batch1.id, qr_image_url="https://example.com/qr/bch2401.png", public_url="https://agrivision.id/trace/BCH-2401"))
+    db.session.add(QrCode(batch_id=batch1.id, qr_image_url="https://example.com/qr/bch2601.png", public_url="https://agrivision.id/trace/BCH-2601"))
     db.session.commit()
 
     # 11. Activity Logs
     logs = [
-        ActivityLog(user_id=manager.id, action='CREATE', entity_type='Batch', details='Batch BCH-2401 dimulai', created_at=now - timedelta(days=20)),
-        ActivityLog(user_id=manager.id, action='UPDATE', entity_type='Batch', details='Batch BCH-2401 selesai', created_at=now - timedelta(days=5)),
-        ActivityLog(user_id=manager.id, action='CREATE', entity_type='HarvestRecord', details='Catatan panen Juni 2024 ditambahkan', created_at=now - timedelta(days=2)),
+        ActivityLog(user_id=manager.id, action='CREATE', entity_type='Batch', details='Batch BCH-2601 dimulai', created_at=now - timedelta(days=20)),
+        ActivityLog(user_id=manager.id, action='UPDATE', entity_type='Batch', details='Batch BCH-2601 selesai', created_at=now - timedelta(days=5)),
+        ActivityLog(user_id=manager.id, action='CREATE', entity_type='HarvestRecord', details='Catatan panen Agustus 2026 ditambahkan', created_at=now - timedelta(days=2)),
         ActivityLog(user_id=investor.id, action='LOGIN', entity_type='User', details='Investor melihat laporan finansial', created_at=now - timedelta(hours=2))
     ]
     db.session.add_all(logs)
@@ -282,8 +323,8 @@ def seed_comprehensive_data():
 
     # 12. Recent Activities
     recent = [
-        RecentActivity(title="Panen Raya 2024", description="Panen raya di Lahan Kopi A telah berhasil melebihi target.", activity_date=date(2024, 5, 15), display_order=1),
-        RecentActivity(title="Sertifikasi Organik", description="AgriCorp mendapatkan pembaruan sertifikasi organik.", activity_date=date(2024, 6, 10), display_order=2)
+        RecentActivity(title="Panen Raya 2026", description="Panen raya di Lahan Kopi A telah berhasil melebihi target.", activity_date=date(2026, 8, 15), display_order=1),
+        RecentActivity(title="Sertifikasi Organik", description="AgriCorp mendapatkan pembaruan sertifikasi organik.", activity_date=date(2026, 8, 20), display_order=2)
     ]
     db.session.add_all(recent)
     db.session.commit()
