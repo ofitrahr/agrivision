@@ -1,13 +1,15 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from '../../pages/auth/Login';
+import ManagerTraceability from '../../pages/manager/ManagerTraceability';
+import TraceabilityDashboard from '../../pages/public/TraceabilityDashboard';
 
 // Komponen sementara (nanti di rombak ygy)
 const DashboardPlaceholder = () => (
   <div style={{ textAlign: 'center', padding: '100px', fontFamily: 'sans-serif' }}>
     <h1>Anda berhasil Login!</h1>
     <p>Ini adalah halaman Dashboard sementara</p>
-    <button 
+    <button
       onClick={() => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -25,10 +27,16 @@ const AppRouter = () => {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
-        
+
         {/* Route sementara sebelum membuat Proteksi Route */}
         <Route path="/dashboard" element={<DashboardPlaceholder />} />
-        
+
+        {/* Manager Routes */}
+        <Route path="/manager/traceability" element={<ManagerTraceability />} />
+
+        {/* Public Routes (no auth required) */}
+        <Route path="/public/trace/:projectRef" element={<TraceabilityDashboard />} />
+
         {/* Default route redirect ke login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>

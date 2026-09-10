@@ -14,20 +14,25 @@ ASSESS_ROLES = ['super_admin', 'manager']
 # ---------------------------------------------------------------
 # PUBLIC TRACEABILITY (no auth required - accessed via QR code)
 # ---------------------------------------------------------------
-@assessment_bp.route('/public/trace/<project_ref>', methods=['GET'])
-def api_public_traceability(project_ref):
-    """Public endpoint for traceability dashboard (QR code scan)."""
+@assessment_bp.route('/trace/<profile_id>', methods=['GET'])
+def api_public_traceability(profile_id):
+    """Public endpoint for traceability dashboard (accessed via QR code with profile ID).
+
+    Menggunakan ProjectTraceabilityProfile ID (bukan project name) untuk menghindari duplikasi.
+    """
     try:
-        project_uuid = uuid.UUID(project_ref)
-        project = Project.query.filter(
-            (Project.id == project_uuid) | (Project.name == project_ref)
-        ).first()
+        profile_uuid = uuid.UUID(profile_id)
     except ValueError:
-        project = Project.query.filter_by(name=project_ref).first()
+        return jsonify({"success": False, "message": "ID profile tidak valid"}), 400
+
+    profile = ProjectTraceabilityProfile.query.get(profile_uuid)
+    if not profile:
+        return jsonify({"success": False, "message": "Profile traceability tidak ditemukan"}), 404
+
+    project = profile.project
     if not project:
         return jsonify({"success": False, "message": "Project tidak ditemukan"}), 404
 
-    profile = get_or_create_profile(project.id)
     project_sdgs = []
     for ps in ProjectSdg.query.filter_by(project_traceability_id=profile.id).all():
         sdg = ps.sdg_master
@@ -49,6 +54,7 @@ def api_public_traceability(project_ref):
                 "company_name": project.company.name if project.company else None,
             },
             "profile": {
+                "id": str(profile.id),
                 "title": profile.title,
                 "tagline": profile.tagline,
                 "origin_story": profile.origin_story,

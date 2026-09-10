@@ -487,43 +487,57 @@ const AdminTraceability = () => {
 
           {/* Guidance from latest assessment */}
           {latestAssessment && (
-            <div className="stat-card" style={{ padding: 20, marginBottom: 20, border: '2px solid #2D6A4F', background: 'rgba(161,244,200,0.06)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <ShieldCheck size={20} style={{ color: '#012d1d' }} />
-                <h4 style={{ fontSize: 16, fontWeight: 700, color: '#012d1d', margin: 0 }}>Informasi Hasil Questionnaire</h4>
+            <div className="stat-card" style={{ padding: 20, marginBottom: 20, border: '1px solid #E9ECEF' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <ShieldCheck size={20} style={{ color: '#116c4a' }} />
+                <h4 style={{ fontSize: 16, fontWeight: 700, color: '#012d1d', margin: 0 }}>Latest Assessment</h4>
                 <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: '#6C757D' }}>
                   {fmtDate(latestAssessment.completed_at)}
                 </span>
               </div>
-              <p style={{ fontSize: 13, color: '#6C757D', margin: '0 0 12px 0' }}>
-                {latestAssessment.questionnaire_name || 'Questionnaire'} • Dinilai oleh {latestAssessment.assessor_name || '-'} •
-                SDG mencapai threshold: <b style={{ color: '#116c4a' }}>{latestAssessment.met_count}/{latestAssessment.assessed_count}</b>
+              <p style={{ fontSize: 13, color: '#414844', margin: '0 0 16px 0', lineHeight: '1.6' }}>
+                <span style={{ fontWeight: 600 }}>{latestAssessment.questionnaire_name || 'Questionnaire'}</span> •
+                Dinilai oleh <span style={{ fontWeight: 600 }}>{latestAssessment.assessor_name || '-'}</span> •
+                <span style={{ marginLeft: 4, fontWeight: 700, color: '#116c4a' }}>
+                  {latestAssessment.met_count}/{latestAssessment.assessed_count} SDG lolos threshold
+                </span>
               </p>
-              {latestAssessment.results?.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-                  {latestAssessment.results.map(r => {
-                    const meta = getSdgMeta(r.goal_number);
-                    return (
-                      <span key={r.goal_number} title={`Score ${Math.round(r.score)}% / Threshold ${Math.round(r.threshold)}%`} style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px',
-                        borderRadius: 9999, fontSize: 11, fontWeight: 700,
-                        background: r.is_met ? `${meta.color}1A` : '#f1f3f5',
-                        border: r.is_met ? `1px solid ${meta.color}55` : '1px solid #E9ECEF',
-                        color: r.is_met ? meta.color : '#9aa0a6'
-                      }}>
-                        <meta.icon size={13} /> GOAL {String(r.goal_number).padStart(2, '0')} {Math.round(r.score)}%
-                      </span>
-                    );
-                  })}
+
+              {latestAssessment.results?.filter(r => r.is_met).length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', color: '#6C757D', textTransform: 'uppercase', margin: '0 0 8px 0' }}>
+                    Lolos Threshold
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {latestAssessment.results.filter(r => r.is_met).map(r => {
+                      const meta = getSdgMeta(r.goal_number);
+                      return (
+                        <span key={r.goal_number} title={`${Math.round(r.score)}% / Threshold ${Math.round(r.threshold)}%`} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 12px',
+                          borderRadius: 8, fontSize: 12, fontWeight: 700,
+                          background: `${meta.color}15`,
+                          border: `1px solid ${meta.color}40`,
+                          color: meta.color
+                        }}>
+                          GOAL {String(r.goal_number).padStart(2, '0')}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
+
               <button onClick={applyRecommendation} style={{
-                padding: '9px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700,
-                letterSpacing: '0.05em', color: '#012d1d', background: '#ffffff',
-                border: '1px solid #012d1d', cursor: 'pointer', fontFamily: 'inherit',
-                display: 'inline-flex', alignItems: 'center', gap: 8
-              }}>
-                <BadgeCheck size={15} /> Gunakan Rekomendasi (centang SDG yang lolos threshold)
+                width: '100%', padding: '12px 16px', borderRadius: 8, fontSize: 14, fontWeight: 700,
+                letterSpacing: '0.05em', color: '#ffffff', background: '#116c4a',
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => { e.target.style.background = '#0d4a2f'; }}
+              onMouseLeave={(e) => { e.target.style.background = '#116c4a'; }}
+              >
+                <BadgeCheck size={16} /> Apply Recommendation
               </button>
             </div>
           )}
@@ -549,42 +563,50 @@ const AdminTraceability = () => {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+              gridTemplateColumns: 'repeat(5, 1fr)',
               gap: 16
             }}>
               {sdgs.map(sdg => {
                 const meta = getSdgMeta(sdg.goal_number);
                 const isActive = selectedSdgs.includes(sdg.id);
                 const Icon = meta.icon;
+                const showThreshold = sdg.threshold && Math.round(sdg.threshold) !== 70;
                 return (
                   <div
                     key={sdg.id}
                     onClick={() => handleToggleSdg(sdg.id)}
                     style={{
-                      position: 'relative',
                       background: isActive ? 'rgba(161, 244, 200, 0.2)' : '#ffffff',
                       border: isActive ? '2px solid #116c4a' : '1px solid #E9ECEF',
                       borderRadius: 12, padding: 16,
                       cursor: 'pointer', transition: 'all 0.2s ease',
-                      display: 'flex', flexDirection: 'column', minHeight: 160
+                      display: 'flex', flexDirection: 'column', minHeight: 200,
+                      position: 'relative'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) e.currentTarget.style.borderColor = '#b6cec1';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) e.currentTarget.style.borderColor = '#E9ECEF';
                     }}
                   >
                     <input
                       type="checkbox"
                       checked={isActive}
                       onChange={() => {}}
+                      onClick={(e) => e.stopPropagation()}
                       style={{
-                        position: 'absolute', top: 16, right: 16,
+                        position: 'absolute', top: 12, left: 12,
                         width: 18, height: 18, borderRadius: 4,
                         accentColor: '#116c4a', cursor: 'pointer'
                       }}
                     />
                     <div style={{
-                      width: 48, height: 48, borderRadius: 8,
+                      width: 64, height: 64, borderRadius: 8,
                       background: isActive ? meta.color : `${meta.color}1A`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       marginBottom: 12, transition: 'all 0.2s ease',
-                      overflow: 'hidden'
+                      overflow: 'hidden', alignSelf: 'center', marginTop: 8
                     }}>
                       {sdg.image_url ? (
                         <img
@@ -593,25 +615,28 @@ const AdminTraceability = () => {
                           style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
                       ) : (
-                        <Icon size={24} style={{ color: isActive ? '#ffffff' : meta.color }} />
+                        <Icon size={32} style={{ color: isActive ? '#ffffff' : meta.color }} />
                       )}
                     </div>
                     <p style={{
-                      fontSize: 12, fontWeight: 700, letterSpacing: '0.03em',
-                      color: isActive ? '#116c4a' : '#414844',
-                      margin: '0 0 4px 0', textTransform: 'uppercase'
+                      fontSize: 11, fontWeight: 700, letterSpacing: '0.03em',
+                      color: isActive ? '#116c4a' : '#6C757D',
+                      margin: '0 0 6px 0', textTransform: 'uppercase', textAlign: 'center'
                     }}>
                       GOAL {String(meta.goal_number).padStart(2, '0')}
                     </p>
                     <p style={{
                       fontSize: 14, color: '#191c1d', margin: 0,
-                      lineHeight: '18px'
+                      lineHeight: '18px', textAlign: 'center', fontWeight: 600,
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
                       {meta.name}
                     </p>
-                    <p style={{ fontSize: 11, color: '#6C757D', margin: '6px 0 0 0' }}>
-                      Threshold {Math.round(sdg.threshold || 70)}%
-                    </p>
+                    {showThreshold && (
+                      <p style={{ fontSize: 10, color: '#6C757D', margin: '8px 0 0 0', textAlign: 'center' }}>
+                        Threshold {Math.round(sdg.threshold)}%
+                      </p>
+                    )}
                   </div>
                 );
               })}
@@ -620,124 +645,134 @@ const AdminTraceability = () => {
             {/* Assessment: Assessor + Evidence */}
             <div className="stat-card" style={{
               marginTop: 24, padding: 24,
-              border: '2px solid #2D6A4F'
+              border: '1px solid #E9ECEF'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <ShieldCheck size={20} style={{ color: '#012d1d' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                <ShieldCheck size={20} style={{ color: '#116c4a' }} />
                 <h4 style={{ fontSize: 16, fontWeight: 700, color: '#012d1d', margin: 0 }}>
-                  Detail Assessment
+                  Assessment Details & Verification
                 </h4>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                <div>
-                  <label style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844',
-                    marginBottom: 8
-                  }}>
-                    <User size={14} /> Diases oleh
-                  </label>
-                  <input
-                    type="text"
-                    value={assessedBy}
-                    onChange={(e) => setAssessedBy(e.target.value)}
-                    placeholder="Nama orang yang mengurus/menilai SDGs project ini"
-                    style={{
-                      width: '100%', padding: '12px 14px', border: '1px solid #E9ECEF',
-                      borderRadius: 8, fontSize: 14, outline: 'none', fontFamily: 'inherit',
-                      boxSizing: 'border-box', background: '#ffffff'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844',
-                    marginBottom: 8
-                  }}>
-                    <Upload size={14} /> Bukti Pendukung
-                  </label>
-                  <input
-                    type="file"
-                    id="assessment-evidence"
-                    accept="image/*,.doc,.docx,.pdf"
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                      handleUploadEvidence(e.target.files[0]);
-                      e.target.value = '';
-                    }}
-                  />
-                  <label htmlFor="assessment-evidence" style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    padding: '12px 14px', border: '1px dashed #116c4a', borderRadius: 8,
-                    fontSize: 13, fontWeight: 600, color: '#116c4a', cursor: 'pointer',
-                    background: 'rgba(255,255,255,0.6)'
-                  }}>
-                    <Upload size={16} />
-                    {uploading ? 'Uploading...' : evidenceFile ? 'Ganti Bukti (gambar/Word)' : 'Upload Bukti (gambar/Word)'}
-                  </label>
-                </div>
+              {/* Assessor Name */}
+              <div style={{ marginBottom: 24 }}>
+                <label style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844',
+                  marginBottom: 8, textTransform: 'uppercase'
+                }}>
+                  <User size={14} /> Assessed By
+                </label>
+                <input
+                  type="text"
+                  value={assessedBy}
+                  onChange={(e) => setAssessedBy(e.target.value)}
+                  placeholder="Name of assessor..."
+                  style={{
+                    width: '100%', padding: '12px 14px', border: '1px solid #E9ECEF',
+                    borderRadius: 8, fontSize: 14, outline: 'none', fontFamily: 'inherit',
+                    boxSizing: 'border-box', background: '#ffffff', transition: 'border-color 0.2s ease'
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = '#116c4a'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#E9ECEF'; }}
+                />
               </div>
 
-              {evidenceFile && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+              {/* Evidence Upload */}
+              <div>
+                <label style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844',
+                  marginBottom: 8, textTransform: 'uppercase'
+                }}>
+                  <Upload size={14} /> Supporting Evidence
+                </label>
+                <input
+                  type="file"
+                  id="assessment-evidence"
+                  accept="image/*,.doc,.docx,.pdf"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    handleUploadEvidence(e.target.files[0]);
+                    e.target.value = '';
+                  }}
+                />
+                <label htmlFor="assessment-evidence" style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  padding: '16px 14px', border: '2px dashed #116c4a', borderRadius: 8,
+                  fontSize: 14, fontWeight: 600, color: '#116c4a', cursor: 'pointer',
+                  background: 'rgba(17, 108, 58, 0.03)', transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(17, 108, 58, 0.08)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(17, 108, 58, 0.03)'; }}
+                >
+                  <Upload size={18} />
+                  {uploading ? 'Uploading...' : evidenceFile ? 'Replace Evidence' : 'Upload Evidence (image/Word/PDF)'}
+                </label>
+
+                {/* Evidence Preview */}
+                {evidenceFile && (
                   <div style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '8px 12px', background: '#f8f9fa',
-                    border: '1px solid #E9ECEF', borderRadius: 8
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 14px', background: '#f8f9fa',
+                    border: '1px solid #E9ECEF', borderRadius: 8, marginTop: 12
                   }}>
                     {IMAGE_EXTENSIONS.includes(evidenceFile.file_type) ? (
                       <img src={`${BASE_URL}${evidenceFile.file_url}`} alt="bukti"
-                        style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+                        style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
                     ) : (
-                      <FileText size={28} style={{ color: '#2D6A4F', flexShrink: 0 }} />
+                      <FileText size={32} style={{ color: '#116c4a', flexShrink: 0 }} />
                     )}
                     <a
                       href={`${BASE_URL}${evidenceFile.file_url}`}
                       target="_blank"
                       rel="noreferrer"
-                      style={{ flex: 1, minWidth: 0, textDecoration: 'none', color: '#191c1d', fontSize: 13, fontWeight: 500 }}
+                      style={{ flex: 1, minWidth: 0, textDecoration: 'none', color: '#116c4a', fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis' }}
                     >
-                      Bukti Assessment
+                      {evidenceFile.file_type.toUpperCase()} Document
                     </a>
                     <button
                       onClick={handleDeleteEvidence}
-                      title="Hapus bukti"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D90429', padding: 4, flexShrink: 0 }}
+                      title="Delete evidence"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ba1a1a', padding: 4, flexShrink: 0, fontSize: 16 }}
                     >
-                      <Trash2 size={16} />
+                      ✕
                     </button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
           {/* Sticky Bottom Actions */}
-          <div className="stat-card" style={{
+          <div style={{
+            position: 'sticky', bottom: 0, left: 0, right: 0,
             padding: '16px 24px',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            boxShadow: '0 -4px 20px rgba(0,0,0,0.04)'
+            gap: 16, background: '#ffffff',
+            border: '1px solid #E9ECEF', borderRadius: 12, marginTop: 24,
+            boxShadow: '0 -4px 12px rgba(0,0,0,0.05)', zIndex: 10
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#2D6A4F', fontSize: 12 }}>
-              <Info size={16} />
-              <span>{selectedSdgs.length} SDG dipilih untuk project ini.</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#414844', fontSize: 13, fontWeight: 500 }}>
+              <Info size={16} style={{ color: '#116c4a', flexShrink: 0 }} />
+              <span>{selectedSdgs.length} SDG selected • {verification?.assessed_by ? '✓ Assessor set' : '○ Assessor pending'} • {verification?.evidence_file_url ? '✓ Evidence uploaded' : '○ Evidence pending'}</span>
             </div>
-<button
+            <button
               onClick={handleSave}
               disabled={saving}
               style={{
-                padding: '12px 32px', border: 'none', borderRadius: 8,
-                fontSize: 12, fontWeight: 700, letterSpacing: '0.05em',
-                color: '#ffffff', background: '#012d1d', cursor: 'pointer',
+                padding: '12px 28px', border: 'none', borderRadius: 8,
+                fontSize: 13, fontWeight: 700, letterSpacing: '0.03em',
+                color: '#ffffff', background: '#116c4a', cursor: saving ? 'not-allowed' : 'pointer',
                 fontFamily: 'inherit', transition: 'all 0.2s ease',
-                display: 'flex', alignItems: 'center', gap: 8
+                display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
+                opacity: saving ? 0.7 : 1
               }}
+              onMouseEnter={(e) => { if (!saving) e.target.style.background = '#0d4a2f'; }}
+              onMouseLeave={(e) => { if (!saving) e.target.style.background = '#116c4a'; }}
             >
               {saving ? 'Saving...' : (
-                <><Send size={16} /> SAVE ASSESSMENT</>
+                <><Send size={16} /> SAVE</>
               )}
             </button>
           </div>

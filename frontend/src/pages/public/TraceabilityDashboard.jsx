@@ -46,7 +46,7 @@ const TraceabilityDashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`/assessment/public/trace/${projectRef}`);
+        const res = await api.get(`/assessment/trace/${projectRef}`);
         if (res.data.success) {
           setData(res.data.data);
         } else {

@@ -995,3 +995,66 @@ def delete_project_sdg_evidence(project_id):
         "message": "Bukti berhasil dihapus",
         "data": _serialize_project_verification(verification),
     }, 200
+
+
+# ---------------------------------------------------------------
+# QR CODE GENERATION (On-Demand, No DB Storage)
+# ---------------------------------------------------------------
+def generate_traceability_qr(project_id):
+    """Generate QR code untuk public traceability profile.
+
+    QR berisi link ke: /public/trace/{profile_id}
+    Bukan pakai project name (cegah duplikasi).
+
+    Return: base64 encoded image + link (tanpa disimpan ke DB/storage)
+    """
+    import qrcode
+    import base64
+    from io import BytesIO
+    import os
+
+    project = Project.query.get(project_id)
+    if not project:
+        return {"success": False, "message": "Project tidak ditemukan"}, 404
+
+    profile = ProjectTraceabilityProfile.query.filter_by(project_id=project_id).first()
+    if not profile:
+        return {"success": False, "message": "Traceability profile tidak ditemukan"}, 404
+
+    # URL yang di-encode di QR: gunakan profile ID
+    # Untuk development gunakan localhost:5173, untuk production gunakan domain dari env
+    base_url = os.getenv('PUBLIC_BASE_URL', 'http://localhost:5173')
+    qr_link = f"{base_url}/trace/{str(profile.id)}"
+
+    try:
+        # Generate QR code in-memory
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_link)
+        qr.make(fit=True)
+
+        # Create image
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        # Convert ke base64
+        buffered = BytesIO()
+        img.save(buffered, format="PNG")
+        img_base64 = base64.b64encode(buffered.getvalue()).decode()
+
+        return {
+            "success": True,
+            "data": {
+                "qr_image": f"data:image/png;base64,{img_base64}",
+                "qr_link": qr_link,
+                "profile_id": str(profile.id),
+                "project_id": str(project.id),
+                "project_name": project.name,
+            }
+        }, 200
+
+    except Exception as e:
+        return {"success": False, "message": f"Gagal generate QR: {str(e)}"}, 500

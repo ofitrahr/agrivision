@@ -89,6 +89,50 @@ def manager_profile(current_user):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
+@manager_bp.route('/traceability/profile', methods=['GET', 'POST'])
+@token_required
+@role_required('manager')
+def manager_traceability_profile(current_user):
+    """Get atau update traceability profile untuk manager project.
+
+    GET: Retrieve profile data dengan project_id
+    POST: Update profile data (title, tagline, origin_story, description, status)
+    """
+    from app.db.models import ProjectTraceabilityProfile
+    from app.services.assessment_service import get_or_create_profile, save_project_traceability_profile
+
+    project = current_user.project
+    if not project:
+        return jsonify({'success': False, 'message': 'Manager belum terhubung ke project'}), 400
+
+    profile = get_or_create_profile(project.id)
+
+    if request.method == 'GET':
+        return jsonify({
+            'success': True,
+            'data': {
+                'project_id': str(project.id),
+                'profile_id': str(profile.id),
+                'title': profile.title,
+                'tagline': profile.tagline,
+                'origin_story': profile.origin_story or '',
+                'description': profile.description or '',
+                'hero_image_url': profile.hero_image_url,
+                'status': profile.status,
+                'social_narrative': '',  # Default empty
+                'economic_narrative': '',  # Default empty
+                'environmental_narrative': '',  # Default empty
+            }
+        }), 200
+
+    # POST: Update profile
+    try:
+        data = request.get_json(silent=True) or {}
+        result, status_code = save_project_traceability_profile(project.id, data)
+        return jsonify(result), status_code
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @manager_bp.route('/farmers', methods=['GET', 'POST'])
 @token_required
 @role_required('manager')
@@ -575,3 +619,25 @@ def get_manager_activities(current_user):
         return jsonify({'success': True, 'data': data}), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ---------------------------------------------------------------
+# TRACEABILITY QR CODE GENERATION
+# ---------------------------------------------------------------
+@manager_bp.route('/projects/<project_id>/traceability/qr/generate', methods=['POST'])
+@token_required
+@role_required('manager')
+def generate_traceability_qr(current_user, project_id):
+    """Generate QR code untuk public traceability profile (on-demand, no DB storage).
+
+    QR berisi link ke: /public/trace/{profile_id}
+    Menggunakan ProjectTraceabilityProfile ID (bukan project name).
+    """
+    from app.services.assessment_service import generate_traceability_qr as gen_qr
+
+    # Validasi bahwa current user adalah manager dari project ini
+    if str(current_user.project_id) != str(project_id):
+        return jsonify({"success": False, "message": "Tidak memiliki akses ke project ini"}), 403
+
+    result, status_code = gen_qr(project_id)
+    return jsonify(result), status_code
