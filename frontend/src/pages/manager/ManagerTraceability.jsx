@@ -24,6 +24,7 @@ const ManagerTraceability = () => {
   const [qrLoading, setQrLoading] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [projectId, setProjectId] = useState(null);
+  const [sdgs, setSdgs] = useState([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -48,6 +49,24 @@ const ManagerTraceability = () => {
     };
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    if (!projectId) return;
+
+    const fetchSdgs = async () => {
+      try {
+        const res = await api.get(`/assessment/projects/${projectId}/project-sdgs`);
+        if (res.data.success && res.data.data) {
+          // Filter hanya SDGs yang selected (specific untuk project ini)
+          const selectedSdgs = (res.data.data.sdgs || []).filter(sdg => sdg.selected);
+          setSdgs(selectedSdgs);
+        }
+      } catch (error) {
+        console.error('Gagal load SDGs', error);
+      }
+    };
+    fetchSdgs();
+  }, [projectId]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -270,10 +289,10 @@ const ManagerTraceability = () => {
             />
           </div>
 
-          {/* SDG Impact Descriptions */}
+          {/* Sustainability Impact Descriptions */}
           <div className="stat-card" style={{ padding: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-              <h4 style={{ fontSize: 20, fontWeight: 600, color: '#0d2f1e', margin: 0 }}>SDG Impact Descriptions</h4>
+              <h4 style={{ fontSize: 20, fontWeight: 600, color: '#0d2f1e', margin: 0 }}>Sustainability Impact Descriptions</h4>
               <span style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '2px 8px', background: '#e0f7fa', color: '#0e7490',
@@ -400,6 +419,53 @@ const ManagerTraceability = () => {
                 Consumers love transparency. Mention specific farming techniques or community impact initiatives to build stronger brand loyalty through your traceability data.
               </p>
             </div>
+
+            {/* SDGs Contribution */}
+            {sdgs && sdgs.length > 0 && (
+              <div style={{
+                background: '#ffffff',
+                border: '1px solid #E9ECEF',
+                borderRadius: 12,
+                padding: 20,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
+              }}>
+                <h4 style={{ fontSize: 16, fontWeight: 600, color: '#0d2f1e', margin: '0 0 16px 0' }}>
+                  Sustainability Contributions
+                </h4>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: 8
+                }}>
+                  {sdgs.map((sdg) => (
+                    <div key={sdg.goal_number} style={{
+                      aspectRatio: '1',
+                      background: '#ffffff',
+                      border: '1px solid #E9ECEF',
+                      borderRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 4,
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                      overflow: 'hidden'
+                    }}>
+                      {sdg.image_url ? (
+                        <img
+                          src={sdg.image_url}
+                          alt={`SDG ${sdg.goal_number}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
+                      ) : (
+                        <div style={{ textAlign: 'center', fontSize: 10, color: '#6C757D', fontWeight: 600 }}>
+                          SDG {sdg.goal_number}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

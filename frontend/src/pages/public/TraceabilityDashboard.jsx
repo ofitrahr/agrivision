@@ -173,26 +173,28 @@ const TraceabilityDashboard = () => {
           marginBottom: 32,
           boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
         }}>
-          <h2 style={{
-            fontSize: 24,
-            fontWeight: 600,
-            color: '#191c1d',
-            margin: 0,
-            marginBottom: 12,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            lineHeight: '32px'
-          }}>
-            <Sprout size={24} style={{ color: '#012d1d' }} />
-            Origin Story
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: '#1b4332', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
+              <Sprout size={24} />
+            </div>
+            <div>
+              <h2 style={{
+                fontSize: 24,
+                fontWeight: 600,
+                color: '#191c1d',
+                margin: 0,
+                lineHeight: '32px'
+              }}>
+                Origin Story
+              </h2>
+            </div>
+          </div>
           {description ? (
-            <p style={{ fontSize: 16, lineHeight: '24px', color: '#414844', margin: 0 }}>
+            <p style={{ fontSize: 16, lineHeight: '24px', color: '#414844', margin: '16px 0 0 0' }}>
               {description}
             </p>
           ) : (
-            <p style={{ fontSize: 16, lineHeight: '24px', color: '#adb5bd', fontStyle: 'italic', margin: 0 }}>
+            <p style={{ fontSize: 16, lineHeight: '24px', color: '#adb5bd', fontStyle: 'italic', margin: '16px 0 0 0' }}>
               Belum diisi
             </p>
           )}

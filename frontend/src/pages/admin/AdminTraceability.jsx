@@ -268,134 +268,144 @@ const AdminTraceability = () => {
         </div>
       )}
 
-      {/* Company Selector */}
-      <div ref={dropdownRef} style={{ position: 'relative', marginBottom: 16 }}>
-        <div
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '12px 16px', border: '1px solid #E9ECEF',
-            borderRadius: 8, cursor: 'pointer', background: '#ffffff',
-            transition: 'border-color 0.2s ease'
-          }}
-        >
-          <Search size={18} style={{ color: '#6C757D', flexShrink: 0 }} />
-          <div style={{ flex: 1 }}>
-            {company ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 6,
-                  background: '#c1ecd4', overflow: 'hidden', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                  <Building2 size={16} style={{ color: '#012d1d' }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#191c1d' }}>{company.name}</div>
-                  <div style={{ fontSize: 11, color: '#6C757D' }}>{company.subscription_plan || 'Klik untuk ganti perusahaan'}</div>
-                </div>
-              </div>
-            ) : (
-              <span style={{ fontSize: 14, color: '#6C757D' }}>Pilih perusahaan...</span>
-            )}
-          </div>
-          {company && (
-            <button
-              onClick={(e) => { e.stopPropagation(); handleClearCompany(); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#6C757D' }}
-            >
-              <X size={16} />
-            </button>
-          )}
-          <ChevronDown size={18} style={{ color: '#6C757D', flexShrink: 0 }} />
-        </div>
-
-        {dropdownOpen && (
-          <div style={{
-            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-            marginTop: 4, background: '#ffffff', border: '1px solid #E9ECEF',
-            borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-            maxHeight: 360, display: 'flex', flexDirection: 'column'
-          }}>
-            <div style={{ padding: '8px 8px 4px' }}>
-              <input
-                autoFocus
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari perusahaan..."
-                style={{
-                  width: '100%', padding: '10px 12px', border: '1px solid #E9ECEF',
-                  borderRadius: 6, fontSize: 14, outline: 'none', fontFamily: 'inherit',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-            <div style={{ overflow: 'auto', flex: 1, padding: 4 }}>
-              {filteredCompanies.length === 0 ? (
-                <div style={{ padding: '24px 16px', textAlign: 'center', color: '#6C757D', fontSize: 14 }}>
-                  Perusahaan tidak ditemukan
+      {/* Company & Project Selectors - Side by Side */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: 16,
+        marginBottom: 24
+      }}>
+        {/* Company Selector */}
+        <div ref={dropdownRef} style={{ position: 'relative' }}>
+          <label style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', marginBottom: 6, display: 'block', textTransform: 'uppercase' }}>
+            Company
+          </label>
+          <div
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 16px', border: '1px solid #E9ECEF',
+              borderRadius: 8, cursor: 'pointer', background: '#ffffff',
+              transition: 'border-color 0.2s ease'
+            }}
+          >
+            <Search size={18} style={{ color: '#6C757D', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              {company ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 6,
+                    background: '#c1ecd4', overflow: 'hidden', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <Building2 size={16} style={{ color: '#012d1d' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#191c1d' }}>{company.name}</div>
+                    <div style={{ fontSize: 11, color: '#6C757D' }}>{company.subscription_plan || 'Select company'}</div>
+                  </div>
                 </div>
               ) : (
-                filteredCompanies.map(c => (
-                  <div
-                    key={c.id}
-                    onClick={() => handleSelectCompany(c.id)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '10px 12px', borderRadius: 6, cursor: 'pointer',
-                      background: selectedCompanyId === c.id ? '#f0fdf4' : 'transparent',
-                      transition: 'background 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => { if (selectedCompanyId !== c.id) e.currentTarget.style.background = '#f8f9fa'; }}
-                    onMouseLeave={(e) => { if (selectedCompanyId !== c.id) e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 6,
-                      background: '#c1ecd4', overflow: 'hidden', flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      <Building2 size={18} style={{ color: '#012d1d' }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#191c1d' }}>{c.name}</div>
-                      <div style={{ fontSize: 12, color: '#6C757D' }}>
-                        {c.subscription_plan || ''}
-                      </div>
-                    </div>
-                    {selectedCompanyId === c.id && (
-                      <CheckCircle size={16} style={{ color: '#116c4a' }} />
-                    )}
-                  </div>
-                ))
+                <span style={{ fontSize: 14, color: '#6C757D' }}>Select company...</span>
               )}
             </div>
+            {company && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleClearCompany(); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#6C757D' }}
+              >
+                <X size={16} />
+              </button>
+            )}
+            <ChevronDown size={18} style={{ color: '#6C757D', flexShrink: 0 }} />
           </div>
-        )}
-      </div>
 
-      {/* Project Selector */}
-      {company && (
-        <div className="stat-card" style={{ padding: 20, marginBottom: 24 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', marginBottom: 8, display: 'block' }}>
-            <FolderOpen size={14} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} /> Project (setiap project punya satu sistem traceability)
-          </label>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          {dropdownOpen && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+              marginTop: 4, background: '#ffffff', border: '1px solid #E9ECEF',
+              borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+              maxHeight: 360, display: 'flex', flexDirection: 'column'
+            }}>
+              <div style={{ padding: '8px 8px 4px' }}>
+                <input
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search company..."
+                  style={{
+                    width: '100%', padding: '10px 12px', border: '1px solid #E9ECEF',
+                    borderRadius: 6, fontSize: 14, outline: 'none', fontFamily: 'inherit',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+              <div style={{ overflow: 'auto', flex: 1, padding: 4 }}>
+                {filteredCompanies.length === 0 ? (
+                  <div style={{ padding: '24px 16px', textAlign: 'center', color: '#6C757D', fontSize: 14 }}>
+                    Company not found
+                  </div>
+                ) : (
+                  filteredCompanies.map(c => (
+                    <div
+                      key={c.id}
+                      onClick={() => handleSelectCompany(c.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '10px 12px', borderRadius: 6, cursor: 'pointer',
+                        background: selectedCompanyId === c.id ? '#f0fdf4' : 'transparent',
+                        transition: 'background 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => { if (selectedCompanyId !== c.id) e.currentTarget.style.background = '#f8f9fa'; }}
+                      onMouseLeave={(e) => { if (selectedCompanyId !== c.id) e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 6,
+                        background: '#c1ecd4', overflow: 'hidden', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <Building2 size={18} style={{ color: '#012d1d' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: '#191c1d' }}>{c.name}</div>
+                        <div style={{ fontSize: 12, color: '#6C757D' }}>
+                          {c.subscription_plan || ''}
+                        </div>
+                      </div>
+                      {selectedCompanyId === c.id && (
+                        <CheckCircle size={16} style={{ color: '#116c4a' }} />
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Project Selector */}
+        {company && (
+          <div style={{ position: 'relative' }}>
+            <label style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', marginBottom: 6, display: 'block', textTransform: 'uppercase' }}>
+              Project
+            </label>
             <select
               value={selectedProjectId || ''}
               onChange={(e) => handleSelectProject(e.target.value)}
               disabled={projectsLoading}
               style={{
-                flex: 1, padding: '12px 14px', border: '1px solid #E9ECEF', borderRadius: 8,
+                width: '100%', padding: '12px 14px', border: '1px solid #E9ECEF', borderRadius: 8,
                 fontSize: 14, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-                background: '#ffffff', color: '#191c1d'
+                background: '#ffffff', color: '#191c1d', cursor: projectsLoading ? 'not-allowed' : 'pointer',
+                opacity: projectsLoading ? 0.6 : 1
               }}
             >
-              <option value="">{projectsLoading ? 'Memuat project...' : 'Pilih project...'}</option>
+              <option value="">{projectsLoading ? 'Loading projects...' : 'Select project...'}</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}{p.commodity ? ` (${p.commodity})` : ''}</option>)}
             </select>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {!company ? (
         <div style={{
@@ -576,12 +586,12 @@ const AdminTraceability = () => {
                     key={sdg.id}
                     onClick={() => handleToggleSdg(sdg.id)}
                     style={{
-                      background: isActive ? 'rgba(161, 244, 200, 0.2)' : '#ffffff',
+                      background: '#ffffff',
                       border: isActive ? '2px solid #116c4a' : '1px solid #E9ECEF',
-                      borderRadius: 12, padding: 16,
+                      borderRadius: 12,
                       cursor: 'pointer', transition: 'all 0.2s ease',
-                      display: 'flex', flexDirection: 'column', minHeight: 200,
-                      position: 'relative'
+                      display: 'flex', flexDirection: 'column', minHeight: 220,
+                      position: 'relative', overflow: 'hidden'
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive) e.currentTarget.style.borderColor = '#b6cec1';
@@ -590,53 +600,69 @@ const AdminTraceability = () => {
                       if (!isActive) e.currentTarget.style.borderColor = '#E9ECEF';
                     }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={isActive}
-                      onChange={() => {}}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        position: 'absolute', top: 12, left: 12,
-                        width: 18, height: 18, borderRadius: 4,
-                        accentColor: '#116c4a', cursor: 'pointer'
-                      }}
-                    />
+                    {/* Top Section: Icon with colored background */}
                     <div style={{
-                      width: 64, height: 64, borderRadius: 8,
+                      flex: '0 0 130px',
                       background: isActive ? meta.color : `${meta.color}1A`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      marginBottom: 12, transition: 'all 0.2s ease',
-                      overflow: 'hidden', alignSelf: 'center', marginTop: 8
+                      transition: 'all 0.2s ease',
+                      position: 'relative'
                     }}>
-                      {sdg.image_url ? (
-                        <img
-                          src={sdg.image_url}
-                          alt={`SDG ${sdg.goal_number}`}
-                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                        />
-                      ) : (
-                        <Icon size={32} style={{ color: isActive ? '#ffffff' : meta.color }} />
+                      <input
+                        type="checkbox"
+                        checked={isActive}
+                        onChange={() => {}}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          position: 'absolute', top: 10, right: 10,
+                          width: 20, height: 20, borderRadius: 4,
+                          accentColor: '#116c4a', cursor: 'pointer'
+                        }}
+                      />
+                      <div style={{
+                        width: 90, height: 90, borderRadius: 12,
+                        background: isActive ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        overflow: 'hidden'
+                      }}>
+                        {sdg.image_url ? (
+                          <img
+                            src={sdg.image_url}
+                            alt={`SDG ${sdg.goal_number}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <Icon size={48} style={{ color: isActive ? '#ffffff' : meta.color }} />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Bottom Section: Text */}
+                    <div style={{
+                      flex: 1,
+                      padding: '14px 12px',
+                      display: 'flex', flexDirection: 'column', justifyContent: 'flex-start',
+                      alignItems: 'center'
+                    }}>
+                      <p style={{
+                        fontSize: 10, fontWeight: 700, letterSpacing: '0.03em',
+                        color: '#6C757D',
+                        margin: '0 0 4px 0', textTransform: 'uppercase'
+                      }}>
+                        GOAL {String(meta.goal_number).padStart(2, '0')}
+                      </p>
+                      <p style={{
+                        fontSize: 13, color: '#191c1d', margin: 0,
+                        lineHeight: '16px', textAlign: 'center', fontWeight: 600
+                      }}>
+                        {meta.name}
+                      </p>
+                      {showThreshold && (
+                        <p style={{ fontSize: 9, color: '#6C757D', margin: '6px 0 0 0', textAlign: 'center' }}>
+                          Threshold {Math.round(sdg.threshold)}%
+                        </p>
                       )}
                     </div>
-                    <p style={{
-                      fontSize: 11, fontWeight: 700, letterSpacing: '0.03em',
-                      color: isActive ? '#116c4a' : '#6C757D',
-                      margin: '0 0 6px 0', textTransform: 'uppercase', textAlign: 'center'
-                    }}>
-                      GOAL {String(meta.goal_number).padStart(2, '0')}
-                    </p>
-                    <p style={{
-                      fontSize: 14, color: '#191c1d', margin: 0,
-                      lineHeight: '18px', textAlign: 'center', fontWeight: 600,
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}>
-                      {meta.name}
-                    </p>
-                    {showThreshold && (
-                      <p style={{ fontSize: 10, color: '#6C757D', margin: '8px 0 0 0', textAlign: 'center' }}>
-                        Threshold {Math.round(sdg.threshold)}%
-                      </p>
-                    )}
                   </div>
                 );
               })}
