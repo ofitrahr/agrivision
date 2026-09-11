@@ -641,3 +641,62 @@ def generate_traceability_qr(current_user, project_id):
 
     result, status_code = gen_qr(project_id)
     return jsonify(result), status_code
+
+
+@manager_bp.route('/traceability/preview', methods=['GET'])
+@token_required
+@role_required('manager')
+def manager_traceability_preview(current_user):
+    """Preview traceability profile sebelum publish (manager only).
+
+    Endpoint ini memungkinkan manager melihat preview profile mereka
+    SEBELUM status diubah ke 'published'. Ini berguna untuk testing
+    QR code dan link sebelum di-share ke konsumen.
+
+    Return data sama seperti public endpoint, tapi tanpa check publish status.
+    """
+    from app.db.models import ProjectTraceabilityProfile, ProjectSdg
+
+    project = current_user.project
+    if not project:
+        return jsonify({'success': False, 'message': 'Manager belum terhubung ke project'}), 400
+
+    profile = ProjectTraceabilityProfile.query.filter_by(project_id=project.id).first()
+    if not profile:
+        return jsonify({"success": False, "message": "Profile traceability tidak ditemukan"}), 404
+
+    project_sdgs = []
+    for ps in ProjectSdg.query.filter_by(project_traceability_id=profile.id).all():
+        sdg = ps.sdg_master
+        project_sdgs.append({
+            "goal_number": sdg.goal_number,
+            "name": sdg.name,
+            "description": sdg.description,
+            "image_url": sdg.image_url,
+        })
+
+    return jsonify({
+        "success": True,
+        "data": {
+            "project": {
+                "id": str(project.id),
+                "name": project.name,
+                "commodity": project.commodity,
+                "location": project.location,
+                "company_name": project.company.name if project.company else None,
+            },
+            "profile": {
+                "id": str(profile.id),
+                "title": profile.title,
+                "tagline": profile.tagline,
+                "origin_story": profile.origin_story,
+                "description": profile.description,
+                "hero_image_url": profile.hero_image_url,
+                "status": profile.status,
+                "social_narrative": '',  # Fallback kosong (belum ada kolom di model)
+                "economic_narrative": '',
+                "environmental_narrative": '',
+            },
+            "sdgs": project_sdgs,
+        }
+    }), 200

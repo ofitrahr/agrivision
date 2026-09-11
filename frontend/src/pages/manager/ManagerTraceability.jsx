@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import NarrativeTextarea from '../../shared/components/traceability/NarrativeTextarea';
 import {
-  ChevronRight, QrCode, Camera, BadgeCheck,
+  ChevronRight, QrCode, Camera, BadgeCheck, Eye,
   Lock, MapPin, Lightbulb, Globe, Clock
 } from 'lucide-react';
+import Button from '../../shared/components/UI/Button';
 
 const ManagerTraceability = () => {
   const [loading, setLoading] = useState(true);
@@ -23,6 +24,9 @@ const ManagerTraceability = () => {
   const [qrData, setQrData] = useState(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [projectId, setProjectId] = useState(null);
   const [sdgs, setSdgs] = useState([]);
 
@@ -35,6 +39,13 @@ const ManagerTraceability = () => {
           const d = res.data.data;
           setFormData(d);
           setOriginStoryCount(d.origin_story?.length || 0);
+          // Fix #3: Load status dari API agar tombol publish/unpublish akurat saat reload
+          if (d.status) {
+            setStatus(d.status);
+            console.log('Status from API:', d.status); // DEBUG
+          } else {
+            setStatus('draft');
+          }
           // Extract project_id dari response jika ada
           console.log('Project ID from response:', d.project_id); // DEBUG
           if (d.project_id) {
@@ -142,6 +153,24 @@ const ManagerTraceability = () => {
     alert('Link copied to clipboard!');
   };
 
+  const handlePreview = async () => {
+    setPreviewLoading(true);
+    try {
+      const res = await api.get('/manager/traceability/preview');
+      if (res.data.success) {
+        setPreviewData(res.data.data);
+        setShowPreviewModal(true);
+      } else {
+        alert('Gagal load preview: ' + res.data.message);
+      }
+    } catch (error) {
+      console.error('Error loading preview:', error);
+      alert('Gagal load preview');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   if (loading) return (
     <div style={{ padding: '50px', textAlign: 'center', color: '#5C7A6D' }}>
       Memuat data...
@@ -161,18 +190,15 @@ const ManagerTraceability = () => {
           <p className="page-description">Customize how your farm's journey appears to consumers.</p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button
-            className="secondary-btn"
-            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-            onClick={handleGenerateQR}
-            disabled={qrLoading}
-          >
-            <QrCode size={18} />
-            {qrLoading ? 'Generating...' : 'Generate QR Code'}
-          </button>
-          <button className="primary-btn" onClick={handleSaveDraft} disabled={saving}>
-            {saving ? 'Menyimpan...' : 'Save Draft'}
-          </button>
+          <Button variant="secondary" onClick={handlePreview} isLoading={previewLoading} loadingText="Loading..." icon={<Eye size={18} />}>
+            Preview
+          </Button>
+          <Button variant="secondary" onClick={handleGenerateQR} isLoading={qrLoading} loadingText="Generating..." icon={<QrCode size={18} />}>
+            Generate QR Code
+          </Button>
+          <Button variant="primary" onClick={handleSaveDraft} isLoading={saving} loadingText="Menyimpan...">
+            Save Draft
+          </Button>
         </div>
       </div>
 
@@ -361,15 +387,6 @@ const ManagerTraceability = () => {
                 </span>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, fontSize: 12, color: '#0e7490' }}>
-                <Clock size={14} />
-                <span>
-                  {status === 'published' && lastPublished
-                    ? `Last published ${new Date(lastPublished).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
-                    : 'Not yet published'}
-                </span>
-              </div>
-
               <div style={{
                 background: '#f8f9fa', borderRadius: 8, border: '1px solid #E0EBE4',
                 padding: 16, marginBottom: 16, textAlign: 'center'
@@ -387,22 +404,28 @@ const ManagerTraceability = () => {
                 </p>
               </div>
 
-              <button
+              <Button
+                variant={status === 'published' ? 'secondary' : 'primary'}
                 onClick={handlePublishToggle}
-                disabled={publishLoading}
+                isLoading={publishLoading}
+                loadingText="Processing..."
                 style={{
-                  width: '100%', padding: '12px 24px', borderRadius: 8,
-                  fontSize: 14, fontWeight: 700, letterSpacing: '0.03em', cursor: 'pointer',
-                  background: status === 'published' ? '#fef3c7' : '#0d2f1e',
-                  color: status === 'published' ? '#0d2f1e' : '#ffffff',
-                  border: '1px solid #0d2f1e',
-                  transition: 'all 0.2s ease', fontFamily: 'inherit'
+                  width: '100%',
+                  ...(publishLoading && {
+                    background: '#e5e7eb',
+                    color: '#6b7280',
+                    border: '1px solid #d1d5db',
+                    opacity: 1
+                  }),
+                  ...(status === 'published' && !publishLoading && {
+                    background: '#e5e7eb',
+                    color: '#374151',
+                    border: '1px solid #d1d5db'
+                  })
                 }}
               >
-                {publishLoading
-                  ? 'Processing...'
-                  : status === 'published' ? 'Unpublish' : 'Publish'}
-              </button>
+                {status === 'published' ? 'Unpublish' : 'Publish'}
+              </Button>
             </div>
 
             {/* Storytelling Tip */}
@@ -573,6 +596,228 @@ const ManagerTraceability = () => {
           </div>
         </div>
       )}
+
+      {/* Preview Modal */}
+      {showPreviewModal && previewData && (() => {
+        const { project, profile, sdgs: previewSdgs } = previewData;
+        // Gabungkan formData (data yang sedang diedit) dengan data dari DB
+        const heroImage = formData.hero_image_url || formData.cover_image_url || profile.hero_image_url || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200';
+        const previewTitle = formData.title || profile.title || project?.name || 'Untitled';
+        const previewTagline = formData.tagline || profile.tagline || '';
+        const previewOrigin = formData.origin_story || profile.origin_story;
+        const mergedSdgs = sdgs.length > 0 ? sdgs : previewSdgs;
+        return (
+          <div style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            zIndex: 1000, overflowY: 'auto', padding: '40px 16px'
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: 12,
+              maxWidth: 800,
+              width: '100%',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+              marginBottom: 40
+            }}>
+              {/* Modal Header */}
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '16px 24px', borderBottom: '1px solid #E0EBE4'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0d2f1e', margin: 0 }}>
+                    Profile Preview
+                  </h2>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+                    padding: '4px 12px', borderRadius: 9999,
+                    background: status === 'published' ? '#d1fae5' : '#fef3c7',
+                    color: status === 'published' ? '#065f46' : '#92400e'
+                  }}>
+                    <span style={{
+                      width: 6, height: 6, borderRadius: '50%',
+                      background: status === 'published' ? '#10b981' : '#f59e0b'
+                    }} />
+                    {status === 'published' ? 'Published' : 'Draft'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowPreviewModal(false)}
+                  style={{
+                    background: 'none', border: 'none', fontSize: 24, cursor: 'pointer',
+                    color: '#5C7A6D'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Preview Content (mirrors public page) */}
+              <div style={{ padding: 0 }}>
+                {/* Hero Image */}
+                {(heroImage || previewOrigin) && (
+                  <div style={{ position: 'relative', width: '100%', height: 250, overflow: 'hidden' }}>
+                    <img
+                      src={heroImage}
+                      alt={previewTitle}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)' }} />
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, padding: 24, width: '100%' }}>
+                      <h1 style={{ fontSize: 28, fontWeight: 700, color: '#ffffff', margin: '0 0 4px 0' }}>
+                        {previewTitle}
+                      </h1>
+                      <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', margin: 0 }}>
+                        {project?.company_name && project?.name && project.company_name !== project.name
+                          ? `${project.company_name} · ` : ''}{previewTagline}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ padding: 24 }}>
+                  {/* Details Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 24 }}>
+                    {[
+                      { label: 'Project', value: profile.title || project?.name },
+                      { label: 'Company', value: project?.company_name },
+                      { label: 'Commodity', value: project?.commodity },
+                      { label: 'Location', value: project?.location },
+                    ].map(item => (
+                      <div key={item.label} style={{ background: '#f8f9fa', padding: 12, borderRadius: 8, border: '1px solid #E0EBE4' }}>
+                        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', color: '#6C757D', textTransform: 'uppercase', margin: '0 0 4px 0' }}>{item.label}</p>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: '#191c1d', margin: 0 }}>{item.value || '-'}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Origin Story */}
+                  <div style={{ marginBottom: 24 }}>
+                    <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0d2f1e', margin: '0 0 12px 0' }}>Origin Story</h3>
+                    <p style={{ fontSize: 14, lineHeight: '22px', color: profile.origin_story ? '#414844' : '#adb5bd', fontStyle: profile.origin_story ? 'normal' : 'italic', margin: 0 }}>
+                      {profile.origin_story || 'Belum diisi'}
+                    </p>
+                  </div>
+
+                  {/* Sustainability Impact */}
+                  <div style={{ marginBottom: 24 }}>
+                    <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0d2f1e', margin: '0 0 12px 0' }}>Sustainability Impact</h3>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                      {/* Social Impact */}
+                      <div>
+                        <h4 style={{ fontSize: 15, fontWeight: 600, color: '#0d2f1e', margin: '0 0 8px 0' }}>Social Impact</h4>
+                        <p style={{ fontSize: 13, lineHeight: '20px', color: '#414844', margin: 0, fontStyle: 'italic' }}>
+                          {formData.social_narrative || (profile && profile.origin_story ? 'Belum diisi' : '')}
+                        </p>
+                      </div>
+
+                      {/* Economic Impact */}
+                      <div>
+                        <h4 style={{ fontSize: 15, fontWeight: 600, color: '#0d2f1e', margin: '0 0 8px 0' }}>Economic Impact</h4>
+                        <p style={{ fontSize: 13, lineHeight: '20px', color: '#414844', margin: 0, fontStyle: 'italic' }}>
+                          {formData.economic_narrative || 'Belum diisi'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Environmental Impact */}
+                    <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid #E0EBE4' }}>
+                      <h4 style={{ fontSize: 15, fontWeight: 600, color: '#0d2f1e', margin: '0 0 8px 0' }}>Environmental Impact</h4>
+                      <p style={{ fontSize: 13, lineHeight: '20px', color: '#414844', margin: 0, fontStyle: 'italic' }}>
+                        {formData.environmental_narrative || 'Belum diisi'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* SDGs */}
+                  {mergedSdgs && mergedSdgs.length > 0 && (
+                    <div>
+                      <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0d2f1e', margin: '0 0 12px 0' }}>SDGs Contribution</h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+                        {mergedSdgs.map(sdg => (
+                          <div key={sdg.goal_number} style={{
+                            aspectRatio: '1', border: '1px solid #E9ECEF', borderRadius: 8,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, overflow: 'hidden'
+                          }}>
+                            {sdg.image_url ? (
+                              <img src={sdg.image_url} alt={`SDG ${sdg.goal_number}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            ) : (
+                              <span style={{ fontSize: 10, color: '#6C757D', fontWeight: 600 }}>SDG {sdg.goal_number}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div style={{
+                padding: '16px 24px', borderTop: '1px solid #E0EBE4',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+                <p style={{ fontSize: 12, color: '#5C7A6D', margin: 0 }}>
+                  {status === 'published'
+                    ? 'This profile is live and accessible to consumers.'
+                    : 'Publish to make this profile accessible to consumers.'}
+                </p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {status === 'draft' && (
+                    <button
+                      onClick={async () => {
+                        await handlePublishToggle();
+                        setShowPreviewModal(false);
+                      }}
+                      disabled={publishLoading}
+                      style={{
+                        padding: '10px 20px', background: '#0d2f1e', color: 'white',
+                        border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                        cursor: publishLoading ? 'not-allowed' : 'pointer',
+                        opacity: publishLoading ? 0.6 : 1
+                      }}
+                    >
+                      {publishLoading ? 'Publishing...' : 'Publish'}
+                    </button>
+                  )}
+                  {status === 'published' && (
+                    <button
+                      onClick={async () => {
+                        await handlePublishToggle();
+                        setShowPreviewModal(false);
+                      }}
+                      disabled={publishLoading}
+                      style={{
+                        padding: '10px 20px', background: '#fef3c7', color: '#92400e',
+                        border: '1px solid #fcd34d', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                        cursor: publishLoading ? 'not-allowed' : 'pointer',
+                        opacity: publishLoading ? 0.6 : 1
+                      }}
+                    >
+                      {publishLoading ? 'Processing...' : 'Unpublish'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowPreviewModal(false)}
+                    style={{
+                      padding: '10px 20px', background: 'white', color: '#0d2f1e',
+                      border: '1px solid #E0EBE4', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

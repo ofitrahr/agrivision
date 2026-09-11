@@ -192,7 +192,7 @@ def list_sdg_indicators(applicable_only=False, goal_number=None):
 def get_or_create_profile(project_id):
     profile = ProjectTraceabilityProfile.query.filter_by(project_id=project_id).first()
     if not profile:
-        profile = ProjectTraceabilityProfile(project_id=project_id)
+        profile = ProjectTraceabilityProfile(project_id=project_id, status='draft')
         db.session.add(profile)
         db.session.commit()
     return profile

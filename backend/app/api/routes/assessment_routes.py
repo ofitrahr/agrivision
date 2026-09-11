@@ -19,6 +19,7 @@ def api_public_traceability(profile_id):
     """Public endpoint for traceability dashboard (accessed via QR code with profile ID).
 
     Menggunakan ProjectTraceabilityProfile ID (bukan project name) untuk menghindari duplikasi.
+    Enforce: Profile harus status='published' untuk accessible publik.
     """
     try:
         profile_uuid = uuid.UUID(profile_id)
@@ -28,6 +29,13 @@ def api_public_traceability(profile_id):
     profile = ProjectTraceabilityProfile.query.get(profile_uuid)
     if not profile:
         return jsonify({"success": False, "message": "Profile traceability tidak ditemukan"}), 404
+
+    # ✅ ENFORCE: Check publish status
+    if profile.status != 'published':
+        return jsonify({
+            "success": False,
+            "message": "Profile traceability belum dipublikasikan oleh manager"
+        }), 403
 
     project = profile.project
     if not project:
