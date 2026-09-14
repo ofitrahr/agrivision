@@ -938,9 +938,17 @@ def manager_reports(current_user):
         if not title:
             return jsonify({'success': False, 'message': 'Judul laporan wajib diisi'}), 400
 
+        import uuid as uuid_pkg
+        valid_farm_uuid = None
+        if farm_id and farm_id != 'all' and ',' not in str(farm_id):
+            try:
+                valid_farm_uuid = uuid_pkg.UUID(str(farm_id).strip())
+            except (ValueError, AttributeError):
+                valid_farm_uuid = None
+
         report = DocumentReport(
             company_id=company_id,
-            farm_id=farm_id if farm_id and farm_id != 'all' else None,
+            farm_id=valid_farm_uuid,
             title=title,
             report_type=report_type,
             farm_name=farm_name,
@@ -1199,7 +1207,6 @@ def download_report(current_user, report_id):
         report_type_label = ', '.join(label_list) if label_list else 'Operational Report'
 
     # 2. Ambil Data Lahan
-    farm_id_to_query = report.farm_id
     total_area = 0
     commodity = '-'
     altitude = '-'
@@ -1208,34 +1215,25 @@ def download_report(current_user, report_id):
     selected_farms = []
     default_proj_loc = current_user.project.location if current_user.project and current_user.project.location else '-'
     
-    if farm_id_to_query:
-        farm_ids = [fid.strip() for fid in str(farm_id_to_query).split(',') if fid.strip()] 
-        farms_matched = Farm.query.filter(Farm.id.in_(farm_ids)).all() 
-        if farms_matched:
-            farm_obj = farms_matched[0]
-            total_area = sum(float(f.total_area_ha or 0) for f in farms_matched)
-            commodities = list(set([f.crop_variety for f in farms_matched if f.crop_variety]))
-            commodity = ', '.join(commodities) if commodities else '-'
-            altitudes = list(set([f.altitude for f in farms_matched if f.altitude]))
-            altitude = ', '.join(altitudes) if altitudes else '-'
-            agroforestry = farms_matched[0].agroforestry_system or '-'
-            for f in farms_matched:
-                selected_farms.append({
-                    'name': f.name,
-                    'location': f.location or default_proj_loc,
-                    'commodity': f.crop_variety or '-',
-                    'altitude': f.altitude or '-',
-                    'area_ha': float(f.total_area_ha or 0)
-                })
+    if report.farm_id:
+        farms_matched = Farm.query.filter_by(id=report.farm_id).all()
+    elif report.farm_name and report.farm_name != 'Semua Lahan':
+        names = [n.strip() for n in report.farm_name.split(',') if n.strip()]
+        farms_matched = Farm.query.filter(Farm.project_id == current_user.project_id, Farm.name.in_(names)).all()
+        if not farms_matched:
+            farms_matched = Farm.query.filter_by(project_id=current_user.project_id).all()
     else:
-        farms = Farm.query.filter_by(project_id=current_user.project_id).all()
-        total_area = sum(float(f.total_area_ha or 0) for f in farms)
-        commodities = list(set([f.crop_variety for f in farms if f.crop_variety]))
-        commodity = ', '.join(commodities) if commodities else 'Beragam Komoditas'
-        altitudes = list(set([f.altitude for f in farms if f.altitude]))
+        farms_matched = Farm.query.filter_by(project_id=current_user.project_id).all()
+
+    if farms_matched:
+        farm_obj = farms_matched[0]
+        total_area = sum(float(f.total_area_ha or 0) for f in farms_matched)
+        commodities = list(set([f.crop_variety for f in farms_matched if f.crop_variety]))
+        commodity = ', '.join(commodities) if commodities else '-'
+        altitudes = list(set([f.altitude for f in farms_matched if f.altitude]))
         altitude = ', '.join(altitudes) if altitudes else '-'
-        agroforestry = '-'
-        for f in farms:
+        agroforestry = farms_matched[0].agroforestry_system or '-'
+        for f in farms_matched:
             selected_farms.append({
                 'name': f.name,
                 'location': f.location or default_proj_loc,
@@ -1244,14 +1242,14 @@ def download_report(current_user, report_id):
                 'area_ha': float(f.total_area_ha or 0)
             })
 
+    target_farm_ids = [f.id for f in farms_matched] if farms_matched else []
+
     # 3. Helper Query GIS
     def get_avg_gis_layer(param_type):
-        query = db.session.query(db.func.avg(GisLayer.numerical_value))
-        if farm_id_to_query:
-            query = query.filter_by(farm_id=farm_id_to_query, parameter_type=param_type)
-        else:
-            farm_ids = [f.id for f in Farm.query.filter_by(project_id=current_user.project_id).all()]
-            query = query.filter(GisLayer.farm_id.in_(farm_ids), GisLayer.parameter_type == param_type)
+        if not target_farm_ids:
+            return 0.0
+        query = db.session.query(db.func.avg(GisLayer.numerical_value))\
+            .filter(GisLayer.farm_id.in_(target_farm_ids), GisLayer.parameter_type == param_type)
         val = query.scalar()
         return round(float(val), 2) if val else 0.0
 
@@ -1274,8 +1272,8 @@ def download_report(current_user, report_id):
 
     # Sensor Data
     sensor_q = SensorData.query
-    if farm_id_to_query:
-        sensor_q = sensor_q.filter_by(farm_id=farm_id_to_query)
+    if target_farm_ids:
+        sensor_q = sensor_q.filter(SensorData.farm_id.in_(target_farm_ids))
     sensor = sensor_q.order_by(SensorData.created_at.desc()).first()
     soil_ph = round(float(sensor.ph), 2) if sensor and sensor.ph else '-'
     soil_temp = round(float(sensor.temperature), 2) if sensor and sensor.temperature else '-'
@@ -1300,8 +1298,8 @@ def download_report(current_user, report_id):
         db.func.sum(FinancialRecord.estimated_revenue),
         db.func.sum(FinancialRecord.operational_cost)
     )
-    if farm_id_to_query:
-        fin_query = fin_query.filter_by(farm_id=farm_id_to_query)
+    if target_farm_ids:
+        fin_query = fin_query.filter(FinancialRecord.farm_id.in_(target_farm_ids))
     else:
         farm_ids = [f.id for f in Farm.query.filter_by(project_id=current_user.project_id).all()]
         fin_query = fin_query.filter(FinancialRecord.farm_id.in_(farm_ids))
@@ -1318,7 +1316,7 @@ def download_report(current_user, report_id):
         return f"{val:,.0f}".replace(',', '.')
 
     # 7. Data Sosial & Petani
-    if farm_id_to_query and farm_obj:
+    if len(target_farm_ids) == 1 and farm_obj:
         farmers_list = farm_obj.farmers
     else:
         farmers_list = Farmer.query.filter_by(company_id=current_user.project.company_id).all()
@@ -1341,8 +1339,8 @@ def download_report(current_user, report_id):
     # 8. Data Batch Rantai Pasok (Traceability)
     from app.db.models import Batch
     batches_q = Batch.query
-    if farm_id_to_query:
-        batches_q = batches_q.filter_by(farm_id=farm_id_to_query)
+    if target_farm_ids:
+        batches_q = batches_q.filter(Batch.farm_id.in_(target_farm_ids))
     else:
         batches_q = batches_q.filter_by(company_id=current_user.project.company_id)
     batches_list = []
@@ -1354,11 +1352,7 @@ def download_report(current_user, report_id):
             'status': b.status.replace('_', ' ').capitalize()
         })
 
-    has_boundary = False
-    if farm_obj and farm_obj.boundary is not None:
-        has_boundary = True
-    elif not farm_id_to_query:
-        has_boundary = any(f.boundary is not None for f in farms)
+    has_boundary = any(f.boundary is not None for f in farms_matched) if farms_matched else False
     boundary_status = 'Tersedia Polygon GIS (SRID 4326)' if has_boundary else 'Belum Dipetakan'
 
     # 9. Zona Waktu Indonesia Barat (WIB = UTC+7)

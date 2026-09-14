@@ -378,10 +378,12 @@ const ManagerEconomics = () => {
       if (response.data.success) {
         setRecentReports((prev) => [response.data.data, ...prev]);
         setShowGenerateModal(false);
-        alert(`Berhasil membuat dokumen: ${response.data.data.title} (${response.data.data.format})`);
+        // Otomatis unduh file yang baru saja di-generate
+        handleDownload(response.data.data);
       }
     } catch (error) {
-      alert('Gagal membuat laporan.');
+      const msg = error.response?.data?.message || 'Gagal membuat laporan.';
+      alert(`Gagal membuat laporan: ${msg}`);
       console.error('Error generate report:', error);
     } finally {
       setGenerating(false);
@@ -405,7 +407,8 @@ const ManagerEconomics = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${report.title.replace(/\s+/g, '_')}.${report.format}`;
+      const fileExt = (report.format || 'pdf').toLowerCase();
+      a.download = `${(report.title || 'Laporan').replace(/\s+/g, '_')}.${fileExt}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
