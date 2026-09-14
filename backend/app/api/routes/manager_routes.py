@@ -119,9 +119,9 @@ def manager_traceability_profile(current_user):
                 'description': profile.description or '',
                 'hero_image_url': profile.hero_image_url,
                 'status': profile.status,
-                'social_narrative': '',  # Default empty
-                'economic_narrative': '',  # Default empty
-                'environmental_narrative': '',  # Default empty
+                'social_narrative': profile.social_narrative or '',
+                'economic_narrative': profile.economic_narrative or '',
+                'environmental_narrative': profile.environmental_narrative or '',
             }
         }), 200
 
@@ -693,9 +693,9 @@ def manager_traceability_preview(current_user):
                 "description": profile.description,
                 "hero_image_url": profile.hero_image_url,
                 "status": profile.status,
-                "social_narrative": '',  # Fallback kosong (belum ada kolom di model)
-                "economic_narrative": '',
-                "environmental_narrative": '',
+                "social_narrative": profile.social_narrative or '',
+                "economic_narrative": profile.economic_narrative or '',
+                "environmental_narrative": profile.environmental_narrative or '',
             },
             "sdgs": project_sdgs,
         }

@@ -249,6 +249,9 @@ def get_project_traceability_data(project_id):
                 "tagline": profile.tagline if profile else None,
                 "origin_story": profile.origin_story if profile else None,
                 "description": profile.description if profile else None,
+                "social_narrative": profile.social_narrative if profile else None,
+                "economic_narrative": profile.economic_narrative if profile else None,
+                "environmental_narrative": profile.environmental_narrative if profile else None,
                 "status": profile.status if profile else 'draft',
             },
             "project_sdgs": project_sdgs,
@@ -267,6 +270,9 @@ def save_project_traceability_profile(project_id, data):
     profile.tagline = data.get('tagline', profile.tagline)
     profile.origin_story = data.get('origin_story', profile.origin_story)
     profile.description = data.get('description', profile.description)
+    profile.social_narrative = data.get('social_narrative', profile.social_narrative)
+    profile.economic_narrative = data.get('economic_narrative', profile.economic_narrative)
+    profile.environmental_narrative = data.get('environmental_narrative', profile.environmental_narrative)
     if 'status' in data and data['status'] in ['draft', 'published']:
         profile.status = data['status']
     db.session.commit()

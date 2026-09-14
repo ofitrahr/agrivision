@@ -69,6 +69,9 @@ def api_public_traceability(profile_id):
                 "description": profile.description,
                 "hero_image_url": profile.hero_image_url,
                 "status": profile.status,
+                "social_narrative": profile.social_narrative or '',
+                "economic_narrative": profile.economic_narrative or '',
+                "environmental_narrative": profile.environmental_narrative or '',
             },
             "sdgs": project_sdgs,
         }

@@ -80,10 +80,10 @@ const TraceabilityDashboard = () => {
   const heroImage = profile?.hero_image_url || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200';
   const description = profile?.origin_story || profile?.description || '';
 
-  // TODO: Hapus dummy data ini setelah backend mengembalikan field narrative
-  const socialNarrative = profile?.social_narrative || 'Inisiatif sosial kami berfokus pada kesetaraan gender dan ketahanan komunitas melalui program pelatihan khusus serta kemitraan perdagangan adil. Kami telah melatih 42 petani mitra, 38 di antaranya perempuan, dalam praktik pertanian berkelanjutan.';
-  const economicNarrative = profile?.economic_narrative || 'Kontribusi ekonomi dari kegiatan pertanian mencakup area aktif 25 hektar dengan hasil panen tahunan 1.250 Kg. Potensi nilai ekonomi dari pengelolaan karbon berkelanjutan mencapai Rp136,7 Juta melalui skema kredit karbon.';
-  const environmentalNarrative = profile?.environmental_narrative || 'Indikator kondisi lingkungan mendukung praktik pertanian berkelanjutan dengan area lahan 186 hektar dan stok karbon 186 Ton C. Praktik pertanian organik diterapkan untuk menjaga kelestarian tanah dan air.';
+  // Narrative asli dari backend (project_traceability_profiles.social_narrative dst.)
+  const socialNarrative = profile?.social_narrative || '';
+  const economicNarrative = profile?.economic_narrative || '';
+  const environmentalNarrative = profile?.environmental_narrative || '';
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8f9fa', color: '#191c1d', fontFamily: '"Hanken Grotesk", sans-serif', paddingBottom: 96 }}>
@@ -236,7 +236,11 @@ const TraceabilityDashboard = () => {
                   </div>
                 ))}
               </div>
+              {socialNarrative ? (
               <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', margin: 0 }}>{socialNarrative}</p>
+            ) : (
+              <p style={{ fontSize: 14, lineHeight: '20px', color: '#adb5bd', fontStyle: 'italic', margin: 0 }}>Belum diisi</p>
+            )}
             </div>
 
             {/* Economic Impact */}
@@ -258,7 +262,11 @@ const TraceabilityDashboard = () => {
                   </div>
                 ))}
               </div>
+              {economicNarrative ? (
               <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', margin: 0 }}>{economicNarrative}</p>
+            ) : (
+              <p style={{ fontSize: 14, lineHeight: '20px', color: '#adb5bd', fontStyle: 'italic', margin: 0 }}>Belum diisi</p>
+            )}
             </div>
 
             {/* Environmental Impact */}
@@ -286,7 +294,11 @@ const TraceabilityDashboard = () => {
                   <span style={{ display: 'inline-block', padding: '4px 12px', background: '#d4edda', color: '#155724', fontSize: 11, fontWeight: 700, borderRadius: 9999, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Organic</span>
                 </div>
               </div>
+              {environmentalNarrative ? (
               <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', margin: 0 }}>{environmentalNarrative}</p>
+            ) : (
+              <p style={{ fontSize: 14, lineHeight: '20px', color: '#adb5bd', fontStyle: 'italic', margin: 0 }}>Belum diisi</p>
+            )}
             </div>
           </div>
         </section>
