@@ -52,6 +52,7 @@ const ManagerFarmManagement = () => {
 
   // Edit Form State
   const [farmName, setFarmName] = useState('');
+  const [farmLocation, setFarmLocation] = useState('');
   const [totalAreaHa, setTotalAreaHa] = useState('');
   const [cropVariety, setCropVariety] = useState('');
   const [altitude, setAltitude] = useState('');
@@ -105,6 +106,7 @@ const ManagerFarmManagement = () => {
       if (farmRes.data.success) {
         const d = farmRes.data.data;
         setFarmName(d.name || '');
+        setFarmLocation(d.location || '');
         setTotalAreaHa(d.total_area_ha !== undefined && d.total_area_ha !== null ? d.total_area_ha : '');
         setCropVariety(d.crop_variety || '');
         setAltitude(d.altitude || '');
@@ -193,6 +195,7 @@ const ManagerFarmManagement = () => {
 
       const res = await api.put(`/manager/farms/${selectedFarmId}/details`, {
         name: farmName,
+        location: farmLocation,
         total_area_ha: parsedTotalFarmArea,
         crop_variety: cropVariety,
         altitude: altitude,
@@ -362,6 +365,19 @@ const ManagerFarmManagement = () => {
                   value={farmName}
                   onChange={(e) => setFarmName(e.target.value)}
                   placeholder="Cth: Kebon Kopi Kadatuan"
+                />
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-text-main)', marginBottom: '6px', display: 'block' }}>
+                  Lokasi Lahan
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={farmLocation}
+                  onChange={(e) => setFarmLocation(e.target.value)}
+                  placeholder="Cth: Desa Pagur"
                 />
               </div>
 

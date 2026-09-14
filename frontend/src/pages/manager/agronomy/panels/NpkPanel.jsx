@@ -42,7 +42,7 @@ const NpkPanel = ({ statsData, statsLoading, farm, activeSubLayer, onSubLayerCha
         <>
           <div className="agro-panel-divider" />
           <div className="agro-panel-section">
-            <div className="agro-panel-label"><FlaskConical size={14} style={{ display: 'inline', marginRight: 6 }} /> Rata-Rata Unsur Hara Tanah</div>
+            <div className="agro-panel-label">Rata-Rata Unsur Hara Tanah</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
               <div style={{ background: '#f4f6f5', padding: '8px 10px', borderRadius: 8, textAlign: 'center' }}>
                 <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>Nitrogen (N)</div>
@@ -63,7 +63,7 @@ const NpkPanel = ({ statsData, statsLoading, farm, activeSubLayer, onSubLayerCha
       
       <div className="agro-panel-divider" />
       <div className="agro-panel-section">
-        <div className="agro-panel-label"><Activity size={14} style={{ display: 'inline', marginRight: 6 }} /> Data Sensor Lapangan</div>
+        <div className="agro-panel-label">Data Sensor Lapangan</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
           <div style={{ background: '#f4f6f5', padding: 12, borderRadius: 8 }}>
             <div style={{ fontSize: 11, color: '#6b7280' }}>pH Tanah</div>

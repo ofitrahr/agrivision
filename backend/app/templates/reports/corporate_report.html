@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ data.title | default('Agrivision Report') }}</title>
+    <style>
+        /* Konfigurasi Halaman & Margin Cetak PDF A4 */
+        @page {
+            size: A4;
+            margin: 1.6cm 1.5cm 1.5cm 1.5cm;
+            @bottom-left {
+                content: "Agrivision • {{ (data.footer_label | default('Operational Report')) | replace('&', 'and') }}";
+                font-size: 8pt;
+                color: #6b7280;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                font-weight: 500;
+            }
+            @bottom-right {
+                content: counter(page) " / " counter(pages);
+                font-size: 8pt;
+                color: #6b7280;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                font-weight: 500;
+            }
+        }
+
+        /* Halaman Pertama (Cover) Bersih Tanpa Footer */
+        @page :first {
+            @bottom-left { content: ""; }
+            @bottom-right { content: ""; }
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #1f2937;
+            line-height: 1.5;
+            font-size: 9.5pt;
+            margin: 0;
+            padding: 0;
+            background: #ffffff;
+        }
+
+        /* Rule Pindah Halaman Antar Bab */
+        .chapter-page {
+            page-break-before: always;
+        }
+
+        /* ============================================================ */
+        /* GAYA HALAMAN SAMPUL (COVER PAGE)                             */
+        /* ============================================================ */
+        .cover-container {
+            padding-top: 45px;
+            padding-bottom: 20px;
+            height: 100%;
+        }
+        .cover-logo-wrapper {
+            margin-bottom: 36px;
+        }
+        .cover-logo-img {
+            max-height: 58px;
+            width: auto;
+            object-fit: contain;
+            display: block;
+        }
+        .cover-logo-fallback {
+            font-size: 26pt;
+            font-weight: 900;
+            color: #053b26;
+            letter-spacing: -0.5px;
+        }
+        .cover-tagline {
+            font-size: 8.5pt;
+            font-weight: 700;
+            color: #116a3a;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 8px;
+        }
+        .cover-divider-thick {
+            height: 3px;
+            background-color: #053b26;
+            width: 100%;
+            margin: 28px 0 36px 0;
+        }
+        .cover-title-area {
+            margin-bottom: 45px;
+        }
+        .cover-badge-doc {
+            display: inline-block;
+            background-color: #f2f7f4;
+            color: #053b26;
+            border: 1px solid #d1e3d9;
+            font-size: 8pt;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 14px;
+        }
+        .cover-doc-title {
+            font-size: 26pt;
+            font-weight: 900;
+            color: #111827;
+            line-height: 1.25;
+            margin: 0 0 12px 0;
+            letter-spacing: -0.5px;
+        }
+        .cover-doc-desc {
+            font-size: 10pt;
+            color: #4b5563;
+            line-height: 1.6;
+            max-width: 90%;
+        }
+
+        /* Kotak Metadata Cover */
+        .cover-meta-box {
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            background-color: #fafcfb;
+            margin-top: 30px;
+            margin-bottom: 24px;
+        }
+        table.cover-meta-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.cover-meta-table td {
+            padding: 14px 18px;
+            vertical-align: top;
+        }
+        .cover-meta-label {
+            font-size: 8pt;
+            font-weight: 800;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 6px;
+        }
+        .cover-meta-val {
+            font-size: 11.5pt;
+            font-weight: 700;
+            color: #053b26;
+        }
+
+        /* Tabel Direktori Cakupan Lahan di Cover */
+        .cover-scope-section {
+            margin-top: 10px;
+            margin-bottom: 28px;
+        }
+        .cover-scope-title {
+            font-size: 8pt;
+            font-weight: 800;
+            color: #053b26;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+        }
+        table.cover-scope-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #e5e7eb;
+            font-size: 8.5pt;
+        }
+        table.cover-scope-table th {
+            background-color: #f2f7f4;
+            color: #053b26;
+            font-weight: 700;
+            text-align: left;
+            padding: 9px 14px;
+            border-bottom: 1.5px solid #d1e3d9;
+            font-size: 8pt;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        table.cover-scope-table td {
+            padding: 9px 14px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #374151;
+            vertical-align: middle;
+        }
+        table.cover-scope-table tr:nth-child(even) td {
+            background-color: #fafcfb;
+        }
+        table.cover-scope-table tr.total-row td {
+            font-weight: 800;
+            background-color: #f2f7f4;
+            border-top: 1.5px solid #d1e3d9;
+            color: #053b26;
+        }
+
+        .cover-footer-note {
+            font-size: 8.5pt;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 16px;
+            line-height: 1.5;
+        }
+
+        /* ============================================================ */
+        /* GAYA HALAMAN ISI BAB (CONTENT PAGES)                         */
+        /* ============================================================ */
+        .page-header {
+            margin-bottom: 16px;
+        }
+        .logo-row {
+            margin-bottom: 6px;
+        }
+        .logo-img {
+            max-height: 30px;
+            width: auto;
+            object-fit: contain;
+            display: block;
+        }
+        .page-report-title {
+            font-size: 18pt;
+            font-weight: 800;
+            color: #111827;
+            margin: 4px 0 2px 0;
+            line-height: 1.2;
+            letter-spacing: -0.3px;
+        }
+        .page-report-subtitle {
+            font-size: 9pt;
+            color: #4b5563;
+            font-weight: 500;
+        }
+        .header-divider {
+            border-bottom: 1px solid #e5e7eb;
+            margin: 12px 0 24px 0;
+        }
+
+        /* Judul Bab */
+        .chapter-title-bar {
+            font-size: 11pt;
+            font-weight: 800;
+            color: #053b26;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 22px;
+        }
+
+        /* 3 KPI Cards dengan Spacing yang Lega */
+        .kpi-group-box {
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            margin-bottom: 34px;
+            background: #ffffff;
+        }
+        table.kpi-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.kpi-table td.kpi-col {
+            width: 33.33%;
+            padding: 16px 20px;
+            border-right: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+        table.kpi-table td.kpi-col:last-child {
+            border-right: none;
+        }
+        .kpi-label {
+            font-size: 8pt;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .kpi-value {
+            font-size: 20pt;
+            font-weight: 800;
+            color: #053b26;
+            line-height: 1.15;
+            margin-bottom: 6px;
+        }
+        .kpi-sub {
+            font-size: 8.5pt;
+            color: #4b5563;
+            line-height: 1.4;
+        }
+
+        /* Heading Sub-Section */
+        .section-heading {
+            font-size: 10.5pt;
+            font-weight: 800;
+            color: #111827;
+            margin: 30px 0 14px 0;
+            letter-spacing: -0.2px;
+        }
+
+        /* Tabel Data dengan Padding Longgar & Rapi */
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #e5e7eb;
+            font-size: 9pt;
+            margin-bottom: 30px;
+        }
+        table.data-table th {
+            background-color: #f2f7f4;
+            color: #053b26;
+            font-weight: 700;
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 1.5px solid #d1e3d9;
+            font-size: 8.5pt;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        table.data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #374151;
+            vertical-align: middle;
+        }
+        table.data-table tr:nth-child(even) td {
+            background-color: #fafcfb;
+        }
+        table.data-table tr.total-row td {
+            font-weight: 800;
+            background-color: #f2f7f4;
+            border-top: 1px solid #d1e3d9;
+            color: #053b26;
+        }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================ -->
+    <!-- HALAMAN 1: COVER / SAMPUL RESMI DOKUMEN                      -->
+    <!-- ============================================================ -->
+    <div class="cover-container">
+        <!-- Logo Ukuran Besar -->
+        <div class="cover-logo-wrapper">
+            {% if data.logo_base64 %}
+                <img src="{{ data.logo_base64 }}" alt="Agrivision Logo" class="cover-logo-img" />
+            {% else %}
+                <div class="cover-logo-fallback">AGRIVISION</div>
+            {% endif %}
+        </div>
+
+        <div class="cover-divider-thick"></div>
+
+        <!-- Judul Laporan (English) -->
+        <div class="cover-title-area">
+            <h1 class="cover-doc-title">{{ data.header_title | default('Comprehensive Operational Report') }}</h1>
+            <div class="cover-doc-desc">
+                Official analytical report providing an integrated assessment of plantation performance, soil telemetry monitoring, carbon stock estimations, harvest productivity, and supply chain traceability.
+            </div>
+        </div>
+
+        <!-- Kotak Metadata Lahan (English Labels) -->
+        <div class="cover-meta-box">
+            <table class="cover-meta-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td style="width: 50%; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;">
+                        <div class="cover-meta-label">REPORT PERIOD</div>
+                        <div class="cover-meta-val">{{ data.period }}</div>
+                    </td>
+                    <td style="width: 50%; border-bottom: 1px solid #e5e7eb;">
+                        <div class="cover-meta-label">LAND COVERAGE</div>
+                        <div class="cover-meta-val">{{ data.farm_name }}</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 50%; border-right: 1px solid #e5e7eb;">
+                        <div class="cover-meta-label">TOTAL LAND AREA</div>
+                        <div class="cover-meta-val">{{ data.total_area_ha }} Hectares</div>
+                    </td>
+                    <td style="width: 50%;">
+                        <div class="cover-meta-label">MAIN COMMODITY</div>
+                        <div class="cover-meta-val">{{ data.commodity }}</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Direktori Cakupan Lahan -->
+        {% if data.selected_farms and data.selected_farms | length > 0 %}
+        <div class="cover-scope-section">
+            <div class="cover-scope-title">FARMLAND SCOPE & ASSET DIRECTORY</div>
+            <table class="cover-scope-table" cellpadding="0" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th style="width: 32%;">Farmland Name</th>
+                        <th style="width: 28%;">Location</th>
+                        <th style="width: 25%;">Commodity Variety</th>
+                        <th style="width: 15%;" class="text-right">Area (Ha)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in data.selected_farms %}
+                    <tr>
+                        <td><strong>{{ f.name }}</strong></td>
+                        <td>{{ f.location }}</td>
+                        <td>{{ f.commodity }}</td>
+                        <td class="text-right">{{ "%.2f" | format(f.area_ha) }} Ha</td>
+                    </tr>
+                    {% endfor %}
+                    {% if data.selected_farms | length > 1 %}
+                    <tr class="total-row">
+                        <td colspan="3">TOTAL ASSESSED AREA</td>
+                        <td class="text-right"><strong>{{ "%.2f" | format(data.total_area_ha) }} Ha</strong></td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Footer Tanggal Cover (WIB) -->
+        <div class="cover-footer-note">
+            Generated automatically via Agrivision Platform • Issue Date: {{ data.generated_at }}
+        </div>
+    </div>
+
+    {% set ns = namespace(chapter_num=1) %}
+
+    <!-- ============================================================ -->
+    <!-- CHAPTER 1: SOIL HEALTH & NUTRIENTS                           -->
+    <!-- ============================================================ -->
+    {% if data.show_agronomy %}
+    <div class="chapter-page">
+        <!-- HEADER HALAMAN -->
+        <div class="page-header">
+            <div class="logo-row">
+                {% if data.logo_base64 %}
+                    <img src="{{ data.logo_base64 }}" alt="Agrivision Logo" class="logo-img" />
+                {% else %}
+                    <div style="font-size: 13pt; font-weight: 800; color: #053b26;">AGRIVISION</div>
+                {% endif %}
+            </div>
+            <div class="page-report-title">{{ data.header_title | default('Operational Report') }}</div>
+            <div class="page-report-subtitle">{{ data.farm_name }} | {{ data.period }}</div>
+        </div>
+        <div class="header-divider"></div>
+
+        <!-- JUDUL BAB (ENGLISH) -->
+        <div class="chapter-title-bar">
+            {{ "%02d" | format(ns.chapter_num) }} • SOIL HEALTH & NUTRIENTS
+        </div>
+
+        <!-- 3 KPI CARDS -->
+        <div class="kpi-group-box">
+            <table class="kpi-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="kpi-col">
+                        <div class="kpi-label">AVERAGE PLANT HEALTH</div>
+                        <div class="kpi-value">{{ data.agronomy.plant_health }}%</div>
+                        <div class="kpi-sub">Multispectral NDVI Vegetation Index</div>
+                    </td>
+                    <td class="kpi-col">
+                        <div class="kpi-label">ELEVATION</div>
+                        <div class="kpi-value" style="font-size: 16pt; margin-top: 2px;">{{ data.altitude }}</div>
+                        <div class="kpi-sub">{{ data.commodity }}</div>
+                    </td>
+                    <td class="kpi-col">
+                        <div class="kpi-label">SOIL MICROCLIMATE</div>
+                        <div class="kpi-value" style="font-size: 16pt; margin-top: 2px;">{{ data.agronomy.soil_temp }}°C / {{ data.agronomy.soil_humidity }}%</div>
+                        <div class="kpi-sub">Average Temperature / Moisture</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- TABEL INDIKATOR TANAH (NPK DALAM MG/KG) -->
+        <div class="section-heading">Soil Health & Nutrient Indicators</div>
+        <table class="data-table" cellpadding="0" cellspacing="0">
+            <thead>
+                <tr>
+                    <th style="width: 50%;">Testing Parameter</th>
+                    <th style="width: 30%;">Measured Value</th>
+                    <th style="width: 20%;">Unit</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Soil Nitrogen (N)</td>
+                    <td><strong>{{ data.agronomy.n_val }}</strong></td>
+                    <td>mg/kg</td>
+                </tr>
+                <tr>
+                    <td>Soil Phosphorus (P)</td>
+                    <td><strong>{{ data.agronomy.p_val }}</strong></td>
+                    <td>mg/kg</td>
+                </tr>
+                <tr>
+                    <td>Soil Potassium (K)</td>
+                    <td><strong>{{ data.agronomy.k_val }}</strong></td>
+                    <td>mg/kg</td>
+                </tr>
+                <tr>
+                    <td>Soil Acidity Level (pH)</td>
+                    <td>{{ data.agronomy.soil_ph }}</td>
+                    <td>pH</td>
+                </tr>
+                <tr>
+                    <td>Soil Temperature</td>
+                    <td>{{ data.agronomy.soil_temp }}</td>
+                    <td>°C</td>
+                </tr>
+                <tr>
+                    <td>Soil Moisture</td>
+                    <td>{{ data.agronomy.soil_humidity }}</td>
+                    <td>%</td>
+                </tr>
+                <tr>
+                    <td>Electrical Conductivity (EC)</td>
+                    <td>{{ data.agronomy.soil_ec }}</td>
+                    <td>µS/cm</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% set ns.chapter_num = ns.chapter_num + 1 %}
+    {% endif %}
+
+    <!-- ============================================================ -->
+    <!-- CHAPTER 2: CARBON BALANCE & ENVIRONMENTAL SUSTAINABILITY     -->
+    <!-- ============================================================ -->
+    {% if data.show_carbon %}
+    <div class="chapter-page">
+        <!-- HEADER HALAMAN -->
+        <div class="page-header">
+            <div class="logo-row">
+                {% if data.logo_base64 %}
+                    <img src="{{ data.logo_base64 }}" alt="Agrivision Logo" class="logo-img" />
+                {% else %}
+                    <div style="font-size: 13pt; font-weight: 800; color: #053b26;">AGRIVISION</div>
+                {% endif %}
+            </div>
+            <div class="page-report-title">{{ data.header_title | default('Operational Report') }}</div>
+            <div class="page-report-subtitle">{{ data.farm_name }} | {{ data.period }}</div>
+        </div>
+        <div class="header-divider"></div>
+
+        <!-- JUDUL BAB (ENGLISH) -->
+        <div class="chapter-title-bar">
+            {{ "%02d" | format(ns.chapter_num) }} • CARBON BALANCE & ENVIRONMENTAL SUSTAINABILITY
+        </div>
+
+        <!-- 3 KPI CARDS -->
+        <div class="kpi-group-box">
+            <table class="kpi-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="kpi-col">
+                        <div class="kpi-label">SOIL ORGANIC CARBON (SOC)</div>
+                        <div class="kpi-value">{{ data.carbon.soc }} ton</div>
+                        <div class="kpi-sub">Organic carbon stock within soil root zone.</div>
+                    </td>
+                    <td class="kpi-col">
+                        <div class="kpi-label">ABOVE-GROUND BIOMASS (AGB)</div>
+                        <div class="kpi-value">{{ data.carbon.biomass }} ton</div>
+                        <div class="kpi-sub">Biomass of shade canopy & coffee vegetation.</div>
+                    </td>
+                    <td class="kpi-col">
+                        <div class="kpi-label">ESTIMATED CARBON VALUE</div>
+                        <div class="kpi-value" style="font-size: 16pt;">Rp {{ data.carbon.estimated_value }}</div>
+                        <div class="kpi-sub">Voluntary carbon credit market valuation.</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- TABEL RINCIAN CADANGAN KARBON MURNI GIS (TABEL ESG DICORET DIHAPUS) -->
+        <div class="section-heading">Carbon Stock & Storage Accounting Breakdown</div>
+        <table class="data-table" cellpadding="0" cellspacing="0">
+            <thead>
+                <tr>
+                    <th style="width: 45%;">Carbon Parameter</th>
+                    <th style="width: 25%;">Average per Hectare</th>
+                    <th style="width: 30%;">Total Farm Accumulation</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Soil Organic Carbon (SOC Stock)</td>
+                    <td><strong>{{ data.carbon.soc_avg }} Ton CO2e/Ha</strong></td>
+                    <td>{{ data.carbon.soc }} Ton CO2e</td>
+                </tr>
+                <tr>
+                    <td>Above-Ground Biomass (AGB Stock)</td>
+                    <td><strong>{{ data.carbon.biomass_avg }} Ton CO2e/Ha</strong></td>
+                    <td>{{ data.carbon.biomass }} Ton CO2e</td>
+                </tr>
+                <tr class="total-row">
+                    <td>Total Verifiable Carbon Stock Potential</td>
+                    <td><strong>{{ data.carbon.total_credit_avg }} Ton CO2e/Ha</strong></td>
+                    <td><strong>{{ data.carbon.total_credit }} Ton CO2e</strong></td>
+                </tr>
+                <tr>
+                    <td>Estimated Market Economic Value</td>
+                    <td>Rp {{ data.carbon.val_per_ha }} /Ha</td>
+                    <td><strong style="color: #053b26;">Rp {{ data.carbon.estimated_value }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% set ns.chapter_num = ns.chapter_num + 1 %}
+    {% endif %}
+
+    <!-- ============================================================ -->
+    <!-- CHAPTER 3: PRODUCTIVITY & FARM FINANCIAL PERFORMANCE         -->
+    <!-- ============================================================ -->
+    {% if data.show_finance %}
+    <div class="chapter-page">
+        <!-- HEADER HALAMAN -->
+        <div class="page-header">
+            <div class="logo-row">
+                {% if data.logo_base64 %}
+                    <img src="{{ data.logo_base64 }}" alt="Agrivision Logo" class="logo-img" />
+                {% else %}
+                    <div style="font-size: 13pt; font-weight: 800; color: #053b26;">AGRIVISION</div>
+                {% endif %}
+            </div>
+            <div class="page-report-title">{{ data.header_title | default('Operational Report') }}</div>
+            <div class="page-report-subtitle">{{ data.farm_name }} | {{ data.period }}</div>
+        </div>
+        <div class="header-divider"></div>
+
+        <!-- JUDUL BAB (ENGLISH) -->
+        <div class="chapter-title-bar">
+            {{ "%02d" | format(ns.chapter_num) }} • PRODUCTIVITY & FARM FINANCIAL PERFORMANCE
+        </div>
+
+        <!-- 3 KPI CARDS -->
+        <div class="kpi-group-box">
+            <table class="kpi-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="kpi-col">
+                        <div class="kpi-label">TOTAL HARVEST YIELD</div>
+                        <div class="kpi-value">{{ data.finance.total_yield }} Kg</div>
+                        <div class="kpi-sub">Total verified harvest for the reporting period.</div>
+                    </td>
+                    <td class="kpi-col">
+                        <div class="kpi-label">AVERAGE PRODUCTIVITY</div>
+                        <div class="kpi-value">{{ data.finance.productivity }} Kg/Ha</div>
+                        <div class="kpi-sub">Crop output yield per hectare.</div>
+                    </td>
+                    <td class="kpi-col">
+                        <div class="kpi-label">OPERATING PROFIT MARGIN</div>
+                        <div class="kpi-value" style="color: #053b26;">{{ data.finance.profit_margin }}%</div>
+                        <div class="kpi-sub">Net profitability over gross revenue.</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- TABEL KEUANGAN (HANYA POS DAN NILAI NOMINAL RIIL) -->
+        <div class="section-heading">Financial Position & Operating Performance</div>
+        <table class="data-table" cellpadding="0" cellspacing="0">
+            <thead>
+                <tr>
+                    <th style="width: 60%;">Financial Position</th>
+                    <th style="width: 40%;" class="text-right">Nominal Amount (Rp)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Gross Operating Revenue</td>
+                    <td class="text-right" style="font-weight: 700;">Rp {{ data.finance.gross_revenue }}</td>
+                </tr>
+                <tr>
+                    <td>Operating Expenses (OPEX)</td>
+                    <td class="text-right" style="color: #dc2626;">(Rp {{ data.finance.operational_cost }})</td>
+                </tr>
+                <tr class="total-row">
+                    <td>NET OPERATING PROFIT</td>
+                    <td class="text-right"><strong style="font-size: 11pt; color: #053b26;">Rp {{ data.finance.net_profit }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% set ns.chapter_num = ns.chapter_num + 1 %}
+    {% endif %}
+
+    <!-- ============================================================ -->
+    <!-- CHAPTER 4: FARMER PARTNERS & SOCIAL EMPOWERMENT              -->
+    <!-- ============================================================ -->
+    {% if data.show_social %}
+    <div class="chapter-page">
+        <!-- HEADER HALAMAN -->
+        <div class="page-header">
+            <div class="logo-row">
+                {% if data.logo_base64 %}
+                    <img src="{{ data.logo_base64 }}" alt="Agrivision Logo" class="logo-img" />
+                {% else %}
+                    <div style="font-size: 13pt; font-weight: 800; color: #053b26;">AGRIVISION</div>
+                {% endif %}
+            </div>
+            <div class="page-report-title">{{ data.header_title | default('Operational Report') }}</div>
+            <div class="page-report-subtitle">{{ data.farm_name }} | {{ data.period }}</div>
+        </div>
+        <div class="header-divider"></div>
+
+        <!-- JUDUL BAB (ENGLISH) -->
+        <div class="chapter-title-bar">
+            {{ "%02d" | format(ns.chapter_num) }} • FARMER PARTNERS & SOCIAL EMPOWERMENT
+        </div>
+
+        <!-- 3 KPI CARDS -->
+        <div class="kpi-group-box">
+            <table class="kpi-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="kpi-col">
+                        <div class="kpi-label">TOTAL FARMER PARTNERS</div>
+                        <div class="kpi-value">{{ data.social.total_farmers }}</div>
+                        <div class="kpi-sub">Active smallholder farmers in database.</div>
+                    </td>
+                    <td class="kpi-col">
+                        <div class="kpi-label">GENDER COMPOSITION</div>
+                        <div class="kpi-value">{{ data.social.male_count }} Male / {{ data.social.female_count }} Female</div>
+                        <div class="kpi-sub">Inclusive gender engagement ratio.</div>
+                    </td>
+                    <td class="kpi-col">
+                        <div class="kpi-label">AVERAGE AGE</div>
+                        <div class="kpi-value">{{ data.social.avg_age }} Years</div>
+                        <div class="kpi-sub">Average age of verified farm operators.</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- TABEL REGISTER PETANI BINAAN (MURNI MODEL FARMER) -->
+        <div class="section-heading">Registered Farmer Partner Roster</div>
+        <table class="data-table" cellpadding="0" cellspacing="0">
+            <thead>
+                <tr>
+                    <th style="width: 40%;">Farmer Name</th>
+                    <th style="width: 20%;">Gender</th>
+                    <th style="width: 20%;">Age</th>
+                    <th style="width: 20%;">Registered Year</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for farmer in data.social.farmers_list %}
+                <tr>
+                    <td><strong>{{ farmer.name }}</strong></td>
+                    <td>{{ farmer.gender }}</td>
+                    <td>{{ farmer.age }} Years</td>
+                    <td>{{ farmer.join_year }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% set ns.chapter_num = ns.chapter_num + 1 %}
+    {% endif %}
+
+    <!-- ============================================================ -->
+    <!-- CHAPTER 5: TRACEABILITY & SUPPLY INTEGRITY                   -->
+    <!-- ============================================================ -->
+    {% if data.show_traceability %}
+    <div class="chapter-page">
+        <!-- HEADER HALAMAN -->
+        <div class="page-header">
+            <div class="logo-row">
+                {% if data.logo_base64 %}
+                    <img src="{{ data.logo_base64 }}" alt="Agrivision Logo" class="logo-img" />
+                {% else %}
+                    <div style="font-size: 13pt; font-weight: 800; color: #053b26;">AGRIVISION</div>
+                {% endif %}
+            </div>
+            <div class="page-report-title">{{ data.header_title | default('Operational Report') }}</div>
+            <div class="page-report-subtitle">{{ data.farm_name }} | {{ data.period }}</div>
+        </div>
+        <div class="header-divider"></div>
+
+        <!-- JUDUL BAB (ENGLISH) -->
+        <div class="chapter-title-bar">
+            {{ "%02d" | format(ns.chapter_num) }} • TRACEABILITY & SUPPLY INTEGRITY
+        </div>
+
+        <!-- 3 KPI CARDS METADATA TRACEABILITY -->
+        <div class="kpi-group-box">
+            <table class="kpi-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="kpi-col">
+                        <div class="kpi-label">MAIN COMMODITY</div>
+                        <div class="kpi-value" style="font-size: 15pt;">{{ data.traceability.commodity }}</div>
+                        <div class="kpi-sub">Officially verified commodity variety.</div>
+                    </td>
+                    <td class="kpi-col">
+                        <div class="kpi-label">ELEVATION</div>
+                        <div class="kpi-value" style="font-size: 15pt;">{{ data.traceability.altitude }}</div>
+                        <div class="kpi-sub">Farmland parcel elevation altitude.</div>
+                    </td>
+                    <td class="kpi-col">
+                        <div class="kpi-label">CULTIVATION SYSTEM</div>
+                        <div class="kpi-value" style="font-size: 15pt;">{{ data.traceability.agroforestry }}</div>
+                        <div class="kpi-sub">Integrated agroforestry cultivation model.</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- TABEL PARAMETER KETERTELUSURAN -->
+        <div class="section-heading">Supply Chain Traceability Parameters</div>
+        <table class="data-table" cellpadding="0" cellspacing="0">
+            <thead>
+                <tr>
+                    <th style="width: 50%;">Traceability Parameter</th>
+                    <th style="width: 50%;">Field Verification Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Commodity Variety</td>
+                    <td>{{ data.traceability.commodity }}</td>
+                </tr>
+                <tr>
+                    <td>Farmland Parcel Elevation</td>
+                    <td>{{ data.traceability.altitude }}</td>
+                </tr>
+                <tr>
+                    <td>Agroforestry Cropping Pattern</td>
+                    <td>{{ data.traceability.agroforestry }}</td>
+                </tr>
+                <tr>
+                    <td>Geospatial Boundary Verification</td>
+                    <td>{{ data.traceability.boundary_status }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- TABEL BATCH PRODUKSI RIIL DARI DATABASE -->
+        {% if data.traceability.batches %}
+        <div class="section-heading">Registered Production Batches</div>
+        <table class="data-table" cellpadding="0" cellspacing="0">
+            <thead>
+                <tr>
+                    <th style="width: 25%;">Batch Number</th>
+                    <th style="width: 35%;">Product Name</th>
+                    <th style="width: 20%;">Harvest Date</th>
+                    <th style="width: 20%;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in data.traceability.batches %}
+                <tr>
+                    <td><strong>{{ b.batch_number }}</strong></td>
+                    <td>{{ b.product_name }}</td>
+                    <td>{{ b.harvest_date }}</td>
+                    <td>{{ b.status }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+    {% set ns.chapter_num = ns.chapter_num + 1 %}
+    {% endif %}
+
+</body>
+</html>
