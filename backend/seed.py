@@ -4,10 +4,8 @@ from app import create_app
 from app.db.database import db
 from app.db.models import (
     User, Company, Project, ProjectPermission, Sdg, CompanySdg, CompanySdgVerification,
-    Farm, FarmCrop, Farmer, farm_farmers, GisLayer,
-    TraceTemplate, TraceTemplateStep, Batch, BatchCheckpoint, QrCode,
-    AgronomyActivity, HarvestRecord, FinancialRecord, EsgMetric,
-    ActivityLog, RecentActivity, ProjectTraceability, SensorData
+    Farmer, TraceTemplate, TraceTemplateStep,
+    ActivityLog, RecentActivity, ProjectTraceability
 )
 import bcrypt
 
@@ -57,11 +55,28 @@ def seed_super_admin():
     db.session.add(project)
     db.session.commit()
     
-    perm = ProjectPermission(project_id=project.id, module_gis=True, module_traceability=True, module_agronomy=True, module_board_reports=True, can_access_ndvi=True, can_access_soc=True, can_access_yield=True, can_access_biomass=True, can_access_soilnpk=True)
+    perm = ProjectPermission(
+        project_id=project.id, 
+        module_gis=True, 
+        module_traceability=True, 
+        module_agronomy=True, 
+        module_board_reports=True, 
+        can_access_ndvi=True, 
+        can_access_soc=True, 
+        can_access_yield=True, 
+        can_access_biomass=True, 
+        can_access_soilnpk=True
+    )
     db.session.add(perm)
     db.session.commit()
     
-    admin = User(project_id=project.id, username="superadmin", password_hash=get_password_hash("password123"), full_name="Super Administrator", role="super_admin")
+    admin = User(
+        project_id=project.id, 
+        username="superadmin", 
+        password_hash=get_password_hash("password123"), 
+        full_name="Super Administrator", 
+        role="super_admin"
+    )
     db.session.add(admin)
     db.session.commit()
     print("Superadmin seeded.")
@@ -91,45 +106,78 @@ def seed_comprehensive_data():
     db.session.commit()
     
     db.session.add(CompanySdgVerification(
-        company_id=company.id, assessed_by="SGS Indonesia", evidence_file_url="https://example.com/cert.pdf",
-        evidence_file_type="pdf", assessment_date=date(2024, 1, 15)
+        company_id=company.id, 
+        assessed_by="SGS Indonesia", 
+        evidence_file_url="https://example.com/cert.pdf",
+        evidence_file_type="pdf", 
+        assessment_date=date(2024, 1, 15)
     ))
     db.session.commit()
 
     # 2. Company SDGs
     sdgs = Sdg.query.filter(Sdg.code.in_(["1", "2", "8", "12", "13", "15"])).all()
     for i, sdg in enumerate(sdgs):
-        db.session.add(CompanySdg(company_id=company.id, sdg_id=sdg.id, description=f"Komitmen perusahaan untuk {sdg.title}", display_order=i))
+        db.session.add(CompanySdg(
+            company_id=company.id, 
+            sdg_id=sdg.id, 
+            description=f"Komitmen perusahaan untuk {sdg.title}", 
+            display_order=i
+        ))
     db.session.commit()
 
     # 3. Project
     project = Project(
-        company_id=company.id, name="Kopi Mandailing Lestari", description="Proyek kopi berkelanjutan di daerah Mandailing Natal.",
-        commodity="Kopi Arabika", location="Mandailing Natal, Sumatera Utara"
+        company_id=company.id, 
+        name="Kopi Mandailing Lestari", 
+        description="Proyek kopi berkelanjutan di daerah Mandailing Natal.",
+        commodity="Kopi Arabika", 
+        location="Mandailing Natal, Sumatera Utara"
     )
     db.session.add(project)
     db.session.commit()
 
     db.session.add(ProjectPermission(
-        project_id=project.id, module_gis=True, module_traceability=True, module_agronomy=True,
-        module_board_reports=True, can_access_ndvi=True, can_access_soc=True, can_access_yield=True,
-        can_access_biomass=True, can_access_soilnpk=True
+        project_id=project.id, 
+        module_gis=True, 
+        module_traceability=True, 
+        module_agronomy=True,
+        module_board_reports=True, 
+        can_access_ndvi=True, 
+        can_access_soc=True, 
+        can_access_yield=True,
+        can_access_biomass=True, 
+        can_access_soilnpk=True
     ))
     db.session.add(ProjectTraceability(
-        project_id=project.id, hero_image_url="https://images.unsplash.com/photo-1497935586351-b67a49e012bf",
+        project_id=project.id, 
+        hero_image_url="https://images.unsplash.com/photo-1497935586351-b67a49e012bf",
         origin_story="Berasal dari dataran tinggi Mandailing Natal, ditanam oleh petani lokal.",
-        social_description="Memberdayakan 100+ petani lokal dengan upah yang adil.", economic_description="Meningkatkan pendapatan petani hingga 30% dari rata-rata.",
-        environmental_description="Metode agroforestri untuk menjaga kelestarian hutan.", is_published=True
+        social_description="Memberdayakan 100+ petani lokal dengan upah yang adil.", 
+        economic_description="Meningkatkan pendapatan petani hingga 30% dari rata-rata.",
+        environmental_description="Metode agroforestri untuk menjaga kelestarian hutan.", 
+        is_published=True
     ))
     db.session.commit()
 
-    # 4. Users
-    manager = User(project_id=project.id, username="manager_agri", password_hash=get_password_hash("password123"), full_name="Manager AgriCorp", role="manager")
-    investor = User(project_id=project.id, username="investor_agri", password_hash=get_password_hash("password123"), full_name="Investor AgriCorp", role="board")
+    # 4. Users (Akun Manager & Investor Perusahaan)
+    manager = User(
+        project_id=project.id, 
+        username="manager_agri", 
+        password_hash=get_password_hash("password123"), 
+        full_name="Manager AgriCorp", 
+        role="manager"
+    )
+    investor = User(
+        project_id=project.id, 
+        username="investor_agri", 
+        password_hash=get_password_hash("password123"), 
+        full_name="Investor AgriCorp", 
+        role="board"
+    )
     db.session.add_all([manager, investor])
     db.session.commit()
 
-    # 5. Farmers
+    # 5. Farmers (Daftar Petani Terdaftar Siap Ditugaskan)
     farmers = [
         Farmer(company_id=company.id, name="Budi Santoso", address="Desa A, Mandailing", phone="081234567890", gender="Laki-laki", birth_year=1980, join_year=2020),
         Farmer(company_id=company.id, name="Siti Aminah", address="Desa B, Mandailing", phone="081234567891", gender="Perempuan", birth_year=1985, join_year=2021),
@@ -138,155 +186,7 @@ def seed_comprehensive_data():
     db.session.add_all(farmers)
     db.session.commit()
 
-    # 6. Farms
-    # Koordinat di dataran tinggi perkebunan Mandailing Natal (Latitude positif, citra satelit hijau jelas)
-    farm1 = Farm(project_id=project.id, name="Lahan Kopi A", crop_variety="Arabika Typica", total_area_ha=2.5, altitude="1200 mdpl", agroforestry_system="Shade-grown", created_by=manager.id, boundary="SRID=4326;POLYGON((99.6100 0.6860, 99.6115 0.6860, 99.6115 0.6875, 99.6100 0.6875, 99.6100 0.6860))")
-    farm2 = Farm(project_id=project.id, name="Lahan Kopi B", crop_variety="Arabika Sigararutang", total_area_ha=1.8, altitude="1300 mdpl", agroforestry_system="Shade-grown", created_by=manager.id, boundary="SRID=4326;POLYGON((99.6130 0.6880, 99.6142 0.6880, 99.6142 0.6892, 99.6130 0.6892, 99.6130 0.6880))")
-    db.session.add_all([farm1, farm2])
-    db.session.commit()
-
-    farm1.farmers.append(farmers[0])
-    farm1.farmers.append(farmers[1])
-    farm2.farmers.append(farmers[2])
-    db.session.commit()
-    # GisLayers
-    periods = ["Q1_2025", "Q2_2025", "Q3_2025", "Q4_2025", "Q1_2026"]
-    
-    for farm, bounds in [
-        (farm1, (99.6100, 99.6115, 0.6860, 0.6875)), 
-        (farm2, (99.6130, 99.6142, 0.6880, 0.6892))
-    ]:
-        lon_min, lon_max, lat_min, lat_max = bounds
-        step = 0.0001
-        center_pt = f"POINT({(lon_min+lon_max)/2} {(lat_min+lat_max)/2})"
-        
-        for period in periods:
-            lon = lon_min
-            while lon <= lon_max:
-                lat = lat_min
-                while lat <= lat_max:
-                    is_anomaly = (lon > lon_max - 0.0005 and lat > lat_max - 0.0005)
-                    pt_str = f"POINT({lon} {lat})"
-                    
-                    for param in ["ndvi", "soc", "biomass", "yield", "nitrogen", "phosphorus", "potassium"]:
-                        if param == "ndvi":
-                            val = random.uniform(0.1, 0.3) if is_anomaly else random.uniform(0.75, 1.0)
-                            unit = "index"
-                        elif param == "soc":
-                            val = random.uniform(5.0, 15.0) if is_anomaly else random.uniform(20.0, 30.0)
-                            unit = "t/ha"
-                        elif param == "biomass":
-                            val = random.uniform(10.0, 30.0) if is_anomaly else random.uniform(80.0, 120.0)
-                            unit = "t/ha"
-                        elif param == "yield":
-                            val = random.uniform(0.5, 1.5) if is_anomaly else random.uniform(2.5, 4.0)
-                            unit = "t/ha"
-                        else:
-                            val = random.uniform(10.0, 20.0) if is_anomaly else random.uniform(40.0, 60.0)
-                            unit = "kg/ha"
-
-                        db.session.add(GisLayer(
-                            farm_id=farm.id,
-                            parameter_type=param,
-                            coordinate=f"SRID=4326;{pt_str}",
-                            numerical_value=val,
-                            unit=unit,
-                            period=period,
-                            source="Dense_Dummy"
-                        ))
-                    lat += step
-                lon += step
-            
-            # Forecast Yield for the next period (e.g. Q2_2026)
-            if period == "Q1_2026":
-                # Create forecast points for Q2_2026
-                for _ in range(50):
-                    pt_x = float(center_pt.split('(')[1].split(' ')[0]) + random.uniform(-0.0005, 0.0005)
-                    pt_y = float(center_pt.split(' ')[1].split(')')[0]) + random.uniform(-0.0005, 0.0005)
-                    pt_str = f"POINT({pt_x} {pt_y})"
-                    db.session.add(GisLayer(
-                        farm_id=farm.id, coordinate=f"SRID=4326;{pt_str}",
-                        parameter_type="yield_forecast", period="Q2_2026", 
-                        numerical_value=random.uniform(2.5, 6.5), unit="Ton/Ha", 
-                        is_anomaly=False, source="Model"
-                    ))
-            
-            # SensorData
-            db.session.add(SensorData(
-                farm_id=farm.id, period=period,
-                ph=random.uniform(5.5, 7.5),
-                temperature=random.uniform(22, 30),
-                ec=random.uniform(100, 500),
-                humidity=random.uniform(50, 90)
-            ))
-            
-    db.session.commit()
-
-    # 7. FarmCrops
-    db.session.add(FarmCrop(farm_id=farm1.id, crop_type="Kopi", area_ha=2.0))
-    db.session.add(FarmCrop(farm_id=farm2.id, crop_type="Kopi", area_ha=1.5))
-    db.session.commit()
-
-    # 8. Financial Records & Harvest Records & ESG Metrics
-    financial_data_farm1 = [
-        ("Maret 2026", 350.0, 7800000.0, 24500000.0, 2.0),
-        ("April 2026", 375.0, 7650000.0, 26250000.0, 2.1),
-        ("Mei 2026", 390.0, 7500000.0, 27300000.0, 2.2),
-        ("Juni 2026", 405.0, 7350000.0, 28350000.0, 2.3),
-        ("Juli 2026", 420.0, 7500000.0, 29400000.0, 2.4),
-        ("Agustus 2026", 490.0, 6375000.0, 35868000.0, 2.5),
-    ]
-    financial_data_farm2 = [
-        ("Maret 2026", 260.0, 5900000.0, 18200000.0, 1.5),
-        ("April 2026", 275.0, 5750000.0, 19250000.0, 1.6),
-        ("Mei 2026", 290.0, 5600000.0, 20300000.0, 1.6),
-        ("Juni 2026", 300.0, 5450000.0, 21000000.0, 1.7),
-        ("Juli 2026", 310.0, 5600000.0, 21700000.0, 1.7),
-        ("Agustus 2026", 365.0, 4928000.0, 25606000.0, 1.8),
-    ]
-
-    for f_idx, (farm, farm_data) in enumerate([(farm1, financial_data_farm1), (farm2, financial_data_farm2)]):
-        for idx, (month_name, yield_val, cost_val, rev_val, area_val) in enumerate(farm_data):
-            rec_date = datetime(2026, 3 + idx, 28, 10, 0, 0)
-            db.session.add(HarvestRecord(
-                company_id=company.id,
-                farm_id=farm.id,
-                period=month_name,
-                yield_kg=yield_val,
-                area_harvested_ha=area_val,
-                notes=f"Panen ceri kopi matang petik merah ({yield_val} kg)",
-                created_at=rec_date
-            ))
-            db.session.add(FinancialRecord(
-                company_id=company.id,
-                farm_id=farm.id,
-                period=month_name,
-                total_production_kg=yield_val,
-                operational_cost=cost_val,
-                estimated_revenue=rev_val,
-                notes="Biaya operasional mencakup pemupukan organik, pemangkasan, dan upah panen",
-                created_at=rec_date
-            ))
-            db.session.add(EsgMetric(
-                company_id=company.id,
-                farm_id=farm.id,
-                period=month_name,
-                carbon_footprint=random.uniform(50, 80),
-                water_usage=random.uniform(200, 350),
-                biodiversity_index=random.uniform(3.5, 4.8),
-                social_compliance_score=random.uniform(4.2, 5.0),
-                created_at=rec_date
-            ))
-    db.session.commit()
-
-    # 9. Agronomy Activities
-    activities = ["Pemupukan Organik", "Pemangkasan", "Penyemprotan Hama Organik", "Pembersihan Gulma"]
-    for farm in [farm1, farm2]:
-        for i in range(5):
-            db.session.add(AgronomyActivity(farm_id=farm.id, activity_type=random.choice(activities), quantity=random.uniform(10, 50), unit="Kg", notes="Kegiatan rutin", activity_date=date(2026, random.randint(3,8), random.randint(1,28)), created_by=manager.id))
-    db.session.commit()
-
-    # 10. Traceability Templates & Batches
+    # 6. Traceability Template (Master Template Tanpa Batch Lahan)
     template = TraceTemplate(company_id=company.id, name="Kopi Wash Process", description="Standar proses cuci penuh.")
     db.session.add(template)
     db.session.commit()
@@ -300,36 +200,22 @@ def seed_comprehensive_data():
     db.session.add_all(steps)
     db.session.commit()
 
-    batch1 = Batch(company_id=company.id, farm_id=farm1.id, template_id=template.id, batch_number="BCH-2601", product_name="Arabika Typica Washed", harvest_date=date(2026, 7, 10), status="completed", completed_at=now - timedelta(days=5))
-    batch2 = Batch(company_id=company.id, farm_id=farm2.id, template_id=template.id, batch_number="BCH-2602", product_name="Arabika Sigararutang Washed", harvest_date=date(2026, 8, 1), status="in_progress")
-    db.session.add_all([batch1, batch2])
-    db.session.commit()
-    
-    # Checkpoints & QR
-    for step in steps:
-        db.session.add(BatchCheckpoint(batch_id=batch1.id, step_id=step.id, status="completed", notes=f"Selesai tahap {step.name}", completed_at=now - timedelta(days=random.randint(1,4))))
-    db.session.add(QrCode(batch_id=batch1.id, qr_image_url="https://example.com/qr/bch2601.png", public_url="https://agrivision.id/trace/BCH-2601"))
-    db.session.commit()
-
-    # 11. Activity Logs
+    # 7. Activity Logs & Recent Activity
     logs = [
-        ActivityLog(user_id=manager.id, action='CREATE', entity_type='Batch', details='Batch BCH-2601 dimulai', created_at=now - timedelta(days=20)),
-        ActivityLog(user_id=manager.id, action='UPDATE', entity_type='Batch', details='Batch BCH-2601 selesai', created_at=now - timedelta(days=5)),
-        ActivityLog(user_id=manager.id, action='CREATE', entity_type='HarvestRecord', details='Catatan panen Agustus 2026 ditambahkan', created_at=now - timedelta(days=2)),
-        ActivityLog(user_id=investor.id, action='LOGIN', entity_type='User', details='Investor melihat laporan finansial', created_at=now - timedelta(hours=2))
+        ActivityLog(user_id=manager.id, action='CREATE', entity_type='Company', details='Perusahaan AgriCorp Indonesia berhasil diinisialisasi', created_at=now - timedelta(days=10)),
+        ActivityLog(user_id=manager.id, action='CREATE', entity_type='Project', details='Proyek Kopi Mandailing Lestari dibuat', created_at=now - timedelta(days=9)),
+        ActivityLog(user_id=investor.id, action='LOGIN', entity_type='User', details='Investor mengakses dashboard sistem', created_at=now - timedelta(hours=2))
     ]
     db.session.add_all(logs)
-    db.session.commit()
 
-    # 12. Recent Activities
     recent = [
-        RecentActivity(title="Panen Raya 2026", description="Panen raya di Lahan Kopi A telah berhasil melebihi target.", activity_date=date(2026, 8, 15), display_order=1),
-        RecentActivity(title="Sertifikasi Organik", description="AgriCorp mendapatkan pembaruan sertifikasi organik.", activity_date=date(2026, 8, 20), display_order=2)
+        RecentActivity(title="Sertifikasi Organik", description="AgriCorp memperbarui sertifikasi kemitraan organik.", activity_date=date(2026, 8, 20), display_order=1),
+        RecentActivity(title="Pendaftaran Petani Mitra", description="3 Petani mitra lokal siap ditugaskan ke area perkebunan.", activity_date=date(2026, 8, 22), display_order=2)
     ]
     db.session.add_all(recent)
     db.session.commit()
 
-    print("Comprehensive seed data for AgriCorp Indonesia successfully generated!")
+    print("Seed data bersih berhasil digenerate! (Tanpa data lahan, batas polygon, ataupun layer GIS)")
 
 if __name__ == "__main__":
     with app.app_context():

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Map, Leaf, Maximize, Calendar, Sprout, Upload, FileCode, CheckCircle2, AlertCircle, ArrowLeft, UploadCloud } from 'lucide-react';
+import { Plus, Map, Leaf, Maximize, Calendar, Sprout, Upload, FileCode, CheckCircle2, AlertCircle, ArrowLeft, UploadCloud, Loader2, Sparkles, X, CheckCircle, Satellite } from 'lucide-react';
 import InputNumber from '../../shared/components/UI/InputNumber';
 import AdminGISUploader from './AdminGISUploader';
 
@@ -58,6 +58,54 @@ const GIS = () => {
     const [dragActive, setDragActive] = useState(false);
     const [geoJsonStatus, setGeoJsonStatus] = useState(null);
 
+    // State untuk Analisis Satelit GEE & Model AI
+    const [analyzingFarm, setAnalyzingFarm] = useState(null);
+    const [loadingStep, setLoadingStep] = useState(1);
+    const [analysisResult, setAnalysisResult] = useState(null);
+    const [selectedMapFarm, setSelectedMapFarm] = useState(null);
+    const [mapModalHtml, setMapModalHtml] = useState(null);
+    const [mapModalLoading, setMapModalLoading] = useState(false);
+
+    const handleRunObservation = async (e, farm) => {
+        e.stopPropagation();
+        setAnalyzingFarm(farm);
+        setLoadingStep(1);
+
+        const timer = setInterval(() => {
+            setLoadingStep(prev => (prev < 3 ? prev + 1 : prev));
+        }, 3500);
+
+        try {
+            const res = await api.post(`/admin/farms/${farm.id}/run-observation`, {
+                period: 'Q1_2026'
+            });
+            if (res.data.success) {
+                setAnalysisResult(res.data);
+            }
+        } catch (err) {
+            alert("Gagal menjalankan analisis satelit: " + (err.response?.data?.message || err.message));
+        } finally {
+            clearInterval(timer);
+            setAnalyzingFarm(null);
+        }
+    };
+
+    const handleOpenMapModal = async (e, farm) => {
+        e.stopPropagation();
+        setSelectedMapFarm(farm);
+        setMapModalLoading(true);
+        try {
+            const res = await api.get(`/admin/farms/${farm.id}/map`);
+            if (res.data.success) {
+                setMapModalHtml(res.data.data.html);
+            }
+        } catch (err) {
+            console.error("Gagal memuat peta lahan", err);
+        } finally {
+            setMapModalLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchFarms();
         fetchCompanies();
@@ -103,6 +151,45 @@ const GIS = () => {
         }
     };
 
+    const calculatePolygonAreaHa = (geometry) => {
+        if (!geometry) return 0;
+        const RADIUS = 6378137; // Jari-jari bumi WGS84 dalam meter
+
+        const ringArea = (coords) => {
+            let area = 0;
+            if (!coords || coords.length < 3) return 0;
+            for (let i = 0; i < coords.length - 1; i++) {
+                const p1 = coords[i];
+                const p2 = coords[i + 1];
+                const lon1 = p1[0] * Math.PI / 180;
+                const lat1 = p1[1] * Math.PI / 180;
+                const lon2 = p2[0] * Math.PI / 180;
+                const lat2 = p2[1] * Math.PI / 180;
+                area += (lon2 - lon1) * (2 + Math.sin(lat1) + Math.sin(lat2));
+            }
+            area = area * RADIUS * RADIUS / 2.0;
+            return Math.abs(area);
+        };
+
+        let totalM2 = 0;
+        if (geometry.type === 'Polygon' && geometry.coordinates) {
+            totalM2 = ringArea(geometry.coordinates[0]);
+            for (let h = 1; h < geometry.coordinates.length; h++) {
+                totalM2 -= ringArea(geometry.coordinates[h]);
+            }
+        } else if (geometry.type === 'MultiPolygon' && geometry.coordinates) {
+            for (const poly of geometry.coordinates) {
+                totalM2 += ringArea(poly[0]);
+                for (let h = 1; h < poly.length; h++) {
+                    totalM2 -= ringArea(poly[h]);
+                }
+            }
+        }
+
+        const ha = totalM2 / 10000;
+        return Math.round(ha * 100) / 100;
+    };
+
     const processGeoJsonString = (jsonStr) => {
         setGeoJsonStatus(null);
         if (!jsonStr.trim()) {
@@ -120,8 +207,16 @@ const GIS = () => {
             }
 
             if (geom && (geom.type === 'Polygon' || geom.type === 'MultiPolygon')) {
+                const autoHa = calculatePolygonAreaHa(geom);
                 setDrawnGeometry(geom);
-                setGeoJsonStatus({ success: true, message: `Geometri valid: ${geom.type}` });
+                setFormData(prev => ({
+                    ...prev,
+                    total_area_ha: autoHa > 0 ? autoHa : prev.total_area_ha
+                }));
+                setGeoJsonStatus({ 
+                    success: true, 
+                    message: `Geometri valid: ${geom.type} • Estimasi Luas: ${autoHa} Ha (Otomatis terisi, dapat diedit)` 
+                });
                 setIsModalOpen(true);
             } else {
                 setGeoJsonStatus({ success: false, message: 'Format GeoJSON tidak valid. Pastikan data mengandung Polygon atau MultiPolygon.' });
@@ -337,8 +432,13 @@ const GIS = () => {
                                         <input type="text" value={formData.crop_variety} onChange={(e) => setFormData({...formData, crop_variety: e.target.value})} placeholder="Cth: Kelapa Sawit" />
                                     </div>
                                     <div className="form-group" style={{ flex: 1 }}>
-                                        <label>Luas Lahan (Ha)</label>
-                                        <InputNumber min="0.01" step="0.01" value={formData.total_area_ha} onChange={(e) => setFormData({...formData, total_area_ha: e.target.value})} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                            <label style={{ margin: 0 }}>Luas Lahan (Ha) *</label>
+                                            <span style={{ fontSize: '10px', color: '#15803d', background: '#dcfce7', padding: '1px 6px', borderRadius: '6px' }}>
+                                                Auto / Editable
+                                            </span>
+                                        </div>
+                                        <InputNumber min="0.01" step="0.01" value={formData.total_area_ha} onChange={(e) => setFormData({...formData, total_area_ha: e.target.value})} placeholder="Cth: 2.5" required />
                                     </div>
                                 </div>
                                 <div className="form-actions">
@@ -422,33 +522,354 @@ const GIS = () => {
                     <div style={{ padding: '20px', color: '#6b7280', background: 'white', borderRadius: '8px' }}>Belum ada lahan terdaftar.</div>
                 ) : (
                     farms.map((farm) => (
-                        <div key={farm.id} onClick={() => alert("Lahan ini memiliki " + farm.total_area_ha + " ha.")} style={{ cursor: 'pointer', background: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'transform 0.2s', ':hover': { transform: 'translateY(-2px)' } }}>
-                            <div style={{ height: '150px', background: '#374151', overflow: 'hidden' }}>
+                        <div key={farm.id} style={{ background: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                            <div style={{ height: '150px', background: '#374151', overflow: 'hidden', position: 'relative' }}>
                                 <FarmMapThumbnail farmId={farm.id} />
                             </div>
-                            <div style={{ padding: '15px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#111827' }}>
+                            <div style={{ padding: '16px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#111827' }}>
                                         {farm.name}
                                     </h3>
                                 </div>
-                                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 15px 0' }}>Project: {farm.project_name}</p>
+                                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px 0' }}>Project: {farm.project_name}</p>
                                 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#4b5563', marginBottom: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#4b5563', marginBottom: '6px' }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                         <Maximize size={14} color="#10b981" /> {farm.total_area_ha} ha
                                     </span>
                                 </div>
-                                <div style={{ fontSize: '13px', color: '#4b5563', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <div style={{ fontSize: '13px', color: '#4b5563', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                     <Leaf size={14} color="#10b981" /> {farm.crop_variety || 'Belum di set'}
                                 </div>
-                                
 
+                                {/* Tombol Aksi Superadmin */}
+                                <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                                    <button 
+                                        type="button"
+                                        className="secondary-btn"
+                                        onClick={(e) => handleOpenMapModal(e, farm)}
+                                        style={{ flex: 1, fontSize: '12px', padding: '7px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', borderRadius: '6px' }}
+                                    >
+                                        <Map size={14} />
+                                        Lihat Peta
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        className="primary-btn"
+                                        onClick={(e) => handleRunObservation(e, farm)}
+                                        disabled={analyzingFarm?.id === farm.id}
+                                        style={{ 
+                                            flex: 1.3, 
+                                            fontSize: '12px', 
+                                            padding: '7px 8px', 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'center', 
+                                            gap: '5px', 
+                                            borderRadius: '6px',
+                                            backgroundColor: analyzingFarm?.id === farm.id ? '#94a3b8' : '#116a3a',
+                                            cursor: analyzingFarm?.id === farm.id ? 'not-allowed' : 'pointer'
+                                        }}
+                                    >
+                                        {analyzingFarm?.id === farm.id ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" />
+                                                Memproses GEE...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Analisis Satelit
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ))
                 )}
             </div>
+
+            {/* Modal Animasi Loading Progresif saat Menunggu GEE & Model AI */}
+            {analyzingFarm && (
+                <div className="modal-overlay" style={{ zIndex: 10000 }}>
+                    <div className="modal-content" style={{ maxWidth: '480px', borderRadius: '14px', padding: '28px', textAlign: 'center' }}>
+                        <div style={{ 
+                            width: '56px', 
+                            height: '56px', 
+                            borderRadius: '50%', 
+                            backgroundColor: '#dcfce7', 
+                            color: '#15803d', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            margin: '0 auto 16px auto' 
+                        }}>
+                            <Satellite size={28} className="animate-bounce" />
+                        </div>
+
+                        <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: '700', color: '#111827' }}>
+                            Menjalankan Analisis Satelit & AI
+                        </h3>
+                        <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#64748b' }}>
+                            Lahan: <strong>{analyzingFarm.name}</strong> • Periode: <strong>Q1 2026</strong>
+                        </p>
+
+                        {/* Stepper Progres */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left', marginBottom: '20px' }}>
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '12px', 
+                                padding: '10px 14px', 
+                                borderRadius: '8px', 
+                                background: loadingStep >= 1 ? '#f0fdf4' : '#f8fafc',
+                                border: `1px solid ${loadingStep >= 1 ? '#bbf7d0' : '#e2e8f0'}`
+                            }}>
+                                {loadingStep > 1 ? (
+                                    <CheckCircle size={18} color="#15803d" />
+                                ) : (
+                                    <Loader2 size={18} color="#15803d" className="animate-spin" />
+                                )}
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: '13px', fontWeight: '600', color: loadingStep >= 1 ? '#166534' : '#64748b' }}>
+                                        1. Mengunduh Citra Sentinel-2 & DEM SRTM
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: '#64748b' }}>Koneksi Google Earth Engine API</div>
+                                </div>
+                            </div>
+
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '12px', 
+                                padding: '10px 14px', 
+                                borderRadius: '8px', 
+                                background: loadingStep >= 2 ? '#f0fdf4' : '#f8fafc',
+                                border: `1px solid ${loadingStep >= 2 ? '#bbf7d0' : '#e2e8f0'}`
+                            }}>
+                                {loadingStep > 2 ? (
+                                    <CheckCircle size={18} color="#15803d" />
+                                ) : loadingStep === 2 ? (
+                                    <Loader2 size={18} color="#15803d" className="animate-spin" />
+                                ) : (
+                                    <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '2px solid #cbd5e1' }} />
+                                )}
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: '13px', fontWeight: '600', color: loadingStep >= 2 ? '#166534' : '#64748b' }}>
+                                        2. Ekstraksi 12 Indeks Spektral & Topografi
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: '#64748b' }}>Kalkulasi elevasi, slope, aspect, TWI & reflektansi</div>
+                                </div>
+                            </div>
+
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '12px', 
+                                padding: '10px 14px', 
+                                borderRadius: '8px', 
+                                background: loadingStep >= 3 ? '#f0fdf4' : '#f8fafc',
+                                border: `1px solid ${loadingStep >= 3 ? '#bbf7d0' : '#e2e8f0'}`
+                            }}>
+                                {loadingStep === 3 ? (
+                                    <Loader2 size={18} color="#15803d" className="animate-spin" />
+                                ) : (
+                                    <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: '2px solid #cbd5e1' }} />
+                                )}
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: '13px', fontWeight: '600', color: loadingStep >= 3 ? '#166534' : '#64748b' }}>
+                                        3. Inferensi Machine Learning (Model ONNX AI)
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: '#64748b' }}>StandardScaler + Artificial Neural Network</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                            Proses memerlukan waktu 5 - 15 detik tergantung respons Google Earth Engine. Harap menunggu...
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Hasil Analisis Satelit GEE & AI */}
+            {analysisResult && (
+                <div className="modal-overlay" style={{ zIndex: 9999 }}>
+                    <div className="modal-content" style={{ maxWidth: '640px', borderRadius: '14px', padding: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ padding: '6px', background: '#dcfce7', borderRadius: '8px', color: '#15803d' }}>
+                                    <CheckCircle size={20} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#111827' }}>Analisis Satelit Berhasil</h3>
+                                    <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{analysisResult.farm_name} ({analysisResult.period})</p>
+                                </div>
+                            </div>
+                            <button className="close-btn" onClick={() => setAnalysisResult(null)}>&times;</button>
+                        </div>
+
+                        {/* Grid 5 Parameter Observasi */}
+                        <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <span style={{ fontSize: '12px', fontWeight: '700', color: '#374151' }}>Hasil 5 Parameter Observasi:</span>
+                                <span style={{ fontSize: '11px', color: '#64748b' }}>1 Selesai • 4 Menunggu Model</span>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                                {/* 1. SOC (Active - Hasil Real AI) */}
+                                <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#166534' }}>Stok Karbon (SOC)</span>
+                                        <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '10px', background: analysisResult.is_anomaly ? '#fee2e2' : '#dcfce7', color: analysisResult.is_anomaly ? '#991b1b' : '#15803d' }}>
+                                            {analysisResult.is_anomaly ? 'Waspada' : 'Normal'}
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#15803d', margin: '2px 0' }}>
+                                        {analysisResult.soc_prediction} <span style={{ fontSize: '11px', fontWeight: '500' }}>Ton C/Ha</span>
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: '#166534' }}>
+                                        {analysisResult.pixel_count ? (
+                                            <>Sebaran: {analysisResult.pixel_count} piksel • Min: {analysisResult.min_soc} | Max: {analysisResult.max_soc}</>
+                                        ) : (
+                                            'Model ONNX Terverifikasi'
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* 2. Vegetasi NDVI */}
+                                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Vegetasi (NDVI)</span>
+                                        <span style={{ fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '10px', background: '#e2e8f0', color: '#64748b' }}>
+                                            Belum ada data
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '20px', fontWeight: '700', color: '#94a3b8', margin: '2px 0' }}>-</div>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Menunggu model inferensi</div>
+                                </div>
+
+                                {/* 3. Biomassa Karbon */}
+                                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Biomassa Karbon</span>
+                                        <span style={{ fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '10px', background: '#e2e8f0', color: '#64748b' }}>
+                                            Belum ada data
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '20px', fontWeight: '700', color: '#94a3b8', margin: '2px 0' }}>-</div>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Menunggu model inferensi</div>
+                                </div>
+
+                                {/* 4. Nutrisi NPK */}
+                                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Nutrisi (NPK)</span>
+                                        <span style={{ fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '10px', background: '#e2e8f0', color: '#64748b' }}>
+                                            Belum ada data
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '20px', fontWeight: '700', color: '#94a3b8', margin: '2px 0' }}>-</div>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Menunggu model inferensi</div>
+                                </div>
+
+                                {/* 5. Estimasi Yield */}
+                                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Estimasi Yield</span>
+                                        <span style={{ fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '10px', background: '#e2e8f0', color: '#64748b' }}>
+                                            Belum ada data
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '20px', fontWeight: '700', color: '#94a3b8', margin: '2px 0' }}>-</div>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Menunggu model inferensi</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Informasi Citra Satelit & Topografi */}
+                        <div style={{ marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                <span style={{ fontSize: '12px', fontWeight: '600', color: '#374151' }}>Metadata Citra Satelit Sentinel-2 & DEM:</span>
+                                {analysisResult.scene_info && (
+                                    <span style={{ fontSize: '11px', color: '#059669', fontWeight: '600' }}>
+                                        Awan: {analysisResult.scene_info.cloud_percentage}%
+                                    </span>
+                                )}
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                                <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', fontSize: '12px' }}>
+                                    <span style={{ color: '#64748b' }}>Tanggal Citra: </span>
+                                    <strong>{analysisResult.scene_info?.date?.slice(0, 10) ?? '-'}</strong>
+                                </div>
+                                <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', fontSize: '12px' }}>
+                                    <span style={{ color: '#64748b' }}>Variasi Spasial (Std Dev): </span>
+                                    <strong>{analysisResult.std_soc ?? '-'}</strong>
+                                </div>
+                                <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', fontSize: '12px' }}>
+                                    <span style={{ color: '#64748b' }}>Elevasi Rata-rata: </span>
+                                    <strong>{analysisResult.topography_captured?.elevation?.toFixed(1) ?? '-'} mdpl</strong>
+                                </div>
+                                <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '6px', fontSize: '12px' }}>
+                                    <span style={{ color: '#64748b' }}>Kemiringan (Slope): </span>
+                                    <strong>{analysisResult.topography_captured?.slope?.toFixed(1) ?? '-'}°</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ background: '#f1f5f9', padding: '10px 14px', borderRadius: '8px', fontSize: '12px', color: '#475569', marginBottom: '18px' }}>
+                            ✓ Data observasi spasial ({analysisResult.pixel_count || 0} titik piksel) berhasil diproses dan disimpan ke sistem. Manajer dapat langsung melihat visualisasi heatmap di menu <strong>Index Observasi</strong>.
+                        </div>
+
+                        <button 
+                            className="primary-btn" 
+                            onClick={() => setAnalysisResult(null)}
+                            style={{ 
+                                width: '100%', 
+                                padding: '10px 16px', 
+                                fontSize: '13px',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                textAlign: 'center',
+                                fontWeight: '600'
+                            }}
+                        >
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Detail Peta Lahan */}
+            {selectedMapFarm && (
+                <div className="modal-overlay" style={{ zIndex: 9999 }}>
+                    <div className="modal-content" style={{ maxWidth: '800px', width: '90%', borderRadius: '12px', padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Peta Batas: {selectedMapFarm.name}</h3>
+                                <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{selectedMapFarm.total_area_ha} Ha - {selectedMapFarm.crop_variety || 'Komoditas belum di-set'}</p>
+                            </div>
+                            <button className="close-btn" onClick={() => { setSelectedMapFarm(null); setMapModalHtml(null); }}>&times;</button>
+                        </div>
+                        <div style={{ height: '450px', background: '#1e293b', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {mapModalLoading ? (
+                                <div style={{ color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Loader2 size={20} className="animate-spin" /> Memuat peta interaktif...
+                                </div>
+                            ) : mapModalHtml ? (
+                                <iframe 
+                                    srcDoc={mapModalHtml} 
+                                    style={{ width: '100%', height: '100%', border: 'none' }} 
+                                    title={`ModalMap-${selectedMapFarm.id}`} 
+                                />
+                            ) : (
+                                <div style={{ color: '#94a3b8' }}>Gagal memuat peta lahan</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
