@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="100%" height="100%" fill="none" stroke="#002415" stroke-width="1.2" stroke-opacity="0.042" preserveAspectRatio="none">
+  <!-- Parcel Polygon A: West Valley Farm -->
+  <polygon points="120,80 340,60 420,240 210,310 90,200" stroke-dasharray="6,4" />
+  <circle cx="120" cy="80" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="340" cy="60" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="420" cy="240" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="210" cy="310" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="90" cy="200" r="2.5" fill="#002415" fill-opacity="0.1" />
+
+  <!-- Parcel Polygon B: North Highland -->
+  <polygon points="360,50 680,40 760,190 530,220 440,160" />
+  <circle cx="360" cy="50" r="2" fill="#002415" fill-opacity="0.1" />
+  <circle cx="680" cy="40" r="2" fill="#002415" fill-opacity="0.1" />
+  <circle cx="760" cy="190" r="2" fill="#002415" fill-opacity="0.1" />
+  <circle cx="530" cy="220" r="2" fill="#002415" fill-opacity="0.1" />
+
+  <!-- Parcel Polygon C: East Ridge -->
+  <polygon points="820,90 1140,70 1280,260 1060,320 890,240" stroke-dasharray="8,5" />
+  <circle cx="820" cy="90" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="1140" cy="70" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="1280" cy="260" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="1060" cy="320" r="2.5" fill="#002415" fill-opacity="0.1" />
+
+  <!-- Parcel Polygon D: Central Agroforestry Zone -->
+  <polygon points="260,360 620,330 710,540 480,620 210,500" />
+  <circle cx="260" cy="360" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="620" cy="330" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="710" cy="540" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="480" cy="620" r="2.5" fill="#002415" fill-opacity="0.1" />
+
+  <!-- Parcel Polygon E: South-East Basin -->
+  <polygon points="760,390 1180,360 1340,580 1020,680 730,580" stroke-dasharray="6,4" />
+  <circle cx="760" cy="390" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="1180" cy="360" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="1340" cy="580" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="1020" cy="680" r="2.5" fill="#002415" fill-opacity="0.1" />
+
+  <!-- Parcel Polygon F: South Coastal Plain -->
+  <polygon points="140,580 440,650 520,840 220,870 60,760" />
+  <circle cx="140" cy="580" r="2" fill="#002415" fill-opacity="0.1" />
+  <circle cx="440" cy="650" r="2" fill="#002415" fill-opacity="0.1" />
+  <circle cx="520" cy="840" r="2" fill="#002415" fill-opacity="0.1" />
+  <circle cx="220" cy="870" r="2" fill="#002415" fill-opacity="0.1" />
+
+  <!-- Parcel Polygon G: South-East Field -->
+  <polygon points="680,630 1080,660 1260,860 880,890 610,790" stroke-dasharray="8,5" />
+  <circle cx="680" cy="630" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="1080" cy="660" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="1260" cy="860" r="2.5" fill="#002415" fill-opacity="0.1" />
+  <circle cx="880" cy="890" r="2.5" fill="#002415" fill-opacity="0.1" />
+</svg>

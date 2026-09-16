@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from app.core.security import token_required, role_required
 from app.services.admin_service import *
 from app.services.gis_service import GISService
-from app.db.models import User, Company, Farm
+from app.db.models import User, Company, Farm, RecentActivity
 from app.db.database import db
 
 
@@ -488,3 +488,309 @@ def get_admin_activities(current_user):
         return jsonify({'success': True, 'data': data}), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ======================== RECENT ACTIVITIES ========================
+
+@admin_bp.route('/recent-activities', methods=['GET'])
+@token_required
+@role_required('super_admin')
+def get_recent_activities(current_user):
+    try:
+        activities = RecentActivity.query.order_by(RecentActivity.display_order.asc()).all()
+        data = [{
+            'id': str(a.id),
+            'title': a.title,
+            'description': a.description,
+            'image_path': a.image_path,
+            'activity_date': a.activity_date.isoformat() if a.activity_date else None,
+            'display_order': a.display_order,
+            'created_at': a.created_at.isoformat() if a.created_at else None,
+            'updated_at': a.updated_at.isoformat() if a.updated_at else None
+        } for a in activities]
+        return jsonify({'success': True, 'data': data}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/recent-activities', methods=['POST'])
+@token_required
+@role_required('super_admin')
+def create_recent_activity(current_user):
+    try:
+        title = request.form.get('title')
+        description = request.form.get('description')
+        activity_date = request.form.get('activity_date')
+
+        if not title or not description or not activity_date:
+            return jsonify({'success': False, 'message': 'Judul, deskripsi, dan tanggal wajib diisi'}), 400
+
+        image_path = None
+        if 'file' in request.files and request.files['file'].filename:
+            from app.services.upload_service import save_file_locally
+            try:
+                image_path = save_file_locally(request.files['file'], subfolder='activities')
+            except ValueError as e:
+                return jsonify({'success': False, 'message': str(e)}), 400
+
+        from datetime import date
+        max_order = db.session.query(db.func.max(RecentActivity.display_order)).scalar() or 0
+
+        activity = RecentActivity(
+            title=title,
+            description=description,
+            image_path=image_path,
+            activity_date=date.fromisoformat(activity_date),
+            display_order=max_order + 1
+        )
+        db.session.add(activity)
+        db.session.commit()
+
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='CREATE',
+            entity_type='RecentActivity',
+            entity_id=activity.id,
+            details=f"Menambahkan aktivitas '{title}'"
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Aktivitas berhasil ditambahkan',
+            'data': {
+                'id': str(activity.id),
+                'title': activity.title,
+                'description': activity.description,
+                'image_path': activity.image_path,
+                'activity_date': activity.activity_date.isoformat(),
+                'display_order': activity.display_order
+            }
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/recent-activities/reorder', methods=['PUT'])
+@token_required
+@role_required('super_admin')
+def reorder_recent_activities(current_user):
+    try:
+        data = request.get_json()
+        order = data.get('order', [])
+
+        if not order:
+            return jsonify({'success': False, 'message': 'Data urutan tidak valid'}), 400
+
+        for index, activity_id in enumerate(order):
+            activity = RecentActivity.query.get(activity_id)
+            if activity:
+                activity.display_order = index
+
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Urutan berhasil diperbarui'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/recent-activities/<activity_id>', methods=['PUT'])
+@token_required
+@role_required('super_admin')
+def update_recent_activity(current_user, activity_id):
+    try:
+        activity = RecentActivity.query.get(activity_id)
+        if not activity:
+            return jsonify({'success': False, 'message': 'Aktivitas tidak ditemukan'}), 404
+
+        title = request.form.get('title')
+        description = request.form.get('description')
+        activity_date = request.form.get('activity_date')
+
+        if title:
+            activity.title = title
+        if description:
+            activity.description = description
+        if activity_date:
+            from datetime import date
+            activity.activity_date = date.fromisoformat(activity_date)
+
+        if 'file' in request.files and request.files['file'].filename:
+            from app.services.upload_service import save_file_locally
+            try:
+                activity.image_path = save_file_locally(request.files['file'], subfolder='activities')
+            except ValueError as e:
+                return jsonify({'success': False, 'message': str(e)}), 400
+
+        db.session.commit()
+
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='UPDATE',
+            entity_type='RecentActivity',
+            entity_id=activity.id,
+            details=f"Memperbarui aktivitas '{activity.title}'"
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Aktivitas berhasil diperbarui',
+            'data': {
+                'id': str(activity.id),
+                'title': activity.title,
+                'description': activity.description,
+                'image_path': activity.image_path,
+                'activity_date': activity.activity_date.isoformat(),
+                'display_order': activity.display_order
+            }
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/recent-activities/<activity_id>', methods=['DELETE'])
+@token_required
+@role_required('super_admin')
+def delete_recent_activity(current_user, activity_id):
+    try:
+        activity = RecentActivity.query.get(activity_id)
+        if not activity:
+            return jsonify({'success': False, 'message': 'Aktivitas tidak ditemukan'}), 404
+
+        title = activity.title
+        db.session.delete(activity)
+        db.session.commit()
+
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='DELETE',
+            entity_type='RecentActivity',
+            details=f"Menghapus aktivitas '{title}'"
+        )
+
+        return jsonify({'success': True, 'message': 'Aktivitas berhasil dihapus'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin_bp.route('/gis/upload', methods=['POST'])
+@token_required
+@role_required('super_admin')
+def upload_gis_data(current_user):
+    from app.db.models import GisLayer, Farm
+    import csv
+    import json
+    import random
+    from io import StringIO
+    
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'Tidak ada file yang diunggah'}), 400
+        
+    file = request.files['file']
+    farm_id = request.form.get('farm_id')
+    period = request.form.get('period')
+    
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'Pilih file terlebih dahulu'}), 400
+        
+    if not farm_id or not period:
+        return jsonify({'success': False, 'message': 'Farm ID dan Periode wajib diisi'}), 400
+        
+    farm = Farm.query.get(farm_id)
+    if not farm:
+        return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
+
+    # Ambil boundary untuk safety bounds
+    def parse_boundary_bbox(f):
+        if not f.boundary: return None
+        try:
+            from geoalchemy2.functions import ST_XMin, ST_XMax, ST_YMin, ST_YMax
+            xmin = db.session.scalar(ST_XMin(f.boundary))
+            xmax = db.session.scalar(ST_XMax(f.boundary))
+            ymin = db.session.scalar(ST_YMin(f.boundary))
+            ymax = db.session.scalar(ST_YMax(f.boundary))
+            if None in (xmin, xmax, ymin, ymax): return None
+            return (float(ymin), float(ymax), float(xmin), float(xmax))
+        except:
+            return None
+            
+    bbox = parse_boundary_bbox(farm)
+    if not bbox:
+        return jsonify({'success': False, 'message': 'Lahan belum memiliki poligon koordinat yang valid'}), 400
+
+    try:
+        rows = []
+        if file.filename.endswith('.csv'):
+            stream = StringIO(file.stream.read().decode("UTF8"), newline=None)
+            csv_reader = csv.DictReader(stream)
+            rows = list(csv_reader)
+        elif file.filename.endswith('.json'):
+            rows = json.loads(file.stream.read().decode("UTF8"))
+        else:
+            return jsonify({'success': False, 'message': 'Hanya mendukung file .csv dan .json'}), 400
+
+        # Helper
+        def random_point(box):
+            return random.uniform(box[0], box[1]), random.uniform(box[2], box[3])
+            
+        ANOMALY_THRESH = {'ndvi': 0.4, 'soc': 30.0, 'biomass': 80.0, 'yield': 1.2, 'soilnpk': 100.0}
+        UNITS = {'ndvi': 'index', 'soc': 'Ton C/Ha', 'biomass': 'Kg C/Ha', 'yield': 'Ton/Ha', 'soilnpk': 'kg NPK/Ha'}
+
+        # Hapus data yang ada untuk farm_id & period ini agar tidak duplikat
+        GisLayer.query.filter_by(farm_id=farm_id, period=period).delete()
+        db.session.commit()
+
+        layers_to_add = []
+        
+        # Ambil max 500 titik per upload agar DB tidak over
+        sampled_rows = random.sample(rows, min(500, len(rows))) if len(rows) > 500 else rows
+
+        for row in sampled_rows:
+            try:
+                ndvi_val = float(row.get('NDVI', 0))
+                oc_val   = float(row.get('OC', 0))
+                lat, lon = random_point(bbox) # Sementara assign ke dalam bbox farm
+                
+                param_values = {
+                    'ndvi':    ndvi_val,
+                    'soc':     round(oc_val, 4),
+                    'biomass': round(oc_val * 1.45, 2),
+                    'yield':   round(max(0.3, ndvi_val * 3.8), 2),
+                    'soilnpk': round(min(280, max(60, oc_val * 3.2)), 2),
+                }
+
+                for param, value in param_values.items():
+                    layers_to_add.append(GisLayer(
+                        farm_id=farm_id,
+                        coordinate=f'SRID=4326;POINT({lon} {lat})',
+                        parameter_type=param,
+                        period=period,
+                        numerical_value=value,
+                        unit=UNITS[param],
+                        is_anomaly=(value < ANOMALY_THRESH[param]),
+                        source='Web Import (Sentinel-2)'
+                    ))
+            except Exception:
+                continue
+                
+        db.session.bulk_save_objects(layers_to_add)
+        db.session.commit()
+        
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='UPLOAD_GIS_DATA',
+            entity_type='GisLayer',
+            details=f"Mengimpor {len(layers_to_add)} data layer ke Lahan ID {farm_id} untuk periode {period}"
+        )
+        
+        return jsonify({'success': True, 'message': f'Berhasil memproses {len(sampled_rows)} titik data, menghasilkan {len(layers_to_add)} parameter gis_layers.'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Gagal memproses file: {str(e)}'}), 500
+

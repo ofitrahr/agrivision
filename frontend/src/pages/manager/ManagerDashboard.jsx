@@ -1,307 +1,301 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
+import { ArrowRight, TreePine, Coins, Users, Maximize2 } from 'lucide-react';
 import StatCard from '../../shared/components/UI/StatCard';
 import Card from '../../shared/components/UI/Card';
 
-// --- Presentational Components ---
-
 const StatCardSkeleton = () => (
-    <div className="stat-card" aria-busy="true">
-        <div className="skeleton-text mb-2" style={{ height: '14px', width: '50%' }}></div>
-        <div className="skeleton-text mt-3" style={{ height: '32px', width: '80%' }}></div>
-    </div>
+  <div className="stat-card" aria-busy="true" aria-label="Memuat data">
+    <div className="skeleton-text mb-2" style={{ height: '14px', width: '45%' }}></div>
+    <div className="skeleton-text mt-3" style={{ height: '40px', width: '70%' }}></div>
+    <div className="skeleton-text mt-2" style={{ height: '24px', width: '55%', borderRadius: '6px' }}></div>
+  </div>
 );
 
 const FarmMapThumbnail = ({ farmId }) => {
-    const [mapHtml, setMapHtml] = useState('');
-    
-    useEffect(() => {
-        let isMounted = true;
-        api.get(`/manager/farms/${farmId}/map?thumbnail=true`)
-            .then(res => { if(isMounted && res.data.success) setMapHtml(res.data.data.html); })
-            .catch(err => console.error(err));
-        return () => { isMounted = false; };
-    }, [farmId]);
-    
-    if(!mapHtml) {
-        return (
-            <div className="flex items-center justify-center w-full" style={{ height: '200px', background: 'var(--color-surface-container)' }} aria-busy="true">
-                <div className="skeleton-text w-full" style={{ height: '100%' }}></div>
-            </div>
-        );
-    }
-    
+  const [mapHtml, setMapHtml] = useState('');
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.get(`/manager/farms/${farmId}/map?thumbnail=true`)
+      .then(res => {
+        if (isMounted && res.data?.success) setMapHtml(res.data.data.html);
+        else if (isMounted) setFailed(true);
+      })
+      .catch(() => { if (isMounted) setFailed(true); });
+    return () => { isMounted = false; };
+  }, [farmId]);
+
+  if (failed) {
     return (
-        <div className="w-full overflow-hidden" style={{ height: '200px' }}>
-            <iframe srcDoc={mapHtml} className="w-full border-none" style={{ height: '100%', pointerEvents: 'none', border: 'none' }} title="Peta Lahan" tabIndex={-1} />
-        </div>
+      <div
+        style={{ height: '180px', background: 'var(--color-surface-container)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '8px' }}
+        aria-label="Peta tidak tersedia"
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: '28px', color: 'var(--color-text-muted)' }}>map</span>
+        <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Peta belum tersedia</span>
+      </div>
     );
+  }
+
+  if (!mapHtml) {
+    return (
+      <div style={{ height: '180px', background: 'var(--color-surface-container)' }} aria-busy="true" aria-label="Memuat peta">
+        <div className="skeleton-text" style={{ height: '100%', width: '100%' }}></div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ height: '180px', overflow: 'hidden' }}>
+      <iframe
+        srcDoc={mapHtml}
+        style={{ width: '100%', height: '100%', pointerEvents: 'none', border: 'none', display: 'block' }}
+        title="Peta Lahan"
+        tabIndex={-1}
+      />
+    </div>
+  );
 };
 
 const FarmCardSkeleton = () => (
-    <Card>
-        <div className="skeleton-text w-full" style={{ height: '200px' }}></div>
-        <div className="p-4 flex-col gap-3">
-            <div className="skeleton-text mb-1" style={{ height: '24px', width: '70%' }}></div>
-            <div className="skeleton-text mb-4" style={{ height: '16px', width: '40%' }}></div>
-            
-            <div className="skeleton-text mb-1" style={{ height: '14px', width: '50%' }}></div>
-            <div className="skeleton-text mb-3" style={{ height: '14px', width: '80%' }}></div>
-            
-            <div className="flex gap-2 mt-2">
-                <div className="skeleton-text w-full" style={{ height: '36px', borderRadius: 'var(--radius-pill)' }}></div>
-                <div className="skeleton-text w-full" style={{ height: '36px', borderRadius: 'var(--radius-pill)' }}></div>
-            </div>
-        </div>
-    </Card>
+  <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+    <div className="skeleton-text" style={{ height: '180px', width: '100%' }}></div>
+    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div className="skeleton-text" style={{ height: '18px', width: '65%' }}></div>
+      <div className="skeleton-text" style={{ height: '16px', width: '40%' }}></div>
+      <div className="skeleton-text" style={{ height: '13px', width: '80%' }}></div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="skeleton-text" style={{ height: '36px', flex: 1, borderRadius: 'var(--radius-pill)' }}></div>
+        <div className="skeleton-text" style={{ height: '36px', flex: 1, borderRadius: 'var(--radius-pill)' }}></div>
+      </div>
+    </div>
+  </div>
 );
 
-const FarmCard = ({ farm, onManage, onAgronomy }) => (
+const FarmCard = ({ farm, onManage, onAgronomy }) => {
+  const cropVariety = farm.crop_variety || farm.crops?.[0]?.variety || farm.crops?.[0]?.crop_type;
+  const farmersText = farm.farmers?.length > 0 ? farm.farmers.join(', ') : null;
+
+  return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
-        <FarmMapThumbnail farmId={farm.id} />
-        <div style={{ padding: 'var(--space-md)', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div>
-                <h3 className="card-title" style={{ marginBottom: '4px' }}>{farm.name}</h3>
-                <span className="badge badge-stable" style={{ fontSize: '11px' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>map</span>
-                    {farm.total_area_ha} Ha
-                </span>
-            </div>
-            
-            <div style={{ fontSize: '13px' }}>
-                <div style={{ fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '2px' }}>Tanaman:</div>
-                <div style={{ color: 'var(--color-text-muted)' }}>
-                    {farm.crops && farm.crops.length > 0 ? farm.crops.join(', ') : 'Belum diatur'}
-                </div>
-            </div>
-            
-            <div style={{ fontSize: '13px', marginBottom: '8px' }}>
-                <div style={{ fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '2px' }}>Penanggung Jawab:</div>
-                <div style={{ color: 'var(--color-text-muted)' }}>
-                    {farm.farmers && farm.farmers.length > 0 ? farm.farmers.join(', ') : 'Belum ditugaskan'}
-                </div>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
-                <button 
-                    className="btn btn-ghost btn-sm" 
-                    style={{ flex: 1, justifyContent: 'center' }}
-                    onClick={() => onManage(farm.id)}
-                >
-                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>settings</span> 
-                    Kelola
-                </button>
-                <button 
-                    className="btn btn-primary btn-sm" 
-                    style={{ flex: 1, justifyContent: 'center' }}
-                    onClick={() => onAgronomy(farm.id)}
-                >
-                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>eco</span> 
-                    Agronomi
-                </button>
-            </div>
-        </div>
-    </div>
-);
-
-const ActivityItem = ({ icon, text, subtext }) => (
-    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '16px' }}>
-        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-container)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{icon}</span>
-        </div>
+      <FarmMapThumbnail farmId={farm.id} />
+      <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div>
-            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-main)', margin: 0 }}>{text}</p>
-            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: '4px 0 0 0' }}>{subtext}</p>
+          <h3 className="card-title" style={{ marginBottom: '8px', fontSize: '16px', fontWeight: 700 }}>{farm.name}</h3>
+          <div className="agro-chip-group" style={{ marginBottom: 0 }}>
+            {farm.total_area_ha && (
+              <span className="agro-chip">{farm.total_area_ha} Ha</span>
+            )}
+            {cropVariety && (
+              <span className="agro-chip agro-chip-active">{cropVariety}</span>
+            )}
+          </div>
         </div>
-    </div>
-);
 
-// --- Container Component ---
+        <div style={{ fontSize: '13px' }}>
+          <div style={{ fontWeight: 600, color: 'var(--color-text-main)', marginBottom: '2px' }}>Penanggung Jawab:</div>
+          <div style={{ color: 'var(--color-text-muted)' }}>
+            {farmersText ?? <em style={{ opacity: 0.6 }}>Belum ditugaskan</em>}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+          <button
+            className="btn btn-ghost btn-sm"
+            style={{ flex: 1, justifyContent: 'center' }}
+            onClick={() => onManage(farm.id)}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>settings</span>
+            Kelola
+          </button>
+          <button
+            className="btn btn-primary btn-sm"
+            style={{ flex: 1, justifyContent: 'center' }}
+            onClick={() => onAgronomy(farm.id)}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>eco</span>
+            Observasi
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const formatCurrency = (value) => {
+  if (!value && value !== 0) return null;
+  return Number(value).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 
 const ManagerDashboard = () => {
-    const [stats, setStats] = useState(null);
-    const [recentFarms, setRecentFarms] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const navigate = useNavigate();
+  const [stats, setStats] = useState(null);
+  const [farms, setFarms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-    const [activities, setActivities] = useState([]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [statsRes, farmsRes] = await Promise.allSettled([
+          api.get('/manager/dashboard/stats'),
+          api.get('/manager/farms'),
+        ]);
 
-    const formatCurrency = (value) => {
-        if (value === undefined || value === null) return 'Rp 0';
-        return `Rp ${value.toLocaleString('id-ID')}`;
+        if (statsRes.status === 'fulfilled' && statsRes.value?.data?.success) {
+          setStats(statsRes.value.data.data);
+        } else {
+          setStats(null);
+        }
+
+        if (farmsRes.status === 'fulfilled' && farmsRes.value?.data?.success) {
+          setFarms(farmsRes.value.data.data);
+        } else {
+          setFarms([]);
+        }
+      } catch (err) {
+        console.error('Gagal mengambil data dashboard:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                
-                const [statsRes, farmsRes, activitiesRes] = await Promise.allSettled([
-                    api.get('/manager/dashboard/stats'),
-                    api.get('/manager/farms'),
-                    api.get('/manager/activities')
-                ]);
+    fetchData();
+  }, []);
 
-                if (statsRes.status === 'fulfilled' && statsRes.value?.data?.success) {
-                    setStats(statsRes.value.data.data);
-                }
-                if (farmsRes.status === 'fulfilled' && farmsRes.value?.data?.success) {
-                    setRecentFarms(farmsRes.value.data.data.slice(0, 5));
-                }
-                if (activitiesRes.status === 'fulfilled' && activitiesRes.value?.data?.success) {
-                    setActivities(activitiesRes.value.data.data);
-                }
-            } catch (err) {
-                console.error("Gagal mengambil data dashboard", err);
-            } finally {
-                setTimeout(() => setLoading(false), 500);
-            }
-        };
-        
-        fetchData();
-    }, []);
+  const handleManageFarm = (id) => navigate(`/manager/farm-management?farm_id=${id}`);
+  const handleAgronomy = (id) => navigate(`/manager/agronomy?farm_id=${id}`);
 
-    const handleManageFarm = (id) => navigate(`/manager/farm-management?farm_id=${id}`);
-    const handleAgronomy = (id) => navigate(`/manager/agronomy?farm_id=${id}`);
+  // Semua nilai murni dari backend — tidak ada fallback hardcode
+  const totalFarms = stats?.total_farms ?? null;
+  const totalFarmers = stats?.total_farmers ?? null;
+  const totalAreaHa = stats?.total_area_ha ?? null;
+  const primaryCommodity = stats?.primary_commodity ?? null;
+  const totalRevenue = stats?.total_revenue > 0 ? stats.total_revenue : null;
+  const totalCarbonTon = stats?.total_carbon_ton > 0 ? stats.total_carbon_ton : null;
 
-    if (error) {
-        return (
-            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-xl)' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--color-error)', marginBottom: '16px' }}>error</span>
-                <h2 className="text-headline-lg" style={{ marginBottom: '8px' }}>Terjadi Kesalahan</h2>
-                <p className="text-body-md" style={{ color: 'var(--color-text-muted)', marginBottom: '24px' }}>{error}</p>
-                <button className="btn btn-primary" onClick={() => window.location.reload()}>
-                    Muat Ulang
-                </button>
-            </div>
-        );
-    }
-
-    return (
+  return (
+    <div>
+      <header className="page-header" style={{ marginBottom: 'var(--space-md)' }}>
         <div>
-            <header className="page-header">
-                <div>
-                    <h1 className="page-title">Dashboard Manajer</h1>
-                    <p className="page-subtitle">Ringkasan operasional dan data perusahaan Anda.</p>
-                </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                    <button 
-                        className="btn btn-ghost" 
-                        onClick={() => navigate('/manager/profile')}    
-                    >
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>settings</span> 
-                        Pengaturan
-                    </button>
-                </div>
-            </header>
-            
-            {/* Overview Stats */}
-            <section aria-label="Statistik Utama" className="stats-grid">
-                {loading ? (
-                    <>
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                        <StatCardSkeleton />
-                    </>
-                ) : (
-                    <>
-                        <StatCard 
-                            title="Total Lahan" 
-                            value={stats?.total_farms || 0} 
-                            icon="landscape" 
-                        />
-                        <StatCard 
-                            title="Total Petani" 
-                            value={stats?.total_farmers || 0} 
-                            icon="group" 
-                        />
-                        <StatCard 
-                            title="Total Produksi (Ton)" 
-                            value={stats?.total_production_ton || 0} 
-                            icon="eco" 
-                        />
-                        <StatCard 
-                            title="Total Pendapatan" 
-                            value={formatCurrency(stats?.total_revenue)} 
-                            icon="payments" 
-                            iconColor="var(--color-main-gold)"
-                        />
-                    </>
-                )}
-            </section>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 'var(--gutter)' }}>
-                {/* Recent Projects Section */}
-                <section aria-label="Daftar Lahan Project">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
-                        <h2 className="text-headline-lg" style={{ fontSize: '20px', margin: 0 }}>Daftar Lahan Project</h2>
-                    </div>
-                    
-                    <div className="stats-grid-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-                        {loading ? (
-                            <>
-                                <FarmCardSkeleton />
-                                <FarmCardSkeleton />
-                            </>
-                        ) : recentFarms.length > 0 ? (
-                            recentFarms.map(farm => (
-                                <FarmCard 
-                                    key={farm.id} 
-                                    farm={farm} 
-                                    onManage={handleManageFarm}
-                                    onAgronomy={handleAgronomy}
-                                />
-                            ))
-                        ) : (
-                            <Card style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px' }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '32px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>landscape</span>
-                                <p style={{ fontWeight: 600, color: 'var(--color-text-main)', margin: '0 0 4px 0' }}>Belum ada lahan terdaftar</p>
-                                <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>Lahan yang Anda kelola akan muncul di sini.</p>
-                            </Card>
-                        )}
-                    </div>
-                </section>
-
-                {/* Sidebar Widgets */}
-                <aside aria-label="Widget Sampingan">
-                    <Card title="Aktivitas Terkini">
-                        {loading ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} aria-busy="true">
-                                <div className="skeleton-text w-full" style={{ height: '40px' }}></div>
-                                <div className="skeleton-text w-full" style={{ height: '40px' }}></div>
-                            </div>
-                        ) : activities.length === 0 ? (
-                            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', textAlign: 'center', padding: '12px 0' }}>
-                                Belum ada aktivitas tercatat.
-                            </p>
-                        ) : (
-                            <div>
-                                {activities.slice(0,5).map((act) => (
-                                    <ActivityItem
-                                        key={act.id}
-                                        icon={act.icon}
-                                        text={act.text}
-                                        subtext={act.subtext}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                        <button 
-                            className="btn btn-ghost w-full" 
-                            style={{ marginTop: '8px', justifyContent: 'center' }}
-                            onClick={() => navigate('/manager/activities')}
-                        >
-                            Lihat Semua Aktivitas
-                        </button>
-                    </Card>
-                </aside>
-            </div>
+          <h1 className="page-title">Dashboard Manajer</h1>
+          <p className="page-subtitle">Ringkasan operasional dan evaluasi kegiatan lahan kelolaan.</p>
         </div>
-    );
+        <button
+          className="btn btn-ghost"
+          onClick={() => navigate('/manager/profile')}
+          aria-label="Pengaturan profil"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>settings</span>
+          Pengaturan
+        </button>
+      </header>
+
+      {/* METRICS 2x2 GRID */}
+      <section aria-label="Metrik Utama" style={{ marginBottom: 'var(--space-lg)' }}>
+        <div className="stats-grid-2x2">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
+          ) : (
+            <>
+              {/* Kartu 1: Serapan Karbon — data dari EsgMetric.carbon_footprint (hanya tampil jika data tersedia) */}
+              {totalCarbonTon !== null && (
+                <StatCard
+                  title="SERAPAN KARBON"
+                  headerUnit="(TON CO2e)"
+                  value={totalCarbonTon}
+                  badgeText="Biomassa Lahan Aktif"
+                  icon={TreePine}
+                />
+              )}
+
+              {/* Kartu 2: Nilai Ekonomi — data dari FinancialRecord.estimated_revenue */}
+              <StatCard
+                title="ESTIMASI NILAI EKONOMI (IDR)"
+                value={formatCurrency(totalRevenue) ?? '-'}
+                icon={Coins}
+                silhouetteColor="var(--color-dark-amber)"
+              />
+
+              {/* Kartu 3: Lahan & Petani — data dari Farm.count + Farmer.count */}
+              <StatCard
+                title="LAHAN & PETANI"
+                value={totalFarms !== null ? totalFarms : '-'}
+                inlineUnit="Lahan Terdaftar"
+                badgeText={totalFarmers !== null ? `${totalFarmers} Petani Terdaftar` : null}
+                badgeType="success"
+                icon={Users}
+              />
+
+              {/* Kartu 4: Luas Lahan & Komoditas — data dari Farm.total_area_ha + Farm.crop_variety */}
+              <StatCard
+                title="TOTAL LUAS LAHAN"
+                headerUnit="(HA)"
+                value={totalAreaHa !== null ? totalAreaHa : '-'}
+                badgeText={primaryCommodity ? `Komoditas: ${primaryCommodity}` : null}
+                badgeType="success"
+                icon={Maximize2}
+              />
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* DAFTAR LAHAN PROJECT */}
+      <section aria-label="Daftar Lahan Project">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-main)', margin: '0 0 2px 0' }}>
+              Daftar Lahan Project
+            </h2>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
+              {farms.length > 0 ? `${farms.length} lahan dalam pengelolaan` : 'Belum ada lahan terdaftar'}
+            </p>
+          </div>
+          {farms.length > 0 && (
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => navigate('/manager/farm-management')}
+            >
+              Lihat Semua
+              <ArrowRight size={14} />
+            </button>
+          )}
+        </div>
+
+        {loading ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+            <FarmCardSkeleton />
+            <FarmCardSkeleton />
+            <FarmCardSkeleton />
+          </div>
+        ) : farms.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+            {farms.map(farm => (
+              <FarmCard
+                key={farm.id}
+                farm={farm}
+                onManage={handleManageFarm}
+                onAgronomy={handleAgronomy}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <div role="status" style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '36px', color: 'var(--color-text-muted)', display: 'block', marginBottom: '12px' }}>landscape</span>
+              <p style={{ fontWeight: 600, color: 'var(--color-text-main)', margin: '0 0 4px 0' }}>Belum ada lahan terdaftar</p>
+              <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>Lahan yang Anda kelola akan muncul di sini.</p>
+            </div>
+          </Card>
+        )}
+      </section>
+    </div>
+  );
 };
 
 export default ManagerDashboard;

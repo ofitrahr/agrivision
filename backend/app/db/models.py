@@ -173,10 +173,7 @@ class FarmCrop(db.Model):
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id', ondelete='CASCADE'), nullable=False)
     crop_type = db.Column(db.String(100), nullable=False)
-    variety = db.Column(db.String(255))
-    planting_date = db.Column(db.Date)
-    area_ha = db.Column(db.Numeric(10, 2))
-    status = db.Column(db.String(20), nullable=False, default='active')
+    area_ha = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 class Farmer(db.Model):
@@ -219,6 +216,18 @@ class GisLayer(db.Model):
     unit = db.Column(db.String(20))
     is_anomaly = db.Column(db.Boolean, nullable=False, default=False)
     source = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+class SensorData(db.Model):
+    __tablename__ = 'sensor_data'
+    
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id', ondelete='CASCADE'), nullable=False)
+    period = db.Column(db.String(50), nullable=False)
+    ph = db.Column(db.Numeric(5, 2))
+    temperature = db.Column(db.Numeric(5, 2))
+    ec = db.Column(db.Numeric(8, 2))
+    humidity = db.Column(db.Numeric(5, 2))
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 class TraceTemplate(db.Model):
@@ -362,6 +371,7 @@ class ActivityLog(db.Model):
     details = db.Column(db.Text)
     ip_address = db.Column(db.String(45))
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
 
 
 # =======================================================================
@@ -641,3 +651,31 @@ class ProjectSdgVerification(db.Model):
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     project_traceability = db.relationship('ProjectTraceabilityProfile', backref=db.backref('sdg_verification', uselist=False))
+
+
+class RecentActivity(db.Model):
+    __tablename__ = 'recent_activities'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    image_path = db.Column(db.String(500), nullable=True)
+    activity_date = db.Column(db.Date, nullable=False)
+    display_order = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class DocumentReport(db.Model):
+    __tablename__ = 'document_reports'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('companies.id', ondelete='CASCADE'), nullable=False)
+    farm_id = db.Column(UUID(as_uuid=True), db.ForeignKey('farms.id', ondelete='SET NULL'), nullable=True)
+    title = db.Column(db.String(255), nullable=False)
+    report_type = db.Column(db.String(50), nullable=False)
+    farm_name = db.Column(db.String(255))
+    period = db.Column(db.String(50))
+    format = db.Column(db.String(10), nullable=False, default='pdf')
+    status = db.Column(db.String(20), nullable=False, default='available')
+    file_url = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)

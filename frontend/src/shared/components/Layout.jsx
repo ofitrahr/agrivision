@@ -1,36 +1,54 @@
-import React, { useContext, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import React, { useContext, useState, useEffect } from 'react';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../features/auth/AuthContext';
 
-const Sidebar = ({ role, user }) => {
+const Sidebar = ({ role, user, onToggleSidebar }) => {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const adminLinks = [
-    { to: '/admin/dashboard', icon: 'dashboard', label: 'Platform Overview' },
-    { to: '/admin/companies', icon: 'business', label: 'Daftar Klien' },
-    { to: '/admin/gis', icon: 'map', label: 'GIS & Pemetaan' },
-    { to: '/admin/traceability', icon: 'qr_code_scanner', label: 'Traceability' },
+  const adminSections = [
+    {
+      label: 'Menu Utama',
+      links: [
+        { to: '/admin/dashboard', icon: 'dashboard', label: 'Platform Overview' },
+        { to: '/admin/companies', icon: 'business', label: 'Daftar Klien' },
+        { to: '/admin/gis', icon: 'map', label: 'GIS & Pemetaan' },
+        { to: '/admin/traceability', icon: 'qr_code_scanner', label: 'Traceability' },
+        { to: '/admin/recent-activities', icon: 'campaign', label: 'Aktivitas' },
+      ],
+    },
   ];
 
-  const managerLinks = [
-    { to: '/manager/dashboard', icon: 'dashboard', label: 'Dashboard' },
-    { to: '/manager/farmers', icon: 'group', label: 'Data Petani' },
-    { to: '/manager/farm-management', icon: 'landscape', label: 'Manajemen Lahan' },
-    { to: '/manager/agronomy', icon: 'eco', label: 'Agronomi' },
-    { to: '/manager/economics', icon: 'payments', label: 'Ekonomi' },
-    { to: '/manager/traceability', icon: 'verified', label: 'Traceability' },
-  ];
-  
-  const boardLinks = [
-    { to: '/board/dashboard', icon: 'analytics', label: 'Dashboard Eksekutif' },
+  const managerSections = [
+    {
+      label: 'Operasional Lapangan',
+      links: [
+        { to: '/manager/dashboard', icon: 'dashboard', label: 'Dashboard' },
+        { to: '/manager/farm-management', icon: 'landscape', label: 'Manajemen Lahan' },
+        { to: '/manager/farmers', icon: 'group', label: 'Data Petani' },
+      ],
+    },
+    {
+      label: 'Monitoring & Analitik',
+      links: [
+        { to: '/manager/agronomy', icon: 'eco', label: 'Index Observasi' },
+        { to: '/manager/economics', icon: 'payments', label: 'Ekonomi & Laporan' },
+        { to: '/manager/traceability', icon: 'verified', label: 'Traceability' },
+      ],
+    },
   ];
 
-  let links = [];
-  if (role === 'super_admin') links = adminLinks;
-  else if (role === 'manager') links = managerLinks;
-  else if (role === 'board') links = boardLinks;
+  const boardSections = [
+    {
+      label: 'Menu Utama',
+      links: [
+        { to: '/board/dashboard', icon: 'analytics', label: 'Dashboard Eksekutif' },
+      ],
+    },
+  ];
+
+  const sections = role === 'super_admin' ? adminSections : (role === 'manager' ? managerSections : boardSections);
 
   const roleLabel = role === 'super_admin' ? 'Super Admin' : (role === 'manager' ? 'Manager' : 'Board');
 
@@ -48,52 +66,76 @@ const Sidebar = ({ role, user }) => {
   return (
     <>
       <aside className="sidebar">
-        <div className="sidebar-brand" style={{ justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div className="sidebar-logo">
-              <img src="/assets/images/logo_icon.png" alt="Agrivision Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <div className="sidebar-brand">
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', flex: 1, minWidth: 0 }}>
+            <img 
+              src="/assets/images/logo_icon.png" 
+              alt="Agrivision Logo" 
+              className="sidebar-logo-icon" 
+            />
+            <div className="sidebar-brand-text">
+              <span className="sidebar-brand-title">
+                <span className="brand-agri">Agri</span><span className="brand-vision">vision</span>
+              </span>
+              <span className="sidebar-brand-tagline">See • Regenerate • Prosper</span>
             </div>
-            <div>
-              <div className="sidebar-brand-name">Agrivision</div>
+          </Link>
+          <div className="tooltip-wrapper">
+            <button 
+              className="sidebar-collapse-btn" 
+              onClick={onToggleSidebar}
+              aria-label="Sembunyikan Sidebar"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" />
+                <path d="M9 3v18" className="panel-split-line" />
+              </svg>
+            </button>
+            <div className="custom-tooltip custom-tooltip-bottom">
+              <span>Tutup Sidebar</span>
             </div>
           </div>
         </div>
 
         <nav className="sidebar-nav">
-          <div className="sidebar-section-label">Menu Utama</div>
-          {links.map((link) => (
-            <NavLink 
-              key={link.to} 
-              to={link.to} 
-              className={({isActive}) => isActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'}
-            >
-              <span className="material-symbols-outlined">{link.icon}</span>
-              {link.label}
-            </NavLink>
+          {sections.map((section, idx) => (
+            <div key={idx} style={{ marginBottom: '16px' }}>
+              <div className="sidebar-section-label">{section.label}</div>
+              {section.links.map((link) => (
+                <NavLink 
+                  key={link.to} 
+                  to={link.to} 
+                  className={({isActive}) => isActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'}
+                >
+                  <span className="material-symbols-outlined">{link.icon}</span>
+                  {link.label}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
 
-
-
         <div className="sidebar-footer">
-          <div className="sidebar-user">
-            <div className="sidebar-avatar">
-              {(user?.full_name || user?.user || 'U').charAt(0).toUpperCase()}
+          <div className="sidebar-footer-card">
+            <div className="sidebar-user">
+              <div className="sidebar-avatar">
+                {(user?.full_name || user?.user || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="sidebar-user-name">{user?.full_name || user?.user || 'Pengguna'}</div>
+                <div className="sidebar-user-role">{roleLabel}</div>
+              </div>
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="sidebar-user-name">{user?.full_name || user?.user || 'Pengguna'}</div>
-              <div className="sidebar-user-role">{roleLabel}</div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="sidebar-footer-btn" onClick={() => navigate(profilePath)} title="Profil">
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person</span>
+                Profil
+              </button>
+              <button className="sidebar-footer-btn sidebar-footer-btn-danger" onClick={() => setShowLogoutConfirm(true)} title="Keluar">
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
+                Keluar
+              </button>
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="sidebar-footer-btn" onClick={() => navigate(profilePath)} title="Profil">
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person</span>
-              Profil
-            </button>
-            <button className="sidebar-footer-btn sidebar-footer-btn-danger" onClick={() => setShowLogoutConfirm(true)} title="Keluar">
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>logout</span>
-              Keluar
-            </button>
           </div>
         </div>
       </aside>
@@ -126,6 +168,13 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
 
+  const ROLE_HISTORY_PATHS = {
+    super_admin: '/admin/activities',
+    manager: '/manager/activities',
+  };
+
+  const historyPath = ROLE_HISTORY_PATHS[user.role] ?? null;
+
   const profilePath = user?.role === 'super_admin'
     ? '/admin/profile'
     : user?.role === 'manager'
@@ -147,38 +196,57 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
   return (
     <>
       <header className="topnav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button 
-            className="topnav-toggle-btn"
-            onClick={onToggleSidebar}
-            title={isSidebarOpen ? "Sembunyikan Sidebar" : "Tampilkan Sidebar"}
-            aria-label="Toggle Sidebar"
-          >
-            <span className="material-symbols-outlined">menu</span>
-          </button>
-          <div className="search-input-wrap">
-            <span className="material-symbols-outlined">search</span>
-            <input type="text" className="search-input" placeholder="Cari data..." aria-label="Pencarian global" />
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {!isSidebarOpen && (
+            <div className="tooltip-wrapper">
+              <button 
+                className="topnav-toggle-btn"
+                onClick={onToggleSidebar}
+                aria-label="Tampilkan Sidebar"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2" />
+                  <path d="M9 3v18" className="panel-split-line" />
+                </svg>
+              </button>
+              <div className="custom-tooltip custom-tooltip-right">
+                <span>Buka Sidebar</span>
+              </div>
+            </div>
+          )}
         </div>
         <div className="topnav-actions" style={{ position: 'relative' }}>
 
 
           {/* Tombol Notifikasi */}
-          <button 
-            className="topnav-icon-btn" 
-            title="Notifikasi" 
-            aria-label="Notifikasi"
-            onClick={() => setShowNotifications(!showNotifications)}
-            style={{ position: 'relative' }}
-          >
-            <span className="material-symbols-outlined">notifications</span>
-            <span style={{
-              position: 'absolute', top: '2px', right: '2px', width: '8px', height: '8px',
-              borderRadius: '50%', background: 'var(--color-main-gold)'
-            }} />
-          </button>
+          {user?.role !== 'super_admin' && user?.role !== 'board' && (
+            <button 
+              className="topnav-icon-btn" 
+              title="Notifikasi" 
+              aria-label="Notifikasi"
+              onClick={() => setShowNotifications(!showNotifications)}
+              style={{ position: 'relative' }}
+            >
+              <span className="material-symbols-outlined">notifications</span>
+              <span style={{
+                position: 'absolute', top: '2px', right: '2px', width: '8px', height: '8px',
+                borderRadius: '50%', background: 'var(--color-main-gold)'
+              }} />
+            </button>
+          )}
 
+          {/* Tombol Histori Aktivitas */}
+          {user?.role !== 'board' && 
+            <button 
+              className="topnav-icon-btn" 
+              title="Hitori Aktivitas" 
+              aria-label="Histori"
+              onClick={() => navigate(historyPath)}
+            >
+              <span className="material-symbols-outlined">history</span>
+            </button>
+          }
+          
           {/* Tombol Pengaturan */}
           <button 
             className="topnav-icon-btn" 
@@ -199,7 +267,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
             {(user?.full_name || user?.user || user?.username || 'U').charAt(0).toUpperCase()}
           </div>
           {/* Dropdown Notifikasi */}
-          {showNotifications && (
+          { user?.role !== 'super_admin' && user?.role !== 'board' && showNotifications && (
             <div style={{
               position: 'absolute', top: '48px', right: '0', width: '320px',
               background: 'var(--color-surface-white)', border: '1px solid var(--color-border-muted)',
@@ -254,9 +322,9 @@ const Layout = () => {
   
   return (
     <div className={`app-layout ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-      <Sidebar role={user?.role || 'guest'} user={user} />
-      <Header onToggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
+      <Sidebar role={user?.role || 'guest'} user={user} onToggleSidebar={toggleSidebar} />
       <main className="main-content">
+        <Header onToggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
         <Outlet />
       </main>
     </div>

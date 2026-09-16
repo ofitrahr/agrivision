@@ -1,23 +1,23 @@
 /* --- CSS VARIABLES --- */
 :root {
-  --green-dark:    #053B26;
-  --green-mid:     #004D40;
-  --green-light:   #1B5E20;
-  --green-accent:  #7ED957;
-  --green-pale:    #CFFFD0;
-  --bg-light:      #F4F7F6;
-  --bg-white:      #FFFFFF;
-  --text-dark:     #2E3D3A;
-  --text-muted:    #555555;
-  --shadow-sm:     0 2px 8px rgba(0,0,0,0.08);
-  --shadow-md:     0 4px 16px rgba(0,0,0,0.12);
-  --shadow-lg:     0 8px 32px rgba(0,0,0,0.16);
-  --radius-sm:     8px;
-  --radius-md:     12px;
-  --radius-lg:     20px;
-  --font-display:  'Playfair Display', Georgia, serif;
-  --font-body:     'DM Sans', Arial, sans-serif;
-  --transition:    0.25s ease;
+  --green-dark:    var(--color-primary);
+  --green-mid:     var(--color-primary-container);
+  --green-light:   var(--color-main-green);
+  --green-accent:  var(--color-main-gold);
+  --green-pale:    var(--color-pale-mint);
+  --bg-light:      var(--color-surface);
+  --bg-white:      var(--color-surface-white);
+  --text-dark:     var(--color-indigo);
+  --text-muted:    var(--color-medium-gray);
+  --shadow-sm:     var(--shadow-elevated);
+  --shadow-md:     0 4px 16px rgba(5, 59, 38, 0.08);
+  --shadow-lg:     0 8px 32px rgba(5, 59, 38, 0.12);
+  --radius-sm:     var(--radius-sm);
+  --radius-md:     var(--radius-md);
+  --radius-lg:     var(--radius-lg);
+  --font-display:  var(--font-display);
+  --font-body:     var(--font-body);
+  --transition:    var(--transition);
 }
 
 /* --- RESET & BASE --- */

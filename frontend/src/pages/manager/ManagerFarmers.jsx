@@ -5,6 +5,8 @@ import {
   ChevronRight, Plus, Phone, Pencil, Trash2,
   X, Camera, AlertTriangle, UserCheck
 } from 'lucide-react';
+import InputNumber from '../../shared/components/UI/InputNumber';
+
 
 const ManagerFarmers = () => {
     const [farmers, setFarmers] = useState([]);
@@ -152,18 +154,13 @@ const ManagerFarmers = () => {
     return (
         <div>
             {/* Header Navigation & Page Title */}
-            <div className="page-header" style={{ marginBottom: 24 }}>
+            <div className="page-header">
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#6C757D', marginBottom: 8 }}>
-                        <span>Dashboard</span>
-                        <ChevronRight size={14} />
-                        <span style={{ color: '#012d1d' }}>Data Petani</span>
-                    </div>
-                    <h1 className="page-title" style={{ margin: '0 0 8px 0' }}>Daftar Petani (Pekerja)</h1>
-                    <p className="page-description">Kelola profil pekerja dan penugasan petani di kebun Anda.</p>
+                    <h1 className="page-title">Daftar Petani (Pekerja)</h1>
+                    <p className="page-subtitle">Kelola profil pekerja dan penugasan petani di kebun Anda.</p>
                 </div>
                 <div>
-                    <button className="primary-btn" onClick={handleOpenAddModal} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button className="btn btn-primary" onClick={handleOpenAddModal} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Plus size={18} />
                         Tambah Pekerja Baru
                     </button>
@@ -337,13 +334,22 @@ const ManagerFarmers = () => {
                                         <input
                                             type="text"
                                             value={formData.phone}
+                                            onKeyDown={(e) => {
+                                                const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'];
+                                                if (!allowedKeys.includes(e.key) && !/^[0-9]$/.test(e.key)) {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            onInput={(e) => {
+                                                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                                            }}
                                             onChange={e => setFormData({ ...formData, phone: e.target.value })}
                                             style={{
                                                 width: '100%', padding: '10px 14px', border: '1px solid #E0EBE4',
                                                 borderRadius: 8, fontSize: 14, color: '#191c1d', outline: 'none',
                                                 boxSizing: 'border-box', fontFamily: 'inherit'
                                             }}
-                                            placeholder="0812-3456-7890"
+                                            placeholder="081234567890"
                                         />
                                     </div>
 
@@ -389,6 +395,7 @@ const ManagerFarmers = () => {
                                         </label>
                                         <input
                                             type="number"
+                                            min="0"
                                             value={formData.join_year}
                                             onChange={e => setFormData({ ...formData, join_year: e.target.value })}
                                             style={{

@@ -31,4 +31,7 @@ def create_app():
     from app.api.routes.assessment_routes import assessment_bp
     app.register_blueprint(assessment_bp, url_prefix='/api/assessment')
 
+    from app.api.routes.public_routes import public_bp
+    app.register_blueprint(public_bp, url_prefix='/api/public')
+
     return app
