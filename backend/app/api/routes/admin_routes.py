@@ -280,11 +280,27 @@ def create_farm(current_user):
         else:
             raise Exception("Tipe geometri tidak didukung. Harap gunakan Polygon atau MultiPolygon.")
 
+        user_area = data.get('total_area_ha')
+        try:
+            area_val = float(user_area) if user_area is not None and str(user_area).strip() != '' else 0.0
+        except (ValueError, TypeError):
+            area_val = 0.0
+
+        # Jika luas lahan kosong atau 0, hitung otomatis secara presisi dari geometri PostGIS
+        if area_val <= 0:
+            from sqlalchemy import text
+            clean_wkt = wkt_geom.replace("SRID=4326;", "")
+            calc_area = db.session.scalar(
+                text("SELECT ST_Area(ST_GeomFromText(:wkt, 4326)::geography) / 10000;"),
+                {"wkt": clean_wkt}
+            )
+            area_val = round(float(calc_area), 2) if calc_area else 0.0
+
         new_farm = Farm(
             project_id=data.get('project_id'),
             name=data.get('name'),
             crop_variety=data.get('crop_variety'),
-            total_area_ha=data.get('total_area_ha') or 0,
+            total_area_ha=area_val,
             boundary=wkt_geom,
             created_by=current_user.id
         )
@@ -448,6 +464,21 @@ def get_admin_farm_map(current_user, farm_id):
         }), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/farms/<farm_id>/run-observation', methods=['POST'])
+@token_required
+@role_required('super_admin')
+def run_farm_observation(current_user, farm_id):
+    from app.services.agronomy_pipeline_service import AgronomyPipelineService
+    data = request.json or {}
+    period = data.get('period', 'Q1_2026')
+
+    try:
+        result = AgronomyPipelineService.run_soc_prediction_for_farm(farm_id, period=period)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
 
 
 @admin_bp.route('/activities', methods=['GET'])

@@ -1,3 +1,4 @@
+import json
 import folium
 from folium.plugins import Draw
 
@@ -213,29 +214,47 @@ class GISService:
         if has_access:
             if sample_points:
                 from folium.plugins import HeatMap
-                heat_data = [[point['lat'], point['lon'], float(point['value'])] for point in sample_points]
+
+                vals = [float(p['value']) for p in sample_points if p.get('value') is not None]
+                min_v = min(vals) if vals else 0.0
+                max_v = max(vals) if vals else 100.0
+                val_range = (max_v - min_v) if (max_v - min_v) > 1e-6 else 1.0
+
+                # Normalisasi bobot intensitas 0.2 - 1.0 agar warna terdistribusi tajam dan kontras
+                heat_data = [
+                    [
+                        point['lat'],
+                        point['lon'],
+                        0.2 + 0.8 * ((float(point['value']) - min_v) / val_range)
+                    ]
+                    for point in sample_points
+                    if point.get('value') is not None
+                ]
                 
                 gradients = {
-                    'ndvi': {0.4: '#ef4444', 0.65: '#f59e0b', 1.0: '#10b981'},
-                    'soc': {0.3: '#deb887', 0.6: '#cd853f', 1.0: '#8b5a2b'},
-                    'biomass': {0.4: '#90ee90', 0.7: '#32cd32', 1.0: '#228b22'},
-                    'yield': {0.4: '#ffeda0', 0.7: '#f03b20', 1.0: '#feb24c'},
-                    'soilnpk': {0.4: '#ece2f0', 0.7: '#a6bddb', 1.0: '#1c9099'},
-                    'nitrogen': {0.4: '#ece2f0', 0.7: '#a6bddb', 1.0: '#1c9099'},
-                    'phosphorus': {0.4: '#ece2f0', 0.7: '#a6bddb', 1.0: '#1c9099'},
-                    'potassium': {0.4: '#ece2f0', 0.7: '#a6bddb', 1.0: '#1c9099'},
+                    'ndvi': {0.2: '#ef4444', 0.5: '#f59e0b', 0.75: '#10b981', 1.0: '#047857'},
+                    'soc': {0.2: '#deb887', 0.5: '#cd853f', 0.75: '#8b5a2b', 1.0: '#4a2810'},
+                    'biomass': {0.2: '#90ee90', 0.5: '#32cd32', 0.75: '#228b22', 1.0: '#145214'},
+                    'yield': {0.2: '#ffeda0', 0.5: '#feb24c', 0.75: '#f03b20', 1.0: '#bd0026'},
+                    'soilnpk': {0.2: '#ece2f0', 0.5: '#a6bddb', 0.75: '#1c9099', 1.0: '#016450'},
+                    'nitrogen': {0.2: '#ece2f0', 0.5: '#a6bddb', 0.75: '#1c9099', 1.0: '#016450'},
+                    'phosphorus': {0.2: '#ece2f0', 0.5: '#a6bddb', 0.75: '#1c9099', 1.0: '#016450'},
+                    'potassium': {0.2: '#ece2f0', 0.5: '#a6bddb', 0.75: '#1c9099', 1.0: '#016450'},
                 }
-                gradient = gradients.get(layer_type, {0.4: 'blue', 0.65: 'lime', 1.0: 'red'})
+                gradient = gradients.get(layer_type, {0.2: 'blue', 0.6: 'lime', 1.0: 'red'})
                 
+                # Radius 55 dan blur 35 dengan min_opacity 0.25 untuk blending halus tanpa tepi cincin tajam
                 HeatMap(
                     heat_data,
-                    min_opacity=0.4,
-                    radius=25,
-                    blur=15,
+                    min_opacity=0.25,
+                    radius=55,
+                    blur=35,
                     gradient=gradient
                 ).add_to(m)
 
+                unit_label = 'Ton C/Ha' if layer_type == 'soc' else ('Ton/Ha' if layer_type == 'yield' else ('kg/Ha' if 'n' in layer_type else ''))
                 for point in sample_points:
+                    val_display = f"{point['value']:.2f}" if isinstance(point.get('value'), (int, float)) else point.get('value')
                     folium.CircleMarker(
                         location=[point['lat'], point['lon']],
                         radius=15,
@@ -245,7 +264,7 @@ class GISService:
                         fill_color='transparent',
                         fill_opacity=0,
                         opacity=0,
-                        tooltip=f"<b>{layer_type.upper()}:</b> {point['value']}"
+                        tooltip=f"<b>{layer_type.upper()}:</b> {val_display} {unit_label}".strip()
                     ).add_to(m)
             else:
                 import random
@@ -306,33 +325,56 @@ class GISService:
             legend_html = GISService._build_legend_html(layer_type)
             m.get_root().html.add_child(folium.Element(legend_html))
 
-        js_code = """
+        ref_pts_json = json.dumps([[p['lat'], p['lon']] for p in sample_points[:2]]) if (sample_points and len(sample_points) >= 2) else "[]"
+        js_code = f"""
         <script>
-            setTimeout(function() {
+            setTimeout(function() {{
                 var mapInstance = null;
-                for (var key in window) {
-                    if (key.startsWith('map_')) {
+                var heatLayer = null;
+                for (var key in window) {{
+                    if (key.startsWith('map_')) {{
                         mapInstance = window[key];
-                        break;
-                    }
-                }
+                    }}
+                    if (key.startsWith('heat_map_')) {{
+                        heatLayer = window[key];
+                    }}
+                }}
                 
-                if (mapInstance) {
-                    window.addEventListener('message', function(event) {
-                        if (event.data && event.data.type === 'SET_LAYER_OPACITY') {
+                if (mapInstance) {{
+                    var refPts = {ref_pts_json};
+                    function updateHeatScale() {{
+                        if (heatLayer && refPts && refPts.length >= 2) {{
+                            var p1 = mapInstance.latLngToContainerPoint(refPts[0]);
+                            var p2 = mapInstance.latLngToContainerPoint(refPts[1]);
+                            var dist = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+                            if (dist > 5) {{
+                                var newR = Math.max(35, Math.round(dist * 0.95));
+                                var newB = Math.max(20, Math.round(newR * 0.6));
+                                heatLayer.setOptions({{ radius: newR, blur: newB }});
+                            }}
+                        }}
+                    }}
+                    mapInstance.on('zoomend', updateHeatScale);
+                    setTimeout(updateHeatScale, 250);
+
+                    window.addEventListener('message', function(event) {{
+                        if (event.data && event.data.type === 'SET_LAYER_OPACITY') {{
                             var targetOpacity = event.data.opacity / 100;
-                            mapInstance.eachLayer(function(layer) {
-                                if (layer.setStyle && typeof layer.setStyle === 'function') {
-                                    layer.setStyle({
+                            mapInstance.eachLayer(function(layer) {{
+                                if (layer.setStyle && typeof layer.setStyle === 'function') {{
+                                    layer.setStyle({{
                                         fillOpacity: targetOpacity * 0.7,
                                         opacity: targetOpacity
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
-            }, 500);
+                                    }});
+                                }}
+                                if (layer._canvas) {{
+                                    layer._canvas.style.opacity = targetOpacity;
+                                }}
+                            }});
+                        }}
+                    }});
+                }}
+            }}, 300);
         </script>
         """
         m.get_root().html.add_child(folium.Element(js_code))

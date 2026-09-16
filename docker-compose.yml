@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
 
   minio:
-    image: minio/minio
+    image: quay.io/minio/minio
     container_name: agrivision_minio
     command: server /data --console-address ":9001"
     environment:
@@ -41,14 +41,17 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-admin_utama}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-password_sangat_kuat_32karakter}
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-agrivision-uploads}
+      - GEE_SERVICE_ACCOUNT_B64=${GEE_SERVICE_ACCOUNT_B64}
     ports:
       - "8000:8000"
     depends_on:
       - db
       - minio
     volumes:
-      - ./backend/uploads:/app/uploads
+      - ./backend:/app:z
+      - ./backend/uploads:/app/uploads:z
     restart: unless-stopped
+
 
   frontend:
     build: ./frontend

@@ -340,10 +340,11 @@ const ManagerEconomics = () => {
 
     const typeNames = {
       comprehensive: 'Laporan Lengkap Komprehensif',
-      agronomy: 'Laporan Indeks Observasi & Kesehatan Tanaman',
+      agronomy: 'Laporan Kesehatan Tanah & Nutrisi',
       carbon: 'Laporan Neraca Karbon & MRV',
       finance: 'Laporan Produktivitas & Finansial Panen',
       traceability: 'Laporan Traceability & Keterlacakan',
+      social: 'Laporan Sosial & Pemberdayaan',
     };
 
     const isAllFarms = reportFarm.includes('all') || reportFarm.length === 0;
@@ -377,10 +378,12 @@ const ManagerEconomics = () => {
       if (response.data.success) {
         setRecentReports((prev) => [response.data.data, ...prev]);
         setShowGenerateModal(false);
-        alert(`Berhasil membuat dokumen: ${response.data.data.title} (${response.data.data.format})`);
+        // Otomatis unduh file yang baru saja di-generate
+        handleDownload(response.data.data);
       }
     } catch (error) {
-      alert('Gagal membuat laporan.');
+      const msg = error.response?.data?.message || 'Gagal membuat laporan.';
+      alert(`Gagal membuat laporan: ${msg}`);
       console.error('Error generate report:', error);
     } finally {
       setGenerating(false);
@@ -388,7 +391,33 @@ const ManagerEconomics = () => {
   };
 
   const handleDownload = (report) => {
-    alert(`Mengunduh dokumen: ${report.title} [${report.format}]`);
+    const token = localStorage.getItem('token'); 
+    
+    fetch(`${api.defaults.baseURL || 'http://localhost:5000/api'}/manager/reports/${report.id}/download`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Gagal mengunduh');
+      return response.blob();
+    })
+    .then(blob => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const fileExt = (report.format || 'pdf').toLowerCase();
+      a.download = `${(report.title || 'Laporan').replace(/\s+/g, '_')}.${fileExt}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Terjadi kesalahan saat mengunduh dokumen.');
+    });
   };
 
   // Metrik Lahan & Observasi
@@ -784,7 +813,7 @@ const ManagerEconomics = () => {
                           textAlign: 'center'
                         }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Nitrogen (N)</div>
-                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '2px' }}>{nValue}%</div>
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '2px' }}>{nValue} mg/kg</div>
                         </div>
                         <div style={{
                           background: 'var(--color-surface-container-low)',
@@ -794,7 +823,7 @@ const ManagerEconomics = () => {
                           textAlign: 'center'
                         }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Fosfor (P)</div>
-                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '2px' }}>{pValue}%</div>
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '2px' }}>{pValue} mg/kg</div>
                         </div>
                         <div style={{
                           background: 'var(--color-surface-container-low)',
@@ -804,7 +833,7 @@ const ManagerEconomics = () => {
                           textAlign: 'center'
                         }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Kalium (K)</div>
-                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '2px' }}>{kValue}%</div>
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '2px' }}>{kValue} mg/kg</div>
                         </div>
                       </div>
                     </div>
@@ -1339,10 +1368,11 @@ const ManagerEconomics = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {[
                     { id: 'comprehensive', title: 'Laporan Lengkap Komprehensif', desc: 'Mencakup seluruh metrik agronomi, neraca karbon, dan finansial.' },
-                    { id: 'agronomy', title: 'Laporan Observasi & Kesehatan Tanaman', desc: 'Indeks vegetasi (NDVI) dan nutrisi tanah NPK.' },
+                    { id: 'agronomy', title: 'Laporan Kesehatan Tanah & Nutrisi', desc: 'Analisis profil nutrisi tanah (NPK), pH, mikroklimat, dan kesehatan tanaman.' },
                     { id: 'carbon', title: 'Laporan Neraca Karbon & MRV', desc: 'Penyerapan karbon tanah (SOC) dan biomassa.' },
                     { id: 'finance', title: 'Laporan Produktivitas & Keuangan', desc: 'Hasil panen, biaya operasional, dan laba/rugi.' },
                     { id: 'traceability', title: 'Laporan Traceability & Keterlacakan', desc: 'Data jejak asal usul komoditas dan petani.' },
+                    { id: 'social', title: 'Laporan Sosial & Pemberdayaan', desc: 'Sebaran demografi dan pemberdayaan petani.' },
                   ].map((opt) => {
                     const isSelected = reportType.includes(opt.id);
                     return (
@@ -1494,7 +1524,6 @@ const ManagerEconomics = () => {
                     gap: '6px'
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>magic_button</span>
                   {generating ? 'Memproses...' : 'Render & Unduh Laporan'}
                 </button>
               </div>

@@ -144,6 +144,7 @@ class Farm(db.Model):
     
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('projects.id', ondelete='CASCADE'), nullable=False)
+    location = db.Column(db.String(255))
     name = db.Column(db.String(255), nullable=False)
     crop_variety = db.Column(db.String(255))
     total_area_ha = db.Column(db.Numeric(10, 2))

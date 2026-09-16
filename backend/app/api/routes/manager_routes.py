@@ -1,8 +1,12 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file, current_app
+import os
+import base64
+from datetime import datetime
 from app.core.security import token_required, role_required
 from app.services.upload_service import save_file_locally
 from app.db.models import Company, Farm, Farmer
 from app.db.database import db
+from app.services.report_service import ReportService
 
 manager_bp = Blueprint('manager_bp', __name__)
 
@@ -59,8 +63,6 @@ def get_manager_stats(current_user):
         FinancialRecord.farm_id.in_(farm_ids_list)
     ).group_by(FinancialRecord.period).order_by(FinancialRecord.period).all()
     revenue_trend = [float(r.revenue or 0) for r in revenue_trend_rows]
-
-    # Tren jumlah lahan per periode tidak ada di DB, skip
 
     # Serapan karbon (carbon_footprint) dari EsgMetric
     carbon_total = db.session.query(
@@ -340,6 +342,7 @@ def manager_farms(current_user):
         data.append({
             'id': f.id,
             'name': f.name,
+            'location': f.location or (current_user.project.location if current_user.project else '-'),
             'project_name': current_user.project.name if current_user.project else '-',
             'crop_variety': f.crop_variety,
             'farmers': [farmer.name for farmer in farm_farmers],
@@ -383,6 +386,7 @@ def manager_farm_details(current_user, farm_id):
         'data': {
             'id': farm.id,
             'name': farm.name,
+            'location': farm.location or '',
             'total_area_ha': float(farm.total_area_ha) if farm.total_area_ha else 0,
             'crop_variety': farm.crop_variety or '',
             'altitude': farm.altitude or '',
@@ -418,6 +422,8 @@ def manager_update_farm_details(current_user, farm_id):
 
         if 'name' in data and data['name']:
             farm.name = data['name']
+        if 'location' in data['name']:
+            farm.location = data['location']
         if 'crop_variety' in data:
             farm.crop_variety = data['crop_variety']
         if 'altitude' in data:
@@ -427,7 +433,7 @@ def manager_update_farm_details(current_user, farm_id):
         
         farmer_ids = data.get('farmer_ids', [])
         
-        # Parse crops (supports array of objects [{crop_type, area_ha}] or array of strings)
+        # Parse crops 
         raw_crops = data.get('crops', [])
         if not raw_crops and 'crop_types' in data:
             raw_crops = [{'crop_type': ct, 'area_ha': 0.0} for ct in data.get('crop_types', [])]
@@ -1057,9 +1063,17 @@ def manager_reports(current_user):
         if not title:
             return jsonify({'success': False, 'message': 'Judul laporan wajib diisi'}), 400
 
+        import uuid as uuid_pkg
+        valid_farm_uuid = None
+        if farm_id and farm_id != 'all' and ',' not in str(farm_id):
+            try:
+                valid_farm_uuid = uuid_pkg.UUID(str(farm_id).strip())
+            except (ValueError, AttributeError):
+                valid_farm_uuid = None
+
         report = DocumentReport(
             company_id=company_id,
-            farm_id=farm_id if farm_id and farm_id != 'all' else None,
+            farm_id=valid_farm_uuid,
             title=title,
             report_type=report_type,
             farm_name=farm_name,
@@ -1280,3 +1294,314 @@ def get_farm_observation_summary(current_user, farm_id):
         result['estimasi_pendapatan_carbon'] = '-'
 
     return jsonify({'success': True, 'data': result}), 200
+
+
+@manager_bp.route('/reports/<report_id>/download', methods=['GET'])
+@token_required
+@role_required('manager')
+def download_report(current_user, report_id):
+    from app.db.models import DocumentReport, GisLayer, FinancialRecord, Farmer, SensorData, EsgMetric
+    report = DocumentReport.query.filter_by(id=report_id).first()
+    if not report:
+        return jsonify({'success': False, 'message': 'Laporan tidak ditemukan'}), 404
+
+    report_types = [t.strip() for t in report.report_type.split(',')] if report.report_type else []
+    is_comprehensive = 'comprehensive' in report_types
+
+    TYPE_LABELS_EN = {
+        'comprehensive': 'Comprehensive Operational Report',
+        'agronomy': 'Soil Health & Nutrients Report',
+        'carbon': 'Carbon Balance & MRV Report',
+        'finance': 'Productivity & Financial Performance Report',
+        'traceability': 'Traceability & Supply Integrity Report',
+        'social': 'Farmer Partners & Social Empowerment Report'
+    }
+
+    if len(report_types) == 1 and report_types[0] in TYPE_LABELS_EN:
+        header_title = TYPE_LABELS_EN[report_types[0]]
+        footer_label = TYPE_LABELS_EN[report_types[0]]
+        report_type_label = TYPE_LABELS_EN[report_types[0]]
+    elif is_comprehensive:
+        header_title = 'Comprehensive Operational Report'
+        footer_label = 'Comprehensive Operational Report'
+        report_type_label = 'Comprehensive Operational Report'
+    else:
+        label_list = [TYPE_LABELS_EN.get(t, t.replace('_', ' ').title()) for t in report_types]
+        header_title = 'Operational Report' if len(label_list) > 2 else ' & '.join(label_list)
+        footer_label = header_title
+        report_type_label = ', '.join(label_list) if label_list else 'Operational Report'
+
+    # 2. Ambil Data Lahan
+    total_area = 0
+    commodity = '-'
+    altitude = '-'
+    agroforestry = '-'
+    farm_obj = None
+    selected_farms = []
+    default_proj_loc = current_user.project.location if current_user.project and current_user.project.location else '-'
+    
+    if report.farm_id:
+        farms_matched = Farm.query.filter_by(id=report.farm_id).all()
+    elif report.farm_name and report.farm_name != 'Semua Lahan':
+        names = [n.strip() for n in report.farm_name.split(',') if n.strip()]
+        farms_matched = Farm.query.filter(Farm.project_id == current_user.project_id, Farm.name.in_(names)).all()
+        if not farms_matched:
+            farms_matched = Farm.query.filter_by(project_id=current_user.project_id).all()
+    else:
+        farms_matched = Farm.query.filter_by(project_id=current_user.project_id).all()
+
+    if farms_matched:
+        farm_obj = farms_matched[0]
+        total_area = sum(float(f.total_area_ha or 0) for f in farms_matched)
+        commodities = list(set([f.crop_variety for f in farms_matched if f.crop_variety]))
+        commodity = ', '.join(commodities) if commodities else '-'
+        altitudes = list(set([f.altitude for f in farms_matched if f.altitude]))
+        altitude = ', '.join(altitudes) if altitudes else '-'
+        agroforestry = farms_matched[0].agroforestry_system or '-'
+        for f in farms_matched:
+            selected_farms.append({
+                'name': f.name,
+                'location': f.location or default_proj_loc,
+                'commodity': f.crop_variety or '-',
+                'altitude': f.altitude or '-',
+                'area_ha': float(f.total_area_ha or 0)
+            })
+
+    target_farm_ids = [f.id for f in farms_matched] if farms_matched else []
+
+    # 3. Helper Query GIS
+    def get_avg_gis_layer(param_type):
+        if not target_farm_ids:
+            return 0.0
+        query = db.session.query(db.func.avg(GisLayer.numerical_value))\
+            .filter(GisLayer.farm_id.in_(target_farm_ids), GisLayer.parameter_type == param_type)
+        val = query.scalar()
+        return round(float(val), 2) if val else 0.0
+
+    # 4. Data Agronomi (NDVI, NPK, Sensor Lingkungan)
+    raw_ndvi = get_avg_gis_layer('ndvi')
+    plant_health = round(raw_ndvi * 100) if raw_ndvi > 0 else 0
+    if plant_health >= 75:
+        health_status = 'Optimal'
+        health_badge_class = 'badge-success'
+    elif plant_health >= 60:
+        health_status = 'Cukup / Waspada'
+        health_badge_class = 'badge-warning'
+    else:
+        health_status = 'Kritis'
+        health_badge_class = 'badge-danger'
+
+    n_val = get_avg_gis_layer('nitrogen')
+    p_val = get_avg_gis_layer('phosphorus')
+    k_val = get_avg_gis_layer('potassium')
+
+    # Sensor Data
+    sensor_q = SensorData.query
+    if target_farm_ids:
+        sensor_q = sensor_q.filter(SensorData.farm_id.in_(target_farm_ids))
+    sensor = sensor_q.order_by(SensorData.created_at.desc()).first()
+    soil_ph = round(float(sensor.ph), 2) if sensor and sensor.ph else '-'
+    soil_temp = round(float(sensor.temperature), 2) if sensor and sensor.temperature else '-'
+    soil_humidity = round(float(sensor.humidity), 2) if sensor and sensor.humidity else '-'
+    soil_ec = round(float(sensor.ec), 2) if sensor and sensor.ec else '-'
+
+    # 5. Data Karbon Riil GIS (SOC, Biomassa, Valuasi Pasar)
+    soc_avg = get_avg_gis_layer('soc')
+    total_soc_ton = soc_avg * total_area
+    biomass_avg = get_avg_gis_layer('biomass')
+    total_biomass_ton = biomass_avg * total_area
+    total_carbon_credit = total_soc_ton + total_biomass_ton
+    estimated_carbon_value = total_carbon_credit * 150000 
+    formatted_carbon_value = f"{estimated_carbon_value:,.0f}".replace(',', '.')
+    
+    total_credit_avg = round(soc_avg + biomass_avg, 2)
+    val_per_ha = f"{(estimated_carbon_value / total_area if total_area > 0 else 0):,.0f}".replace(',', '.')
+
+    # 6. Data Finansial & Panen
+    fin_query = db.session.query(
+        db.func.sum(FinancialRecord.total_production_kg),
+        db.func.sum(FinancialRecord.estimated_revenue),
+        db.func.sum(FinancialRecord.operational_cost)
+    )
+    if target_farm_ids:
+        fin_query = fin_query.filter(FinancialRecord.farm_id.in_(target_farm_ids))
+    else:
+        farm_ids = [f.id for f in Farm.query.filter_by(project_id=current_user.project_id).all()]
+        fin_query = fin_query.filter(FinancialRecord.farm_id.in_(farm_ids))
+    
+    fin_stats = fin_query.first()
+    total_yield = float(fin_stats[0] or 0)
+    gross_revenue = float(fin_stats[1] or 0)
+    operational_cost = float(fin_stats[2] or 0)
+    net_profit = gross_revenue - operational_cost
+    profit_margin = round((net_profit / gross_revenue * 100), 1) if gross_revenue > 0 else 0
+    productivity_per_ha = round(total_yield / total_area, 1) if total_area > 0 else 0
+
+    def format_rupiah(val):
+        return f"{val:,.0f}".replace(',', '.')
+
+    # 7. Data Sosial & Petani
+    if len(target_farm_ids) == 1 and farm_obj:
+        farmers_list = farm_obj.farmers
+    else:
+        farmers_list = Farmer.query.filter_by(company_id=current_user.project.company_id).all()
+
+    total_farmers = len(farmers_list)
+    male_count = sum(1 for f in farmers_list if str(f.gender).lower().startswith(('l', 'm', 'pria')))
+    female_count = sum(1 for f in farmers_list if str(f.gender).lower().startswith(('p', 'f', 'wanita')))
+    valid_ages = [f.age for f in farmers_list if f.age]
+    avg_age = round(sum(valid_ages) / len(valid_ages)) if valid_ages else 0
+
+    farmers_detail = []
+    for f in farmers_list:
+        farmers_detail.append({
+            'name': f.name,
+            'gender': f.gender or '-',
+            'age': f.age or '-',
+            'join_year': f.join_year or '-'
+        })
+
+    # 8. Data Batch Rantai Pasok (Traceability)
+    from app.db.models import Batch
+    batches_q = Batch.query
+    if target_farm_ids:
+        batches_q = batches_q.filter(Batch.farm_id.in_(target_farm_ids))
+    else:
+        batches_q = batches_q.filter_by(company_id=current_user.project.company_id)
+    batches_list = []
+    for b in batches_q.all():
+        batches_list.append({
+            'batch_number': b.batch_number,
+            'product_name': b.product_name,
+            'harvest_date': b.harvest_date.strftime('%d-%m-%Y') if b.harvest_date else '-',
+            'status': b.status.replace('_', ' ').capitalize()
+        })
+
+    has_boundary = any(f.boundary is not None for f in farms_matched) if farms_matched else False
+    boundary_status = 'Tersedia Polygon GIS (SRID 4326)' if has_boundary else 'Belum Dipetakan'
+
+    # 9. Zona Waktu Indonesia Barat (WIB = UTC+7)
+    from datetime import timezone, timedelta
+    wib_tz = timezone(timedelta(hours=7))
+    generated_at_wib = datetime.now(wib_tz).strftime("%d %b %Y, %H:%M WIB")
+
+    # 10. Convert Logo to Base64
+    logo_base64 = None
+    possible_paths = [
+        os.path.join(current_app.root_path, 'static', 'images', 'logo_name.png'),
+        '/home/thomas/agrivision magang/agrivision/backend/app/static/images/logo_name.png',
+        '/home/thomas/agrivision magang/agrivision/frontend/public/assets/images/logo_name.png'
+    ]
+    for p in possible_paths:
+        if os.path.exists(p):
+            try:
+                with open(p, 'rb') as f:
+                    logo_base64 = f"data:image/png;base64,{base64.b64encode(f.read()).decode('utf-8')}"
+                break
+            except Exception:
+                pass
+
+    # 11. Rakit Data Laporan Murni Database
+    report_data = {
+        'title': report.title,
+        'header_title': header_title,
+        'report_type_label': report_type_label,
+        'footer_label': footer_label,
+        'period': report.period or 'Bulan Berjalan',
+        'generated_at': generated_at_wib,
+        'farm_name': report.farm_name,
+        'commodity': commodity,
+        'altitude': altitude,
+        'agroforestry': agroforestry,
+        'total_area_ha': total_area,
+        'selected_farms': selected_farms,
+        'logo_base64': logo_base64,
+        
+        # Modul Flags
+        'show_agronomy': is_comprehensive or 'agronomy' in report_types,
+        'show_carbon': is_comprehensive or 'carbon' in report_types,
+        'show_finance': is_comprehensive or 'finance' in report_types,
+        'show_social': is_comprehensive or 'social' in report_types,
+        'show_traceability': is_comprehensive or 'traceability' in report_types,
+        
+        # Detail Data Murni Tanpa Rekayasa
+        'agronomy': {
+            'plant_health': plant_health,
+            'health_status': health_status,
+            'n_val': n_val if n_val > 0 else '-', 
+            'p_val': p_val if p_val > 0 else '-', 
+            'k_val': k_val if k_val > 0 else '-',
+            'soil_ph': soil_ph,
+            'soil_temp': soil_temp,
+            'soil_humidity': soil_humidity,
+            'soil_ec': soil_ec
+        },
+        'carbon': {
+            'soc': round(total_soc_ton, 1),
+            'soc_avg': round(soc_avg, 2),
+            'biomass': round(total_biomass_ton, 1),
+            'biomass_avg': round(biomass_avg, 2),
+            'total_credit': round(total_carbon_credit, 1),
+            'total_credit_avg': total_credit_avg,
+            'val_per_ha': val_per_ha,
+            'estimated_value': formatted_carbon_value
+        },
+        'finance': {
+            'total_yield': f"{total_yield:,.0f}".replace(',', '.'), 
+            'productivity': productivity_per_ha,
+            'gross_revenue': format_rupiah(gross_revenue), 
+            'operational_cost': format_rupiah(operational_cost), 
+            'net_profit': format_rupiah(net_profit),
+            'profit_margin': profit_margin
+        },
+        'social': {
+            'total_farmers': total_farmers, 
+            'male_count': male_count, 
+            'female_count': female_count,
+            'avg_age': avg_age,
+            'farmers_list': farmers_detail
+        },
+        'traceability': {
+            'commodity': commodity,
+            'altitude': altitude,
+            'agroforestry': agroforestry,
+            'total_area': total_area,
+            'boundary_status': boundary_status,
+            'batches': batches_list
+        },
+        'raw_data': [
+            {'Parameter': 'Kesehatan Tanaman (%)', 'Nilai': plant_health},
+            {'Parameter': 'Status Kesehatan', 'Nilai': health_status},
+            {'Parameter': 'Total Hasil Panen (Kg)', 'Nilai': total_yield},
+            {'Parameter': 'Produktivitas (Kg/Ha)', 'Nilai': productivity_per_ha},
+            {'Parameter': 'Pendapatan Kotor (Rp)', 'Nilai': gross_revenue},
+            {'Parameter': 'Biaya Operasional (Rp)', 'Nilai': operational_cost},
+            {'Parameter': 'Laba Bersih (Rp)', 'Nilai': net_profit},
+            {'Parameter': 'Margin Keuntungan (%)', 'Nilai': profit_margin},
+            {'Parameter': 'Serapan SOC (ton CO2e)', 'Nilai': round(total_soc_ton, 1)},
+            {'Parameter': 'Biomassa Karbon (ton CO2e)', 'Nilai': round(total_biomass_ton, 1)},
+            {'Parameter': 'Estimasi Nilai Karbon (Rp)', 'Nilai': estimated_carbon_value},
+            {'Parameter': 'Total Petani Terbina', 'Nilai': total_farmers},
+            {'Parameter': 'Petani Laki-laki', 'Nilai': male_count},
+            {'Parameter': 'Petani Perempuan', 'Nilai': female_count},
+            {'Parameter': 'Rata-rata Usia Petani', 'Nilai': avg_age},
+        ]
+    }
+
+    if report.format == 'pdf':
+        buffer = ReportService.generated_pdf_report(report_data)
+        mimetype = 'application/pdf'
+        clean_title = (report.title or 'Laporan').replace(' ', '_')
+        filename = f"{clean_title}.pdf"
+    else:
+        buffer = ReportService.generated_excel_raw_data(report_data)
+        mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        clean_title = (report.title or 'Laporan').replace(' ', '_')
+        filename = f"{clean_title}.xlsx"
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype=mimetype
+    )
