@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
-from app.db.models import ActivityLog
+
 from app import db
+from app.db.models import ActivityLog
+
 
 def log_activity(user_id, action, entity_type, details=None, entity_id=None, ip_address=None):
     try:

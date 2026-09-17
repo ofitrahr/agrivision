@@ -1,10 +1,24 @@
-import bcrypt
-import string
 import random
+import string
 from datetime import datetime
+
+import bcrypt
 from app.db.database import db
-from app.db.models import Company, User, Farm, Batch, ProjectPermission, Project, ProjectTraceability, ProjectTraceabilityProfile, Sdg, CompanySdg, CompanySdgVerification
+from app.db.models import (
+    Batch,
+    Company,
+    CompanySdg,
+    CompanySdgVerification,
+    Farm,
+    Project,
+    ProjectPermission,
+    ProjectTraceability,
+    ProjectTraceabilityProfile,
+    Sdg,
+    User,
+)
 from app.services.upload_service import save_file_locally
+
 
 def get_dashboard_stats():
     total_companies = Company.query.count() 

@@ -1,8 +1,10 @@
 import os
+
 import joblib
 import numpy as np
-import pandas as pd
 import onnxruntime as ort
+import pandas as pd
+
 
 class SOCService:
     FEATURE_ORDER = [

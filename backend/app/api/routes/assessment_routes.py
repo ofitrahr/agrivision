@@ -1,10 +1,10 @@
 ﻿import uuid
-from flask import Blueprint, jsonify, request
-from app.core.security import token_required, roles_required
+
+from app.core.security import roles_required, token_required
+from app.db.models import Project, ProjectSdg, ProjectTraceabilityProfile, SdgMaster
 from app.services import assessment_service as svc
 from app.services.assessment_service import get_or_create_profile
-from app.db.models import Project, ProjectTraceabilityProfile, ProjectSdg, SdgMaster
-
+from flask import Blueprint, jsonify, request
 
 assessment_bp = Blueprint('assessment_bp', __name__)
 

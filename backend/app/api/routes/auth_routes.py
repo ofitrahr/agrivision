@@ -1,9 +1,9 @@
-from flask import Blueprint, request, jsonify
-from app.services.auth_service import authenticate_user
-from app.core.security import token_required
-from app.db.models import User
-from app.db.database import db
 import bcrypt
+from app.core.security import token_required
+from app.db.database import db
+from app.db.models import User
+from app.services.auth_service import authenticate_user
+from flask import Blueprint, jsonify, request
 
 auth_bp = Blueprint('auth_bp', __name__)
 

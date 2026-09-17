@@ -1,10 +1,9 @@
-from flask import Blueprint, jsonify, request
-from app.core.security import token_required, role_required
+from app.core.security import role_required, token_required
+from app.db.database import db
+from app.db.models import Company, Farm, RecentActivity
 from app.services.admin_service import *
 from app.services.gis_service import GISService
-from app.db.models import User, Company, Farm, RecentActivity
-from app.db.database import db
-
+from flask import Blueprint, jsonify, request
 
 admin_bp = Blueprint('admin_bp', __name__)
 
@@ -32,7 +31,7 @@ def add_company(current_user):
 
     if not data or not data.get('name'):
         return jsonify({"success": False, "message": "Nama company wajib diisi"}), 400
-    
+
     result = create_company(data)
     if result.get('success'):
         from app.services.activity_service import log_activity
@@ -54,7 +53,7 @@ def edit_company(current_user, company_id):
 
     if not data:
         return jsonify({"success": False, "message": "Data body tidak boleh kosong"}), 400
-    
+
     result = update_company(company_id, data)
 
     if result.get('success'):
@@ -70,7 +69,7 @@ def edit_company(current_user, company_id):
         status_code = 404
     else:
         status_code = 500
-            
+
     return jsonify(result), status_code
 
 @admin_bp.route('/companies/<company_id>', methods=['DELETE'])
@@ -81,7 +80,7 @@ def delete_company(current_user, company_id):
         company = Company.query.get(company_id)
         if not company:
             return jsonify({'success': False, 'message': 'Perusahaan tidak ditemukan'}), 404
-            
+
         company_name = company.name
         db.session.delete(company)
         db.session.commit()
@@ -113,7 +112,7 @@ def manage_project_permissions(current_user, project_id):
             perms = ProjectPermission(project_id=project_id)
             db.session.add(perms)
             db.session.commit()
-            
+
         if request.method == 'GET':
             return jsonify({
                 'success': True,
@@ -131,7 +130,7 @@ def manage_project_permissions(current_user, project_id):
                     'can_access_soilnpk': perms.can_access_soilnpk
                 }
             }), 200
-            
+
         if request.method == 'PUT':
             data = request.json
             if 'module_gis' in data: perms.module_gis = data['module_gis']
@@ -143,7 +142,7 @@ def manage_project_permissions(current_user, project_id):
             if 'can_access_yield' in data: perms.can_access_yield = data['can_access_yield']
             if 'can_access_biomass' in data: perms.can_access_biomass = data['can_access_biomass']
             if 'can_access_soilnpk' in data: perms.can_access_soilnpk = data['can_access_soilnpk']
-            
+
             db.session.commit()
 
             from app.services.activity_service import log_activity
@@ -155,7 +154,7 @@ def manage_project_permissions(current_user, project_id):
             )
 
             return jsonify({'success': True, 'message': 'Izin dan Modul berlangganan berhasil diperbarui'}), 200
-            
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -178,7 +177,7 @@ def list_company_users(current_user, company_id):
 @role_required('super_admin')
 def add_company_user(current_user, company_id):
     data = request.get_json()
-    
+
     if not data or not data.get('username') or not data.get('password'):
         return jsonify({"success": False, "message": "Username dan password wajib diisi"}), 400
 
@@ -199,7 +198,7 @@ def add_company_user(current_user, company_id):
 @role_required('super_admin')
 def reset_password(current_user, user_id):
     data = request.get_json(silent=True) or {}
-    
+
     result = reset_user_password(user_id, data)
     status_code = 200 if result.get('success') else 400
     return jsonify(result), status_code
@@ -212,7 +211,7 @@ def edit_user(current_user, user_id):
     data = request.get_json()
     if not data:
         return jsonify({"success": False, "message": "Data body tidak boleh kosong"}), 400
-        
+
     result = update_user(user_id, data)
     if result.get('success'):
         from app.services.activity_service import log_activity
@@ -304,7 +303,7 @@ def create_farm(current_user):
             boundary=wkt_geom,
             created_by=current_user.id
         )
-        
+
         db.session.add(new_farm)
         db.session.commit()
 
@@ -316,7 +315,7 @@ def create_farm(current_user):
             entity_id=new_farm.id,
             details=f"Menambahkan lokasi lahan baru '{new_farm.name}'"
         )
-        
+
         return jsonify({'success': True, 'message': 'Lahan berhasil disimpan dan diassign!'}), 201
     except Exception as e:
         db.session.rollback()
@@ -337,7 +336,7 @@ def add_project(current_user, company_id):
     data = request.get_json()
     if not data or not data.get('name'):
         return jsonify({"success": False, "message": "Nama project wajib diisi"}), 400
-            
+
     result = create_project(company_id, data)
     if result.get('success'):
         from app.services.activity_service import log_activity
@@ -360,7 +359,7 @@ def admin_get_farms(current_user):
     for f in farms:
         project = Project.query.get(f.project_id)
         project = Project.query.get(f.project_id)
-        
+
         data.append({
             'id': f.id,
             'name': f.name,
@@ -439,9 +438,10 @@ def get_admin_farm_map(current_user, farm_id):
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
+    import json
+
     from app.services.gis_service import GISService
     from geoalchemy2.functions import ST_AsGeoJSON
-    import json
 
     farm_geojson = None
     if farm.boundary is not None:
@@ -712,25 +712,26 @@ def delete_recent_activity(current_user, activity_id):
 @token_required
 @role_required('super_admin')
 def upload_gis_data(current_user):
-    from app.db.models import GisLayer, Farm
     import csv
     import json
     import random
     from io import StringIO
-    
+
+    from app.db.models import Farm, GisLayer
+
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'Tidak ada file yang diunggah'}), 400
-        
+
     file = request.files['file']
     farm_id = request.form.get('farm_id')
     period = request.form.get('period')
-    
+
     if file.filename == '':
         return jsonify({'success': False, 'message': 'Pilih file terlebih dahulu'}), 400
-        
+
     if not farm_id or not period:
         return jsonify({'success': False, 'message': 'Farm ID dan Periode wajib diisi'}), 400
-        
+
     farm = Farm.query.get(farm_id)
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
@@ -739,7 +740,7 @@ def upload_gis_data(current_user):
     def parse_boundary_bbox(f):
         if not f.boundary: return None
         try:
-            from geoalchemy2.functions import ST_XMin, ST_XMax, ST_YMin, ST_YMax
+            from geoalchemy2.functions import ST_XMax, ST_XMin, ST_YMax, ST_YMin
             xmin = db.session.scalar(ST_XMin(f.boundary))
             xmax = db.session.scalar(ST_XMax(f.boundary))
             ymin = db.session.scalar(ST_YMin(f.boundary))
@@ -748,7 +749,7 @@ def upload_gis_data(current_user):
             return (float(ymin), float(ymax), float(xmin), float(xmax))
         except:
             return None
-            
+
     bbox = parse_boundary_bbox(farm)
     if not bbox:
         return jsonify({'success': False, 'message': 'Lahan belum memiliki poligon koordinat yang valid'}), 400
@@ -767,7 +768,7 @@ def upload_gis_data(current_user):
         # Helper
         def random_point(box):
             return random.uniform(box[0], box[1]), random.uniform(box[2], box[3])
-            
+
         ANOMALY_THRESH = {'ndvi': 0.4, 'soc': 30.0, 'biomass': 80.0, 'yield': 1.2, 'soilnpk': 100.0}
         UNITS = {'ndvi': 'index', 'soc': 'Ton C/Ha', 'biomass': 'Kg C/Ha', 'yield': 'Ton/Ha', 'soilnpk': 'kg NPK/Ha'}
 
@@ -776,7 +777,7 @@ def upload_gis_data(current_user):
         db.session.commit()
 
         layers_to_add = []
-        
+
         # Ambil max 500 titik per upload agar DB tidak over
         sampled_rows = random.sample(rows, min(500, len(rows))) if len(rows) > 500 else rows
 
@@ -785,7 +786,7 @@ def upload_gis_data(current_user):
                 ndvi_val = float(row.get('NDVI', 0))
                 oc_val   = float(row.get('OC', 0))
                 lat, lon = random_point(bbox) # Sementara assign ke dalam bbox farm
-                
+
                 param_values = {
                     'ndvi':    ndvi_val,
                     'soc':     round(oc_val, 4),
@@ -807,10 +808,10 @@ def upload_gis_data(current_user):
                     ))
             except Exception:
                 continue
-                
+
         db.session.bulk_save_objects(layers_to_add)
         db.session.commit()
-        
+
         from app.services.activity_service import log_activity
         log_activity(
             user_id=current_user.id,
@@ -818,10 +819,9 @@ def upload_gis_data(current_user):
             entity_type='GisLayer',
             details=f"Mengimpor {len(layers_to_add)} data layer ke Lahan ID {farm_id} untuk periode {period}"
         )
-        
+
         return jsonify({'success': True, 'message': f'Berhasil memproses {len(sampled_rows)} titik data, menghasilkan {len(layers_to_add)} parameter gis_layers.'}), 200
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Gagal memproses file: {str(e)}'}), 500
-

@@ -1,12 +1,13 @@
-from flask import Blueprint, jsonify, request, send_file, current_app
-import os
 import base64
+import os
 from datetime import datetime
-from app.core.security import token_required, role_required
-from app.services.upload_service import save_file_locally
-from app.db.models import Company, Farm, Farmer
+
+from app.core.security import role_required, token_required
 from app.db.database import db
+from app.db.models import Company, Farm, Farmer
 from app.services.report_service import ReportService
+from app.services.upload_service import save_file_locally
+from flask import Blueprint, current_app, jsonify, request, send_file
 
 manager_bp = Blueprint('manager_bp', __name__)
 
@@ -18,7 +19,8 @@ def get_manager_stats(current_user):
     project = current_user.project
     company_id = project.company_id if project else None
 
-    from app.db.models import FinancialRecord, EsgMetric, Farm as FarmModel
+    from app.db.models import EsgMetric, FinancialRecord
+    from app.db.models import Farm as FarmModel
     from sqlalchemy import func
 
     farms = FarmModel.query.filter_by(project_id=project_id).all()
@@ -141,8 +143,10 @@ def manager_traceability_profile(current_user):
     GET: Retrieve profile data dengan project_id
     POST: Update profile data (title, tagline, origin_story, description, status)
     """
-    from app.db.models import ProjectTraceabilityProfile
-    from app.services.assessment_service import get_or_create_profile, save_project_traceability_profile
+    from app.services.assessment_service import (
+        get_or_create_profile,
+        save_project_traceability_profile,
+    )
 
     project = current_user.project
     if not project:
@@ -377,7 +381,7 @@ def manager_farm_details(current_user, farm_id):
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
-    from app.db.models import Farmer, FarmCrop
+    from app.db.models import FarmCrop
     farmers = farm.farmers
     crops = FarmCrop.query.filter_by(farm_id=farm.id).all()
     
@@ -412,7 +416,7 @@ def manager_update_farm_details(current_user, farm_id):
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
     try:
-        from app.db.models import Farmer, FarmCrop
+        from app.db.models import FarmCrop, Farmer
         data = request.json
 
         farm_total_area = float(farm.total_area_ha) if farm.total_area_ha else 0.0
@@ -502,9 +506,10 @@ def get_manager_farm_map(current_user, farm_id):
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
+    import json
+
     from app.services.gis_service import GISService
     from geoalchemy2.functions import ST_AsGeoJSON
-    import json
 
     farm_geojson = None
     if farm.boundary is not None:
@@ -608,9 +613,10 @@ def get_agronomy_farm_map(current_user, farm_id):
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
+    import json
+
     from app.services.gis_service import GISService
     from geoalchemy2.functions import ST_AsGeoJSON
-    import json
 
     farm_geojson = None
     if farm.boundary is not None:
@@ -647,14 +653,9 @@ def get_agronomy_farm_map(current_user, farm_id):
             existing_blocks_geojson=[],
             layer_type=layer_type,
             has_access=has_access,
-            sample_points=sample_points if sample_points else None
+            sample_points=sample_points
         )
-        return jsonify({
-            'success': True,
-            'data': {
-                'html': map_html
-            }
-        }), 200
+        return jsonify({'success': True, 'data': {'html': map_html}})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -663,9 +664,9 @@ def get_agronomy_farm_map(current_user, farm_id):
 @token_required
 @role_required('manager')
 def get_agronomy_stats(current_user, farm_id):
-    from app.db.models import ProjectPermission, GisLayer
     import statistics
-    import math
+
+    from app.db.models import GisLayer, ProjectPermission
 
     project_id = current_user.project_id
 
@@ -899,7 +900,7 @@ def manager_farm_harvests(current_user, farm_id):
 @role_required('manager')
 def get_manager_activities(current_user):
     try:
-        from app.db.models import ActivityLog, User, Project
+        from app.db.models import ActivityLog, Project, User
         from app.services.activity_service import format_time_ago
 
         company_id = current_user.project.company_id if current_user.project else None
@@ -979,7 +980,7 @@ def manager_traceability_preview(current_user):
 
     Return data sama seperti public endpoint, tapi tanpa check publish status.
     """
-    from app.db.models import ProjectTraceabilityProfile, ProjectSdg
+    from app.db.models import ProjectSdg, ProjectTraceabilityProfile
 
     project = current_user.project
     if not project:
@@ -1152,8 +1153,9 @@ def get_available_periods(current_user):
 @token_required
 @role_required('manager')
 def get_farm_observation_summary(current_user, farm_id):
-    from app.db.models import GisLayer, EsgMetric
     import statistics
+
+    from app.db.models import GisLayer
 
     project_id = current_user.project_id
     farm = Farm.query.filter_by(id=farm_id, project_id=project_id).first()
@@ -1300,7 +1302,13 @@ def get_farm_observation_summary(current_user, farm_id):
 @token_required
 @role_required('manager')
 def download_report(current_user, report_id):
-    from app.db.models import DocumentReport, GisLayer, FinancialRecord, Farmer, SensorData, EsgMetric
+    from app.db.models import (
+        DocumentReport,
+        Farmer,
+        FinancialRecord,
+        GisLayer,
+        SensorData,
+    )
     report = DocumentReport.query.filter_by(id=report_id).first()
     if not report:
         return jsonify({'success': False, 'message': 'Laporan tidak ditemukan'}), 404
@@ -1481,7 +1489,7 @@ def download_report(current_user, report_id):
     boundary_status = 'Tersedia Polygon GIS (SRID 4326)' if has_boundary else 'Belum Dipetakan'
 
     # 9. Zona Waktu Indonesia Barat (WIB = UTC+7)
-    from datetime import timezone, timedelta
+    from datetime import timedelta, timezone
     wib_tz = timezone(timedelta(hours=7))
     generated_at_wib = datetime.now(wib_tz).strftime("%d %b %Y, %H:%M WIB")
 

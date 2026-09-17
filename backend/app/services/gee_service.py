@@ -1,7 +1,8 @@
-import os
-import json
 import base64
+import json
 import logging
+import os
+
 import ee
 from google.oauth2 import service_account
 
@@ -14,7 +15,7 @@ class GEEService:
     def initialize(cls):
         if cls._initialized:
             return True
-        
+
         from dotenv import dotenv_values
         # Try to load directly from .env file to bypass any docker-compose truncation issues
         env_dict = dotenv_values('/app/.env') or dotenv_values(os.path.join(os.path.dirname(__file__), '../../.env'))
@@ -36,7 +37,7 @@ class GEEService:
                 sa_info,
                 scopes=scopes
             )
-            
+
             project_id = sa_info.get('project_id', 'potent-odyssey-501602-f4')
             ee.Initialize(credentials=credentials, project=project_id)
             cls._initialized = True
@@ -45,7 +46,7 @@ class GEEService:
         except Exception as e:
             logger.error(f"Gagal inisialisasi GEE: {str(e)}")
             raise e
-        
+
     DEFAULT_12_BANDS = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B11', 'B12']
 
     @classmethod
@@ -68,19 +69,19 @@ class GEEService:
             bands = cls.DEFAULT_12_BANDS
 
         image, aoi = cls.get_sentinel_image(polygon_coords)
-        
+
         base_proj = image.select('B4').projection()
         image_uniform = image.select(bands).resample('bilinear').reproject(crs=base_proj, scale=scale)
-        
+
         pixel_data = image_uniform.sampleRectangle(aoi.bounds()).getInfo()['properties']
-        
+
         channel_arrays = []
         for b in bands:
             if b in pixel_data:
                 channel_arrays.append(np.array(pixel_data[b], dtype=np.float32))
             else:
                 raise ValueError(f"Band {b} tidak ditemukan pada citra satelit.")
-        
+
         image_array = np.stack(channel_arrays, axis=-1)
         return image_array, aoi
 
@@ -106,7 +107,7 @@ class GEEService:
         elevation = dem.select('elevation')
         slope = ee.Terrain.slope(elevation).rename('slope')
         aspect = ee.Terrain.aspect(elevation).rename('aspect')
-        
+
         # Kalkulasi Topographic Wetness Index (TWI)
         slope_rad = slope.multiply(3.14159 / 180)
         tan_slope = slope_rad.tan().max(0.001)
@@ -177,8 +178,11 @@ class GEEService:
         topo_image = elevation.addBands([slope, aspect, twi])
         combined = s2_selected.addBands(topo_image)
 
-        # Sampling kumpulan piksel di dalam AOI dengan resolusi seragam (default 20m)
-        samples_fc = combined.sample(region=aoi, scale=scale, geometries=True)
+        # Buffer AOI sejauh 30 meter agar piksel di perbatasan garis ikut terambil
+        buffered_aoi = aoi.buffer(30)
+
+        # Sampling kumpulan piksel di dalam buffered AOI dengan resolusi seragam (default 20m)
+        samples_fc = combined.sample(region=buffered_aoi, scale=scale, geometries=True)
         feats = samples_fc.getInfo().get('features', [])
 
         pixel_data = []

@@ -1,7 +1,9 @@
+import io
+
 import pandas as pd
 from flask import render_template
-import io
-from weasyprint import HTML, CSS
+from weasyprint import CSS, HTML
+
 
 class ReportService:
     @staticmethod

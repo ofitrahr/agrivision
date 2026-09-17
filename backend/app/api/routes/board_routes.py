@@ -1,7 +1,7 @@
-from flask import Blueprint, jsonify
-from app.core.security import token_required, role_required
-from app.db.models import Farm, Farmer, User, FarmCrop
+from app.core.security import role_required, token_required
 from app.db.database import db
+from app.db.models import Farm, FarmCrop, Farmer, User
+from flask import Blueprint, jsonify
 from sqlalchemy import func
 
 board_bp = Blueprint('board_bp', __name__)

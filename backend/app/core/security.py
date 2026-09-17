@@ -1,7 +1,9 @@
 from functools import wraps
-from flask import jsonify, request, current_app
+
 import jwt
 from app.db.models import User
+from flask import current_app, jsonify, request
+
 
 def token_required(f):
     @wraps(f)

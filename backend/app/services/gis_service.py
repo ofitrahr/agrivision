@@ -1,6 +1,8 @@
 import json
+
 import folium
 from folium.plugins import Draw
+
 
 class GISService:
     @staticmethod
@@ -215,24 +217,66 @@ class GISService:
             if sample_points:
                 unit_label = 'Ton C/Ha' if layer_type == 'soc' else ('Ton/Ha' if layer_type == 'yield' else ('kg/Ha' if 'n' in layer_type else ''))
                 
-                for point in sample_points:
-                    val = float(point['value']) if point.get('value') is not None else 0.0
-                    val_display = f"{val:.2f}"
+                try:
+                    if not farm_boundary_geojson:
+                        raise ValueError("No boundary geojson")
                     
-                    # Gunakan absolute color dari rules yang sama dengan legend!
-                    color = GISService._get_color_for_value(val, layer_type)
+                    from shapely.geometry import MultiPoint, Point, mapping, shape
+                    from shapely.ops import voronoi_diagram
+                    from shapely.strtree import STRtree
                     
-                    # Kita gunakan folium.Circle (radius dalam meter) = 11 meter (sedikit tumpang tindih untuk cover 20m pixel)
-                    folium.Circle(
-                        location=[point['lat'], point['lon']],
-                        radius=11, 
-                        weight=0,
-                        color=color,
-                        fill=True,
-                        fill_color=color,
-                        fill_opacity=0.85,
-                        tooltip=f"<b>{layer_type.upper()}:</b> {val_display} {unit_label}".strip()
-                    ).add_to(m)
+                    boundary_poly = shape(farm_boundary_geojson)
+                    
+                    pts_list = [Point(p['lon'], p['lat']) for p in sample_points]
+                    pts_multi = MultiPoint(pts_list)
+                    
+                    # Buat voronoi diagram (ini akan menutupi semua ruang secara penuh tanpa ada celah antar titik)
+                    vd = voronoi_diagram(pts_multi, envelope=boundary_poly)
+                    polys = list(vd.geoms) if hasattr(vd, 'geoms') else []
+                    
+                    if polys:
+                        tree = STRtree(polys)
+                        
+                        for i, point in enumerate(sample_points):
+                            pt = pts_list[i]
+                            val = float(point['value']) if point.get('value') is not None else 0.0
+                            val_display = f"{val:.2f}"
+                            color = GISService._get_color_for_value(val, layer_type)
+                            
+                            matching_poly = None
+                            res = tree.query(pt)
+                            for idx in res:
+                                if polys[idx].intersects(pt):
+                                    matching_poly = polys[idx]
+                                    break
+                                    
+                            if matching_poly:
+                                clipped_geom = matching_poly.intersection(boundary_poly)
+                                if not clipped_geom.is_empty:
+                                    # Weight 0.1 menghilangkan border line tebal agar kotak-kotak menyatu mulus
+                                    folium.GeoJson(
+                                        data=mapping(clipped_geom),
+                                        style_function=lambda x, c=color: {'color': c, 'fillColor': c, 'weight': 0.1, 'fillOpacity': 0.95},
+                                        tooltip=f"<b>{layer_type.upper()}:</b> {val_display} {unit_label}".strip()
+                                    ).add_to(m)
+                            
+                except Exception as e:
+                    print("Error clipping geometry:", str(e))
+                    # Fallback ke bentuk lingkaran jika gagal
+                    for point in sample_points:
+                        val = float(point['value']) if point.get('value') is not None else 0.0
+                        val_display = f"{val:.2f}"
+                        color = GISService._get_color_for_value(val, layer_type)
+                        folium.Circle(
+                            location=[point['lat'], point['lon']],
+                            radius=11, 
+                            weight=0,
+                            color=color,
+                            fill=True,
+                            fill_color=color,
+                            fill_opacity=0.85,
+                            tooltip=f"<b>{layer_type.upper()}:</b> {val_display} {unit_label}".strip()
+                        ).add_to(m)
             else:
                 import random
                 if farm_boundary_geojson:

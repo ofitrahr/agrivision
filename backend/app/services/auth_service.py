@@ -1,8 +1,10 @@
+from datetime import datetime, timedelta
+
 import bcrypt
 import jwt
-from datetime import datetime, timedelta
-from flask import current_app
 from app.db.models import User
+from flask import current_app
+
 
 def authenticate_user(username, password):
     user = User.query.filter_by(username=username).first()

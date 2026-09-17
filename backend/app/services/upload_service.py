@@ -1,11 +1,10 @@
+import json
 import os
 import uuid
-import json
-from werkzeug.utils import secure_filename
-from flask import current_app
-
 
 from dotenv import load_dotenv
+from flask import current_app
+from werkzeug.utils import secure_filename
 
 load_dotenv()
 

@@ -1,8 +1,10 @@
-from app.db.database import db
 import uuid
-from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
+
+from app.db.database import db
 from geoalchemy2 import Geometry
+from sqlalchemy.dialects.postgresql import UUID
+
 
 class Company(db.Model):
     __tablename__ = 'companies'

@@ -13,23 +13,22 @@ from decimal import Decimal
 
 from app.db.database import db
 from app.db.models import (
-    Project,
-    ProjectTraceabilityProfile,
-    SdgMaster,
-    SdgIndicator,
-    Questionnaire,
-    QuestionSection,
-    Question,
-    QuestionOption,
-    QuestionIndicator,
-    TraceAssessment,
     AssessmentAnswer,
     AssessmentSdgResult,
+    Project,
     ProjectSdg,
     ProjectSdgVerification,
+    ProjectTraceabilityProfile,
+    Question,
+    QuestionIndicator,
+    Questionnaire,
+    QuestionOption,
+    QuestionSection,
+    SdgIndicator,
+    SdgMaster,
+    TraceAssessment,
 )
 from app.services.upload_service import save_file_locally
-
 
 # ---------------------------------------------------------------
 # SDG MASTER
@@ -1014,10 +1013,11 @@ def generate_traceability_qr(project_id):
 
     Return: base64 encoded image + link (tanpa disimpan ke DB/storage)
     """
-    import qrcode
     import base64
-    from io import BytesIO
     import os
+    from io import BytesIO
+
+    import qrcode
 
     project = Project.query.get(project_id)
     if not project:

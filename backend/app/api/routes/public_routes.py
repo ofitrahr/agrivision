@@ -1,5 +1,5 @@
-from flask import Blueprint, jsonify
 from app.db.models import RecentActivity
+from flask import Blueprint, jsonify
 
 public_bp = Blueprint('public_bp', __name__)
 
