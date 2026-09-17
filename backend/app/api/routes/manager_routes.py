@@ -168,9 +168,41 @@ def manager_traceability_profile(current_user):
             }
         }), 200
 
-    # POST: Update profile
+    # POST: Update profile (supports JSON and multipart/form-data for hero image)
     try:
-        data = request.get_json(silent=True) or {}
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            data = request.form.to_dict()
+            if 'hero_image' in request.files:
+                file = request.files['hero_image']
+                if file.filename:
+                    allowed_image_exts = {'png', 'jpg', 'jpeg', 'webp'}
+                    ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+                    if ext not in allowed_image_exts:
+                        return jsonify({'success': False, 'message': 'Format file tidak didukung. Gunakan JPG, PNG, atau WebP.'}), 400
+
+                    file.seek(0, 2)
+                    file_size = file.tell()
+                    file.seek(0)
+                    if file_size > 5 * 1024 * 1024:
+                        return jsonify({'success': False, 'message': 'Ukuran file terlalu besar. Maksimum 5 MB.'}), 400
+
+                    try:
+                        from PIL import Image
+                        img = Image.open(file)
+                        width, height = img.size
+                        file.seek(0)
+                        if width < 800 or height < 400:
+                            return jsonify({'success': False, 'message': 'Resolusi gambar terlalu kecil. Minimum 800 x 400 px.'}), 400
+                        if width > 4000 or height > 4000:
+                            return jsonify({'success': False, 'message': 'Resolusi gambar terlalu besar. Maksimum 4000 x 4000 px.'}), 400
+                    except Exception:
+                        file.seek(0)
+
+                    hero_url = save_file_locally(file, subfolder='traceability')
+                    if hero_url:
+                        data['hero_image_url'] = hero_url
+        else:
+            data = request.get_json(silent=True) or {}
         result, status_code = save_project_traceability_profile(project.id, data)
         return jsonify(result), status_code
     except Exception as e:

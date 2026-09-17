@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import api from '../../shared/api/axios';
 import NarrativeTextarea from '../../shared/components/traceability/NarrativeTextarea';
 import {
@@ -11,7 +11,7 @@ const ManagerTraceability = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    cover_image_url: '',
+    hero_image_url: '',
     origin_story: '',
     social_narrative: '',
     economic_narrative: '',
@@ -31,6 +31,9 @@ const ManagerTraceability = () => {
   const [sdgs, setSdgs] = useState([]);
   const [savedFormData, setSavedFormData] = useState(null);
   const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
+  const [heroUploading, setHeroUploading] = useState(false);
+  const [heroError, setHeroError] = useState('');
+  const heroFileInputRef = useRef(null);
 
   const hasChanges = useMemo(() => {
     if (!savedFormData) return false;
@@ -90,6 +93,54 @@ const ManagerTraceability = () => {
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (field === 'origin_story') setOriginStoryCount(value.length);
+  };
+
+  const handleHeroUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setHeroError('');
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setHeroError('Format file tidak didukung. Gunakan JPG, PNG, atau WebP.');
+      e.target.value = '';
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setHeroError('Ukuran file terlalu besar. Maksimum 5 MB.');
+      e.target.value = '';
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setFormData(prev => ({ ...prev, hero_image_url: previewUrl }));
+
+    setHeroUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('hero_image', file);
+      fd.append('status', status);
+      const res = await api.post('/manager/traceability/profile', fd, {
+        headers: { 'Content-Type': undefined }
+      });
+      if (res.data.success) {
+        if (res.data.data?.hero_image_url) {
+          setFormData(prev => ({ ...prev, hero_image_url: res.data.data.hero_image_url }));
+        }
+      } else {
+        setHeroError(res.data.message || 'Gagal upload gambar');
+        setFormData(prev => ({ ...prev, hero_image_url: '' }));
+      }
+    } catch (err) {
+      setHeroError(err.response?.data?.message || 'Gagal upload gambar');
+      setFormData(prev => ({ ...prev, hero_image_url: '' }));
+    } finally {
+      setHeroUploading(false);
+      e.target.value = '';
+    }
   };
 
   const handleSaveDraft = async () => {
@@ -229,11 +280,32 @@ const ManagerTraceability = () => {
           <div className="stat-card" style={{ padding: 24, background: 'linear-gradient(180deg, #0d2f1e 0%, #1f5438 100%)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h4 style={{ fontSize: 20, fontWeight: 600, color: '#ffffff', margin: 0 }}>Cover Imagery</h4>
-              <button className="action-btn view-btn" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', border: '1px solid #ffffff', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', color: '#0d2f1e' }}>
-                <Camera size={18} />
-                Replace Image
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {heroUploading && (
+                  <span style={{ fontSize: 12, color: '#c8ddad' }}>Uploading...</span>
+                )}
+                <input
+                  type="file"
+                  ref={heroFileInputRef}
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  onChange={handleHeroUpload}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  onClick={() => heroFileInputRef.current?.click()}
+                  disabled={heroUploading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', border: '1px solid #ffffff', borderRadius: 8, padding: '8px 16px', cursor: heroUploading ? 'not-allowed' : 'pointer', color: '#0d2f1e', opacity: heroUploading ? 0.6 : 1 }}
+                >
+                  <Camera size={18} />
+                  {heroUploading ? 'Uploading...' : 'Replace Image'}
+                </button>
+              </div>
             </div>
+            {heroError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '10px 16px', marginBottom: 12, fontSize: 13, color: '#991b1b' }}>
+                {heroError}
+              </div>
+            )}
             <div style={{
               position: 'relative',
               aspectRatio: '16/6',
@@ -243,7 +315,7 @@ const ManagerTraceability = () => {
               border: '1px solid #053B26'
             }}>
               <img
-                src={formData.cover_image_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAK_INcgpI_eLSsp6m9eiERUz_OxYr4bn4V1Rztuz27AJ4xnlbgpxh7Fn9H0TiS46jaBuNQA5X2WOF1H3gmdfH5mMJ_7RESoZamwH4T8dQOM6mo-ELlQhAj8kNKSOe7eGWd9k5E9btbk8ek-RQCJUKcUYt7fVracuGfyvqc-j15_Cn9vBtKwyw5aVutfyNtCJIgRl_siRymz3eS0mCqrS4X5XT2oXV5X3I2DNQnxrUKqaNMby1Mbxo28AzBAIoOFvQwIS5RCnPQ4f8'}
+                src={formData.hero_image_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAK_INcgpI_eLSsp6m9eiERUz_OxYr4bn4V1Rztuz27AJ4xnlbgpxh7Fn9H0TiS46jaBuNQA5X2WOF1H3gmdfH5mMJ_7RESoZamwH4T8dQOM6mo-ELlQhAj8kNKSOe7eGWd9k5E9btbk8ek-RQCJUKcUYt7fVracuGfyvqc-j15_Cn9vBtKwyw5aVutfyNtCJIgRl_siRymz3eS0mCqrS4X5XT2oXV5X3I2DNQnxrUKqaNMby1Mbxo28AzBAIoOFvQwIS5RCnPQ4f8'}
                 alt="Cover"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
@@ -621,7 +693,7 @@ const ManagerTraceability = () => {
       {showPreviewModal && previewData && (() => {
         const { project, profile, sdgs: previewSdgs } = previewData;
         // Gabungkan formData (data yang sedang diedit) dengan data dari DB
-        const heroImage = formData.hero_image_url || formData.cover_image_url || profile.hero_image_url || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200';
+        const heroImage = formData.hero_image_url || profile.hero_image_url || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200';
         const previewTitle = formData.title || profile.title || project?.name || 'Untitled';
         const previewTagline = formData.tagline || profile.tagline || '';
         const previewOrigin = formData.origin_story || profile.origin_story;

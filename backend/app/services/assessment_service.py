@@ -268,6 +268,7 @@ def save_project_traceability_profile(project_id, data):
 
     profile.title = data.get('title', profile.title)
     profile.tagline = data.get('tagline', profile.tagline)
+    profile.hero_image_url = data.get('hero_image_url', profile.hero_image_url)
     profile.origin_story = data.get('origin_story', profile.origin_story)
     profile.description = data.get('description', profile.description)
     profile.social_narrative = data.get('social_narrative', profile.social_narrative)
@@ -277,7 +278,7 @@ def save_project_traceability_profile(project_id, data):
         profile.status = data['status']
     db.session.commit()
 
-    return {"success": True, "message": "Traceability project berhasil disimpan", "data": {"id": str(profile.id), "status": profile.status}}, 200
+    return {"success": True, "message": "Traceability project berhasil disimpan", "data": {"id": str(profile.id), "status": profile.status, "hero_image_url": profile.hero_image_url}}, 200
 
 
 # ---------------------------------------------------------------
