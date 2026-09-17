@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import api from '../../shared/api/axios';
 import NarrativeTextarea from '../../shared/components/traceability/NarrativeTextarea';
 import {
@@ -29,6 +29,13 @@ const ManagerTraceability = () => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [projectId, setProjectId] = useState(null);
   const [sdgs, setSdgs] = useState([]);
+  const [savedFormData, setSavedFormData] = useState(null);
+  const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
+
+  const hasChanges = useMemo(() => {
+    if (!savedFormData) return false;
+    return JSON.stringify(formData) !== JSON.stringify(savedFormData);
+  }, [formData, savedFormData]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -38,6 +45,7 @@ const ManagerTraceability = () => {
         if (res.data.success) {
           const d = res.data.data;
           setFormData(d);
+          setSavedFormData({ ...d });
           setOriginStoryCount(d.origin_story?.length || 0);
           // Fix #3: Load status dari API agar tombol publish/unpublish akurat saat reload
           if (d.status) {
@@ -85,9 +93,18 @@ const ManagerTraceability = () => {
   };
 
   const handleSaveDraft = async () => {
+    setShowSaveConfirmModal(true);
+  };
+
+  const handleConfirmSave = async () => {
+    setShowSaveConfirmModal(false);
     setSaving(true);
     try {
-      await api.post('/manager/traceability/profile', formData);
+      const updatedData = { ...formData, status: 'draft' };
+      await api.post('/manager/traceability/profile', updatedData);
+      setStatus('draft');
+      setFormData(updatedData);
+      setSavedFormData(updatedData);
     } catch (error) {
       console.error('Gagal menyimpan draft', error);
     } finally {
@@ -99,8 +116,11 @@ const ManagerTraceability = () => {
     setPublishLoading(true);
     try {
       const newStatus = status === 'published' ? 'draft' : 'published';
-      await api.post('/manager/traceability/profile', { ...formData, status: newStatus });
+      const updatedData = { ...formData, status: newStatus };
+      await api.post('/manager/traceability/profile', updatedData);
       setStatus(newStatus);
+      setFormData(updatedData);
+      setSavedFormData(updatedData);
       if (newStatus === 'published') {
         setLastPublished(new Date().toISOString());
       }
@@ -190,14 +210,14 @@ const ManagerTraceability = () => {
           <p className="page-description">Customize how your farm's journey appears to consumers.</p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <Button variant="secondary" onClick={handlePreview} isLoading={previewLoading} loadingText="Loading..." icon={<Eye size={18} />}>
+          <Button variant="primary" onClick={handlePreview} isLoading={previewLoading} loadingText="Loading..." icon={<Eye size={18} />}>
             Preview
           </Button>
-          <Button variant="secondary" onClick={handleGenerateQR} isLoading={qrLoading} loadingText="Generating..." icon={<QrCode size={18} />}>
+          <Button variant="primary" onClick={handleGenerateQR} isLoading={qrLoading} loadingText="Generating..." icon={<QrCode size={18} />}>
             Generate QR Code
           </Button>
-          <Button variant="primary" onClick={handleSaveDraft} isLoading={saving} loadingText="Menyimpan...">
-            Save Draft
+          <Button variant={hasChanges ? 'primary' : 'secondary'} onClick={handleSaveDraft} isLoading={saving} loadingText="Menyimpan..." disabled={!hasChanges}>
+            {hasChanges ? 'Save Changes' : 'Save Draft'}
           </Button>
         </div>
       </div>
@@ -818,6 +838,61 @@ const ManagerTraceability = () => {
           </div>
         );
       })()}
+      {/* Save Confirmation Modal */}
+      {showSaveConfirmModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: 16,
+            padding: '40px 32px 32px',
+            maxWidth: 420,
+            width: '90%',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#0d2f1e', margin: '0 0 12px 0' }}>
+              Simpan Perubahan?
+            </h3>
+            <p style={{ fontSize: 14, color: '#5C7A6D', margin: '0 0 28px 0', lineHeight: 1.6 }}>
+              Perubahan yang sudah disimpan tidak dapat dikembalikan.<br />
+              Status akan diubah menjadi <strong style={{ color: '#0d2f1e' }}>Draft</strong>.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button
+                onClick={() => setShowSaveConfirmModal(false)}
+                style={{
+                  padding: '10px 28px', background: 'white', color: '#5C7A6D',
+                  border: '1.5px solid #d1d5db', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={e => { e.target.style.borderColor = '#0d2f1e'; e.target.style.color = '#0d2f1e'; }}
+                onMouseLeave={e => { e.target.style.borderColor = '#d1d5db'; e.target.style.color = '#5C7A6D'; }}
+              >
+                Tidak
+              </button>
+              <button
+                onClick={handleConfirmSave}
+                style={{
+                  padding: '10px 28px', background: '#0d2f1e', color: 'white',
+                  border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={e => { e.target.style.background = '#1a4d33'; }}
+                onMouseLeave={e => { e.target.style.background = '#0d2f1e'; }}
+              >
+                Ya, Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

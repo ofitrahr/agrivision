@@ -1,11 +1,19 @@
 import pandas as pd
 from flask import render_template
 import io
-from weasyprint import HTML, CSS
 
 class ReportService:
     @staticmethod
     def generated_pdf_report(report_data):
+        try:
+            from weasyprint import HTML, CSS
+        except (ImportError, OSError) as e:
+            raise RuntimeError(
+                "WeasyPrint tidak tersedia di sistem ini. "
+                "PDF report hanya bisa digenerate di Linux (Docker/production). "
+                f"Detail: {e}"
+            )
+
         rendered_html = render_template('reports/corporate_report.html', data=report_data)
         pdf_buffer = io.BytesIO()
         HTML(string=rendered_html).write_pdf(pdf_buffer)
