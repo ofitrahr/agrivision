@@ -5,6 +5,7 @@ import numpy as np
 import onnxruntime as ort
 import pandas as pd
 
+# harusnya bukan per stock tapi gram / kg
 
 class SOCService:
     FEATURE_ORDER = [

@@ -1,13 +1,12 @@
-import base64
+from flask import Blueprint, jsonify, request, send_file, current_app
 import os
+import base64
 from datetime import datetime
-
-from app.core.security import role_required, token_required
-from app.db.database import db
-from app.db.models import Company, Farm, Farmer
-from app.services.report_service import ReportService
+from app.core.security import token_required, role_required
 from app.services.upload_service import save_file_locally
-from flask import Blueprint, current_app, jsonify, request, send_file
+from app.db.models import Company, Farm, Farmer
+from app.db.database import db
+from app.services.report_service import ReportService
 
 manager_bp = Blueprint('manager_bp', __name__)
 
@@ -19,8 +18,7 @@ def get_manager_stats(current_user):
     project = current_user.project
     company_id = project.company_id if project else None
 
-    from app.db.models import EsgMetric, FinancialRecord
-    from app.db.models import Farm as FarmModel
+    from app.db.models import FinancialRecord, EsgMetric, Farm as FarmModel
     from sqlalchemy import func
 
     farms = FarmModel.query.filter_by(project_id=project_id).all()
@@ -94,7 +92,7 @@ def manager_profile(current_user):
     company = Company.query.get(project.company_id) if project else None
     if not company:
         return jsonify({'success': False, 'message': 'Company tidak ditemukan'}), 404
-        
+
     if request.method == 'GET':
         return jsonify({
             'success': True,
@@ -107,17 +105,17 @@ def manager_profile(current_user):
                 'subscription_plan': company.subscription_plan
             }
         }), 200
-        
+
     try:
         data = request.form
-        
+
         if 'name' in data:
             company.name = data['name']
         if 'description' in data:
             company.description = data['description']
         if 'address' in data:
             company.address = data['address']
-            
+
         if 'logo' in request.files:
             file = request.files['logo']
             if file.filename != '':
@@ -129,7 +127,7 @@ def manager_profile(current_user):
 
         db.session.commit()
         return jsonify({'success': True, 'message': 'Profil berhasil diperbarui!', 'logo_url': company.logo_url}), 200
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -143,10 +141,8 @@ def manager_traceability_profile(current_user):
     GET: Retrieve profile data dengan project_id
     POST: Update profile data (title, tagline, origin_story, description, status)
     """
-    from app.services.assessment_service import (
-        get_or_create_profile,
-        save_project_traceability_profile,
-    )
+    from app.db.models import ProjectTraceabilityProfile
+    from app.services.assessment_service import get_or_create_profile, save_project_traceability_profile
 
     project = current_user.project
     if not project:
@@ -196,7 +192,7 @@ def _parse_year(val):
 def manager_farmers(current_user):
     project = current_user.project
     company_id = project.company_id if project else None
-    
+
     if not company_id:
         return jsonify({'success': False, 'message': 'Akun manager belum terhubung ke perusahaan/proyek.'}), 400
 
@@ -214,7 +210,7 @@ def manager_farmers(current_user):
             'farm_info': f.farm_info,
         } for f in farmers]
         return jsonify({'success': True, 'data': data}), 200
-        
+
     # POST
     try:
         data = request.form
@@ -225,10 +221,10 @@ def manager_farmers(current_user):
         raw_birth_year = data.get('birth_year') or data.get('age')
         raw_join_year = data.get('join_year')
         farm_info = data.get('farm_info')
-        
+
         if not name or not name.strip():
             return jsonify({'success': False, 'message': 'Nama petani wajib diisi'}), 400
-            
+
         # Cek Redundansi Data
         if phone:
             existing_phone = Farmer.query.filter_by(company_id=company_id, phone=phone).first()
@@ -241,13 +237,13 @@ def manager_farmers(current_user):
             ).first()
             if existing_name:
                 return jsonify({'success': False, 'message': f'Petani dengan nama "{name}" sudah terdaftar'}), 400
-            
+
         photo_url = None
         if 'photo' in request.files:
             file = request.files['photo']
             if file.filename != '':
                 photo_url = save_file_locally(file, subfolder='farmers')
-                
+
         parsed_birth_year = _parse_year(raw_birth_year)
         parsed_join_year = _parse_year(raw_join_year)
 
@@ -263,7 +259,7 @@ def manager_farmers(current_user):
         )
         db.session.add(new_farmer)
         db.session.commit()
-        
+
         return jsonify({'success': True, 'message': 'Petani berhasil ditambahkan'}), 201
     except Exception as e:
         db.session.rollback()
@@ -279,10 +275,10 @@ def edit_farmer(current_user, farmer_id):
     farmer = Farmer.query.filter_by(id=farmer_id, company_id=company_id).first()
     if not farmer:
         return jsonify({'success': False, 'message': 'Petani tidak ditemukan'}), 404
-        
+
     try:
         data = request.form
-        
+
         if 'name' in data:
             farmer.name = data['name'].strip()
         if 'phone' in data:
@@ -301,13 +297,13 @@ def edit_farmer(current_user, farmer_id):
             farmer.join_year = _parse_year(data.get('join_year'))
         if 'farm_info' in data:
             farmer.farm_info = data['farm_info']
-            
+
         if 'photo' in request.files:
             file = request.files['photo']
             if file.filename != '':
                 photo_url = save_file_locally(file, subfolder='farmers')
                 farmer.photo_url = photo_url
-                
+
         db.session.commit()
         return jsonify({'success': True, 'message': 'Petani berhasil diperbarui'}), 200
     except Exception as e:
@@ -323,7 +319,7 @@ def delete_farmer(current_user, farmer_id):
     farmer = Farmer.query.filter_by(id=farmer_id, company_id=company_id).first()
     if not farmer:
         return jsonify({'success': False, 'message': 'Petani tidak ditemukan'}), 404
-        
+
     try:
         db.session.delete(farmer)
         db.session.commit()
@@ -381,10 +377,10 @@ def manager_farm_details(current_user, farm_id):
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
-    from app.db.models import FarmCrop
+    from app.db.models import Farmer, FarmCrop
     farmers = farm.farmers
     crops = FarmCrop.query.filter_by(farm_id=farm.id).all()
-    
+
     return jsonify({
         'success': True,
         'data': {
@@ -416,7 +412,7 @@ def manager_update_farm_details(current_user, farm_id):
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
     try:
-        from app.db.models import FarmCrop, Farmer
+        from app.db.models import Farmer, FarmCrop
         data = request.json
 
         farm_total_area = float(farm.total_area_ha) if farm.total_area_ha else 0.0
@@ -434,10 +430,10 @@ def manager_update_farm_details(current_user, farm_id):
             farm.altitude = data['altitude']
         if 'agroforestry_system' in data and hasattr(farm, 'agroforestry_system'):
             setattr(farm, 'agroforestry_system', data['agroforestry_system'])
-        
+
         farmer_ids = data.get('farmer_ids', [])
-        
-        # Parse crops 
+
+        # Parse crops
         raw_crops = data.get('crops', [])
         if not raw_crops and 'crop_types' in data:
             raw_crops = [{'crop_type': ct, 'area_ha': 0.0} for ct in data.get('crop_types', [])]
@@ -471,17 +467,17 @@ def manager_update_farm_details(current_user, farm_id):
                 'success': False,
                 'message': f'Total luas komoditas ({total_crops_area} Ha) melebihi total luas lahan ({farm_total_area} Ha)'
             }), 400
-        
+
         # Update Farmers
         valid_farmers = Farmer.query.filter(Farmer.id.in_(farmer_ids), Farmer.company_id == current_user.project.company_id).all()
         farm.farmers = valid_farmers
-        
+
         # Update Crops
         FarmCrop.query.filter_by(farm_id=farm.id).delete()
         for c in parsed_crops:
             new_crop = FarmCrop(farm_id=farm.id, crop_type=c['crop_type'], area_ha=c['area_ha'])
             db.session.add(new_crop)
-            
+
         db.session.commit()
 
         from app.services.activity_service import log_activity
@@ -506,10 +502,9 @@ def get_manager_farm_map(current_user, farm_id):
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
-    import json
-
     from app.services.gis_service import GISService
     from geoalchemy2.functions import ST_AsGeoJSON
+    import json
 
     farm_geojson = None
     if farm.boundary is not None:
@@ -588,16 +583,16 @@ def manager_farm_financials(current_user, farm_id):
 @role_required('manager')
 def get_agronomy_farm_map(current_user, farm_id):
     from app.db.models import ProjectPermission
-    
+
     project_id = current_user.project_id
-    
+
     # Cek izin akses agronomi modul
     perms = ProjectPermission.query.filter_by(project_id=project_id).first()
     if not perms or not perms.module_agronomy:
         return jsonify({'success': False, 'message': 'Perusahaan Anda tidak berlangganan Modul Agronomi'}), 403
 
     layer_type = request.args.get('layer', 'ndvi')
-    
+
     if layer_type == 'soc':
         has_access = perms.can_access_soc if perms else True
     elif layer_type == 'biomass':
@@ -613,10 +608,9 @@ def get_agronomy_farm_map(current_user, farm_id):
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
-    import json
-
     from app.services.gis_service import GISService
     from geoalchemy2.functions import ST_AsGeoJSON
+    import json
 
     farm_geojson = None
     if farm.boundary is not None:
@@ -628,7 +622,7 @@ def get_agronomy_farm_map(current_user, farm_id):
         # Query sample points dari GisLayer untuk dikirim ke peta
         from app.db.models import GisLayer
         from geoalchemy2.functions import ST_X, ST_Y
-        
+
         latest_period = request.args.get('period', 'Q1_2026')
         gis_rows = GisLayer.query.filter_by(
             farm_id=farm_id,
@@ -657,6 +651,9 @@ def get_agronomy_farm_map(current_user, farm_id):
         )
         return jsonify({'success': True, 'data': {'html': map_html}})
     except Exception as e:
+        import traceback
+        with open("backend_error.log", "w") as f:
+            f.write(traceback.format_exc())
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -664,9 +661,9 @@ def get_agronomy_farm_map(current_user, farm_id):
 @token_required
 @role_required('manager')
 def get_agronomy_stats(current_user, farm_id):
+    from app.db.models import ProjectPermission, GisLayer
     import statistics
-
-    from app.db.models import GisLayer, ProjectPermission
+    import math
 
     project_id = current_user.project_id
 
@@ -703,7 +700,7 @@ def get_agronomy_stats(current_user, farm_id):
     ).all()
 
     values = [float(r.numerical_value) for r in rows if r.numerical_value is not None]
-    
+
     # Calculate previous period for change delta
     all_periods = ['Q1_2025', 'Q2_2025', 'Q3_2025', 'Q4_2025', 'Q1_2026']
     prev_period = None
@@ -733,7 +730,7 @@ def get_agronomy_stats(current_user, farm_id):
     min_val = min(values)
     max_val = max(values)
     std_val = statistics.stdev(values) if len(values) > 1 else 0.0
-    
+
     # Calculate change
     change = None
     if prev_period:
@@ -791,16 +788,16 @@ def get_agronomy_stats(current_user, farm_id):
                 'ec': float(sensor.ec) if sensor.ec else None,
                 'humidity': float(sensor.humidity) if sensor.humidity else None,
             }
-            
+
         # Get N, P, K averages for KPI strip
         n_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='nitrogen', period=period).all()
         p_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='phosphorus', period=period).all()
         k_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='potassium', period=period).all()
-        
+
         n_vals = [float(r.numerical_value) for r in n_rows if r.numerical_value is not None]
         p_vals = [float(r.numerical_value) for r in p_rows if r.numerical_value is not None]
         k_vals = [float(r.numerical_value) for r in k_rows if r.numerical_value is not None]
-        
+
         if sensor_data is None:
             sensor_data = {}
         sensor_data['nitrogen_mean'] = round(statistics.mean(n_vals), 2) if n_vals else None
@@ -875,7 +872,7 @@ def manager_farm_harvests(current_user, farm_id):
         data = request.json
         period = data.get('period')
         yield_kg = data.get('yield_kg', 0)
-        
+
         if not period:
             return jsonify({'success': False, 'message': 'Periode wajib diisi'}), 400
 
@@ -900,7 +897,7 @@ def manager_farm_harvests(current_user, farm_id):
 @role_required('manager')
 def get_manager_activities(current_user):
     try:
-        from app.db.models import ActivityLog, Project, User
+        from app.db.models import ActivityLog, User, Project
         from app.services.activity_service import format_time_ago
 
         company_id = current_user.project.company_id if current_user.project else None
@@ -980,7 +977,7 @@ def manager_traceability_preview(current_user):
 
     Return data sama seperti public endpoint, tapi tanpa check publish status.
     """
-    from app.db.models import ProjectSdg, ProjectTraceabilityProfile
+    from app.db.models import ProjectTraceabilityProfile, ProjectSdg
 
     project = current_user.project
     if not project:
@@ -1125,7 +1122,7 @@ def get_available_periods(current_user):
         'Q1': 'Jan - Mar', 'Q2': 'Apr - Jun',
         'Q3': 'Jul - Sep', 'Q4': 'Okt - Des',
     }
-    
+
     def parse_period_for_sort(p):
         try:
             q, y = p.split('_')
@@ -1153,9 +1150,8 @@ def get_available_periods(current_user):
 @token_required
 @role_required('manager')
 def get_farm_observation_summary(current_user, farm_id):
+    from app.db.models import GisLayer, EsgMetric
     import statistics
-
-    from app.db.models import GisLayer
 
     project_id = current_user.project_id
     farm = Farm.query.filter_by(id=farm_id, project_id=project_id).first()
@@ -1193,7 +1189,7 @@ def get_farm_observation_summary(current_user, farm_id):
     biomass_mean = get_layer_mean('biomass')
     npk_mean = get_layer_mean('soilnpk')
     yield_mean = get_layer_mean('yield')
-    
+
     n_mean = get_layer_mean('nitrogen')
     p_mean = get_layer_mean('phosphorus')
     k_mean = get_layer_mean('potassium')
@@ -1216,17 +1212,17 @@ def get_farm_observation_summary(current_user, farm_id):
 
     if yield_mean is not None:
         result['productivity'] = round(yield_mean, 2)
-        
+
     # Ekologi (N, P, K)
     result['n_value'] = round(n_mean, 1) if n_mean is not None else '-'
     result['p_value'] = round(p_mean, 1) if p_mean is not None else '-'
     result['k_value'] = round(k_mean, 1) if k_mean is not None else '-'
-    
+
     # Sosial (Demographics)
     farm_farmers = farm.farmers
     total_farmers = len(farm_farmers)
     result['petani_terberdayakan'] = total_farmers if total_farmers > 0 else '-'
-    
+
     if total_farmers > 0:
         male_count = 0
         female_count = 0
@@ -1237,18 +1233,18 @@ def get_farm_observation_summary(current_user, farm_id):
             elif g.startswith('p') or g.startswith('f') or g.startswith('w'):
                 female_count += 1
         result['sebaran_gender'] = f"{male_count}L / {female_count}P"
-        
+
         ages = [f.age for f in farm_farmers if getattr(f, 'age', None) is not None]
         if ages:
             muda = sum(1 for a in ages if a < 30)
             dewasa = sum(1 for a in ages if 30 <= a <= 50)
             tua = sum(1 for a in ages if a > 50)
-            
+
             parts = []
             if muda > 0: parts.append(f"<30: {muda}")
             if dewasa > 0: parts.append(f"30-50: {dewasa}")
             if tua > 0: parts.append(f">50: {tua}")
-            
+
             result['sebaran_usia'] = " | ".join(parts) if parts else '-'
         else:
             result['sebaran_usia'] = '-'
@@ -1259,11 +1255,11 @@ def get_farm_observation_summary(current_user, farm_id):
     # Ekonomi
     from app.db.models import FinancialRecord
     fin_records = FinancialRecord.query.filter_by(farm_id=farm.id).order_by(FinancialRecord.created_at.desc()).limit(2).all()
-    
+
     if len(fin_records) >= 2:
         curr = fin_records[0]
         prev = fin_records[1]
-        
+
         rev_curr = curr.estimated_revenue or 0
         rev_prev = prev.estimated_revenue or 0
         if rev_prev > 0:
@@ -1274,7 +1270,7 @@ def get_farm_observation_summary(current_user, farm_id):
             result['peningkatan_pendapatan'] = f"{'+' if pct_inc_rounded >= 0 else ''}{pct_inc_rounded}"
         else:
             result['peningkatan_pendapatan'] = '-'
-            
+
         cost_curr = curr.operational_cost or 0
         cost_prev = prev.operational_cost or 0
         if cost_prev > 0:
@@ -1302,13 +1298,7 @@ def get_farm_observation_summary(current_user, farm_id):
 @token_required
 @role_required('manager')
 def download_report(current_user, report_id):
-    from app.db.models import (
-        DocumentReport,
-        Farmer,
-        FinancialRecord,
-        GisLayer,
-        SensorData,
-    )
+    from app.db.models import DocumentReport, GisLayer, FinancialRecord, Farmer, SensorData, EsgMetric
     report = DocumentReport.query.filter_by(id=report_id).first()
     if not report:
         return jsonify({'success': False, 'message': 'Laporan tidak ditemukan'}), 404
@@ -1347,7 +1337,7 @@ def download_report(current_user, report_id):
     farm_obj = None
     selected_farms = []
     default_proj_loc = current_user.project.location if current_user.project and current_user.project.location else '-'
-    
+
     if report.farm_id:
         farms_matched = Farm.query.filter_by(id=report.farm_id).all()
     elif report.farm_name and report.farm_name != 'Semua Lahan':
@@ -1419,9 +1409,9 @@ def download_report(current_user, report_id):
     biomass_avg = get_avg_gis_layer('biomass')
     total_biomass_ton = biomass_avg * total_area
     total_carbon_credit = total_soc_ton + total_biomass_ton
-    estimated_carbon_value = total_carbon_credit * 150000 
+    estimated_carbon_value = total_carbon_credit * 150000
     formatted_carbon_value = f"{estimated_carbon_value:,.0f}".replace(',', '.')
-    
+
     total_credit_avg = round(soc_avg + biomass_avg, 2)
     val_per_ha = f"{(estimated_carbon_value / total_area if total_area > 0 else 0):,.0f}".replace(',', '.')
 
@@ -1436,7 +1426,7 @@ def download_report(current_user, report_id):
     else:
         farm_ids = [f.id for f in Farm.query.filter_by(project_id=current_user.project_id).all()]
         fin_query = fin_query.filter(FinancialRecord.farm_id.in_(farm_ids))
-    
+
     fin_stats = fin_query.first()
     total_yield = float(fin_stats[0] or 0)
     gross_revenue = float(fin_stats[1] or 0)
@@ -1489,7 +1479,7 @@ def download_report(current_user, report_id):
     boundary_status = 'Tersedia Polygon GIS (SRID 4326)' if has_boundary else 'Belum Dipetakan'
 
     # 9. Zona Waktu Indonesia Barat (WIB = UTC+7)
-    from datetime import timedelta, timezone
+    from datetime import timezone, timedelta
     wib_tz = timezone(timedelta(hours=7))
     generated_at_wib = datetime.now(wib_tz).strftime("%d %b %Y, %H:%M WIB")
 
@@ -1524,20 +1514,20 @@ def download_report(current_user, report_id):
         'total_area_ha': total_area,
         'selected_farms': selected_farms,
         'logo_base64': logo_base64,
-        
+
         # Modul Flags
         'show_agronomy': is_comprehensive or 'agronomy' in report_types,
         'show_carbon': is_comprehensive or 'carbon' in report_types,
         'show_finance': is_comprehensive or 'finance' in report_types,
         'show_social': is_comprehensive or 'social' in report_types,
         'show_traceability': is_comprehensive or 'traceability' in report_types,
-        
+
         # Detail Data Murni Tanpa Rekayasa
         'agronomy': {
             'plant_health': plant_health,
             'health_status': health_status,
-            'n_val': n_val if n_val > 0 else '-', 
-            'p_val': p_val if p_val > 0 else '-', 
+            'n_val': n_val if n_val > 0 else '-',
+            'p_val': p_val if p_val > 0 else '-',
             'k_val': k_val if k_val > 0 else '-',
             'soil_ph': soil_ph,
             'soil_temp': soil_temp,
@@ -1555,16 +1545,16 @@ def download_report(current_user, report_id):
             'estimated_value': formatted_carbon_value
         },
         'finance': {
-            'total_yield': f"{total_yield:,.0f}".replace(',', '.'), 
+            'total_yield': f"{total_yield:,.0f}".replace(',', '.'),
             'productivity': productivity_per_ha,
-            'gross_revenue': format_rupiah(gross_revenue), 
-            'operational_cost': format_rupiah(operational_cost), 
+            'gross_revenue': format_rupiah(gross_revenue),
+            'operational_cost': format_rupiah(operational_cost),
             'net_profit': format_rupiah(net_profit),
             'profit_margin': profit_margin
         },
         'social': {
-            'total_farmers': total_farmers, 
-            'male_count': male_count, 
+            'total_farmers': total_farmers,
+            'male_count': male_count,
             'female_count': female_count,
             'avg_age': avg_age,
             'farmers_list': farmers_detail

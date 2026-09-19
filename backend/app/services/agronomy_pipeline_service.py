@@ -35,11 +35,11 @@ class AgronomyPipelineService:
         else:
             raise ValueError(f"Tipe geometri '{geom_type}' tidak didukung untuk ekstraksi citra satelit.")
 
-        # Ambil Kumpulan Piksel Spasial dari GEE 
+        # Ambil Kumpulan Piksel Spasial dari GEE
         logger.info(f"Mengambil piksel spasial GEE untuk lahan '{farm.name}' (ID: {farm.id})...")
         pixel_samples, scene_info = GEEService.get_farm_pixel_samples_from_gee(coords, scale=20)
         if not pixel_samples:
-            raise ValueError(f"Tidak ada piksel citra satelit yang berhasil diambil untuk area lahan ini.")
+            raise ValueError("Tidak ada piksel citra satelit yang berhasil diambil untuk area lahan ini.")
 
         # Inferensi Model ONNX SOC Secara Paralel (Batch)
         logger.info(f"Menjalankan inferensi ANN ONNX untuk {len(pixel_samples)} titik piksel lahan '{farm.name}'...")
@@ -71,7 +71,7 @@ class AgronomyPipelineService:
         db.session.add_all(new_layers)
         db.session.commit()
 
-        # Hitung Statistik Spasial (Mean, Min, Max, Std Dev)
+        # Hitung Statistik Spasial
         mean_val = float(np.mean(predictions))
         min_val = float(np.min(predictions))
         max_val = float(np.max(predictions))

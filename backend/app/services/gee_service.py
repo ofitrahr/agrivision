@@ -17,7 +17,6 @@ class GEEService:
             return True
 
         from dotenv import dotenv_values
-        # Try to load directly from .env file to bypass any docker-compose truncation issues
         env_dict = dotenv_values('/app/.env') or dotenv_values(os.path.join(os.path.dirname(__file__), '../../.env'))
         b64_key = env_dict.get("GEE_SERVICE_ACCOUNT_B64") or os.getenv("GEE_SERVICE_ACCOUNT_B64")
 
@@ -26,7 +25,6 @@ class GEEService:
 
         try:
             b64_key_stripped = b64_key.strip()
-            # Fix incorrect padding
             b64_key_padded = b64_key_stripped + '=' * (-len(b64_key_stripped) % 4)
             sa_info = json.loads(base64.b64decode(b64_key_padded).decode('utf-8'))
             scopes = [
@@ -44,8 +42,8 @@ class GEEService:
             logger.info(f"Koneksi Google Earth Engine berhasil diinisialisasi (Project: {project_id})")
             return True
         except Exception as e:
-            logger.error(f"Gagal inisialisasi GEE: {str(e)}")
-            raise e
+            logger.error(f"Gagal inisialisasi GEE: {str(e, encoding='utf-8')}")
+            raise
 
     DEFAULT_12_BANDS = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B11', 'B12']
 
@@ -103,7 +101,7 @@ class GEEService:
                     .select(bands))
 
         # Ambil Topografi dari DEM NASA SRTM 30m
-        dem = ee.Image('USGS/SRTMGL1_003').clip(aoi)
+        dem = ee.Image('USGS/SRTMGL1_003').clip(aoi) #coba cari tau NASA/NASADEM_HGT/001
         elevation = dem.select('elevation')
         slope = ee.Terrain.slope(elevation).rename('slope')
         aspect = ee.Terrain.aspect(elevation).rename('aspect')
