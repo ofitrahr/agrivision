@@ -217,11 +217,12 @@ class GISService:
                 return '#cd853f'
             return '#deb887'
         elif layer_type == 'biomass':
-            if value > 150:
-                return '#228b22'
-            elif value > 80:
-                return '#32cd32'
-            return '#90ee90'
+            # Sebaran riil AGB Kadatuan: median 21.6, p90 67.8, maks 127.4 Mg/ha
+            if value > 65:
+                return '#006d2c'
+            elif value > 25:
+                return '#74c476'
+            return '#edf8e9'
         elif layer_type == 'yield':
             # Skala ceri kopi arabika Kadatuan (Ton/Ha per periode panen)
             if value > 0.25:
@@ -276,7 +277,7 @@ class GISService:
         legends = {
             'ndvi': [('#10b981', 'Sehat (>0.7)'), ('#f59e0b', 'Waspada (0.4-0.7)'), ('#ef4444', 'Kritis (<0.4)')],
             'soc': [('#8b5a2b', 'Tinggi (>50)'), ('#cd853f', 'Sedang (30-50)'), ('#deb887', 'Rendah (<30)')],
-            'biomass': [('#228b22', 'Tinggi (>150)'), ('#32cd32', 'Sedang (80-150)'), ('#90ee90', 'Rendah (<80)')],
+            'biomass': [('#006d2c', 'Tinggi (>65 Ton/Ha)'), ('#74c476', 'Sedang (25-65)'), ('#edf8e9', 'Rendah (<25)')],
             'yield': [('#15803d', 'Tinggi (>0.25 Ton/Ha)'), ('#84cc16', 'Optimal (0.15-0.25)'), ('#eab308', 'Cukup (0.08-0.15)'), ('#ef4444', 'Rendah (<0.08)')],
             'soilnpk': [('#065f46', 'Optimal (>66)'), ('#0d9488', 'Cukup (33-66)'), ('#99f6e4', 'Defisit (<33)')],
             'nitrogen': [('#14532d', 'Tinggi (>0.75%)'), ('#22c55e', 'Sedang (0.55-0.75%)'), ('#eab308', 'Rendah (<0.55%)')],
@@ -420,7 +421,7 @@ class GISService:
                         color = GISService._get_color_for_value(value, layer_type)
                         popup_html = f"<b>Kandungan SOC:</b> {value} ton/ha"
                     elif layer_type == 'biomass':
-                        value = round(random.uniform(50.0, 250.0), 1)
+                        value = round(random.uniform(5.0, 120.0), 1)
                         color = GISService._get_color_for_value(value, layer_type)
                         popup_html = f"<b>Estimasi Biomassa:</b> {value} ton/ha"
                     elif layer_type == 'yield':

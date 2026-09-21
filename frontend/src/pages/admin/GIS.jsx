@@ -819,16 +819,16 @@ const GIS = () => {
                                     <div style={{ fontSize: '10px', color: '#166534' }}>Sentinel-2 Index (B8/B4)</div>
                                 </div>
 
-                                {/* 3. Biomassa Karbon (Pending - belum ada model resmi) */}
+                                {/* 3. Biomassa Karbon (dataset terpisah, bukan hasil pipeline satelit) */}
                                 <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                                         <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Biomassa Karbon</span>
                                         <span style={{ fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '10px', background: '#e2e8f0', color: '#64748b' }}>
-                                            Menunggu Model R&D
+                                            Dataset Terpisah
                                         </span>
                                     </div>
                                     <div style={{ fontSize: '20px', fontWeight: '700', color: '#94a3b8', margin: '2px 0' }}>-</div>
-                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Dalam tahap pengembangan</div>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Survei AGB, lihat layer Biomassa di Agronomi</div>
                                 </div>
 
                                 {/* 4. Nutrisi NPK */}
