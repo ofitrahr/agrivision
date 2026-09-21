@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import api from '../../shared/api/axios';
 import NarrativeTextarea from '../../shared/components/traceability/NarrativeTextarea';
 import {
@@ -11,7 +11,7 @@ const ManagerTraceability = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    cover_image_url: '',
+    hero_image_url: '',
     origin_story: '',
     social_narrative: '',
     economic_narrative: '',
@@ -29,6 +29,16 @@ const ManagerTraceability = () => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [projectId, setProjectId] = useState(null);
   const [sdgs, setSdgs] = useState([]);
+  const [savedFormData, setSavedFormData] = useState(null);
+  const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
+  const [heroUploading, setHeroUploading] = useState(false);
+  const [heroError, setHeroError] = useState('');
+  const heroFileInputRef = useRef(null);
+
+  const hasChanges = useMemo(() => {
+    if (!savedFormData) return false;
+    return JSON.stringify(formData) !== JSON.stringify(savedFormData);
+  }, [formData, savedFormData]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -38,6 +48,7 @@ const ManagerTraceability = () => {
         if (res.data.success) {
           const d = res.data.data;
           setFormData(d);
+          setSavedFormData({ ...d });
           setOriginStoryCount(d.origin_story?.length || 0);
           // Fix #3: Load status dari API agar tombol publish/unpublish akurat saat reload
           if (d.status) {
@@ -84,10 +95,67 @@ const ManagerTraceability = () => {
     if (field === 'origin_story') setOriginStoryCount(value.length);
   };
 
+  const handleHeroUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setHeroError('');
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setHeroError('Format file tidak didukung. Gunakan JPG, PNG, atau WebP.');
+      e.target.value = '';
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setHeroError('Ukuran file terlalu besar. Maksimum 5 MB.');
+      e.target.value = '';
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setFormData(prev => ({ ...prev, hero_image_url: previewUrl }));
+
+    setHeroUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('hero_image', file);
+      fd.append('status', status);
+      const res = await api.post('/manager/traceability/profile', fd, {
+        headers: { 'Content-Type': undefined }
+      });
+      if (res.data.success) {
+        if (res.data.data?.hero_image_url) {
+          setFormData(prev => ({ ...prev, hero_image_url: res.data.data.hero_image_url }));
+        }
+      } else {
+        setHeroError(res.data.message || 'Gagal upload gambar');
+        setFormData(prev => ({ ...prev, hero_image_url: '' }));
+      }
+    } catch (err) {
+      setHeroError(err.response?.data?.message || 'Gagal upload gambar');
+      setFormData(prev => ({ ...prev, hero_image_url: '' }));
+    } finally {
+      setHeroUploading(false);
+      e.target.value = '';
+    }
+  };
+
   const handleSaveDraft = async () => {
+    setShowSaveConfirmModal(true);
+  };
+
+  const handleConfirmSave = async () => {
+    setShowSaveConfirmModal(false);
     setSaving(true);
     try {
-      await api.post('/manager/traceability/profile', formData);
+      const updatedData = { ...formData, status: 'draft' };
+      await api.post('/manager/traceability/profile', updatedData);
+      setStatus('draft');
+      setFormData(updatedData);
+      setSavedFormData(updatedData);
     } catch (error) {
       console.error('Gagal menyimpan draft', error);
     } finally {
@@ -99,8 +167,11 @@ const ManagerTraceability = () => {
     setPublishLoading(true);
     try {
       const newStatus = status === 'published' ? 'draft' : 'published';
-      await api.post('/manager/traceability/profile', { ...formData, status: newStatus });
+      const updatedData = { ...formData, status: newStatus };
+      await api.post('/manager/traceability/profile', updatedData);
       setStatus(newStatus);
+      setFormData(updatedData);
+      setSavedFormData(updatedData);
       if (newStatus === 'published') {
         setLastPublished(new Date().toISOString());
       }
@@ -190,14 +261,14 @@ const ManagerTraceability = () => {
           <p className="page-description">Customize how your farm's journey appears to consumers.</p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <Button variant="secondary" onClick={handlePreview} isLoading={previewLoading} loadingText="Loading..." icon={<Eye size={18} />}>
+          <Button variant="primary" onClick={handlePreview} isLoading={previewLoading} loadingText="Loading..." icon={<Eye size={18} />}>
             Preview
           </Button>
-          <Button variant="secondary" onClick={handleGenerateQR} isLoading={qrLoading} loadingText="Generating..." icon={<QrCode size={18} />}>
+          <Button variant="primary" onClick={handleGenerateQR} isLoading={qrLoading} loadingText="Generating..." icon={<QrCode size={18} />}>
             Generate QR Code
           </Button>
-          <Button variant="primary" onClick={handleSaveDraft} isLoading={saving} loadingText="Menyimpan...">
-            Save Draft
+          <Button variant={hasChanges ? 'primary' : 'secondary'} onClick={handleSaveDraft} isLoading={saving} loadingText="Menyimpan..." disabled={!hasChanges}>
+            {hasChanges ? 'Save Changes' : 'Save Draft'}
           </Button>
         </div>
       </div>
@@ -209,11 +280,32 @@ const ManagerTraceability = () => {
           <div className="stat-card" style={{ padding: 24, background: 'linear-gradient(180deg, #0d2f1e 0%, #1f5438 100%)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h4 style={{ fontSize: 20, fontWeight: 600, color: '#ffffff', margin: 0 }}>Cover Imagery</h4>
-              <button className="action-btn view-btn" style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', border: '1px solid #ffffff', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', color: '#0d2f1e' }}>
-                <Camera size={18} />
-                Replace Image
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {heroUploading && (
+                  <span style={{ fontSize: 12, color: '#c8ddad' }}>Uploading...</span>
+                )}
+                <input
+                  type="file"
+                  ref={heroFileInputRef}
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  onChange={handleHeroUpload}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  onClick={() => heroFileInputRef.current?.click()}
+                  disabled={heroUploading}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', border: '1px solid #ffffff', borderRadius: 8, padding: '8px 16px', cursor: heroUploading ? 'not-allowed' : 'pointer', color: '#0d2f1e', opacity: heroUploading ? 0.6 : 1 }}
+                >
+                  <Camera size={18} />
+                  {heroUploading ? 'Uploading...' : 'Replace Image'}
+                </button>
+              </div>
             </div>
+            {heroError && (
+              <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '10px 16px', marginBottom: 12, fontSize: 13, color: '#991b1b' }}>
+                {heroError}
+              </div>
+            )}
             <div style={{
               position: 'relative',
               aspectRatio: '16/6',
@@ -223,7 +315,7 @@ const ManagerTraceability = () => {
               border: '1px solid #053B26'
             }}>
               <img
-                src={formData.cover_image_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAK_INcgpI_eLSsp6m9eiERUz_OxYr4bn4V1Rztuz27AJ4xnlbgpxh7Fn9H0TiS46jaBuNQA5X2WOF1H3gmdfH5mMJ_7RESoZamwH4T8dQOM6mo-ELlQhAj8kNKSOe7eGWd9k5E9btbk8ek-RQCJUKcUYt7fVracuGfyvqc-j15_Cn9vBtKwyw5aVutfyNtCJIgRl_siRymz3eS0mCqrS4X5XT2oXV5X3I2DNQnxrUKqaNMby1Mbxo28AzBAIoOFvQwIS5RCnPQ4f8'}
+                src={formData.hero_image_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAK_INcgpI_eLSsp6m9eiERUz_OxYr4bn4V1Rztuz27AJ4xnlbgpxh7Fn9H0TiS46jaBuNQA5X2WOF1H3gmdfH5mMJ_7RESoZamwH4T8dQOM6mo-ELlQhAj8kNKSOe7eGWd9k5E9btbk8ek-RQCJUKcUYt7fVracuGfyvqc-j15_Cn9vBtKwyw5aVutfyNtCJIgRl_siRymz3eS0mCqrS4X5XT2oXV5X3I2DNQnxrUKqaNMby1Mbxo28AzBAIoOFvQwIS5RCnPQ4f8'}
                 alt="Cover"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
@@ -601,7 +693,7 @@ const ManagerTraceability = () => {
       {showPreviewModal && previewData && (() => {
         const { project, profile, sdgs: previewSdgs } = previewData;
         // Gabungkan formData (data yang sedang diedit) dengan data dari DB
-        const heroImage = formData.hero_image_url || formData.cover_image_url || profile.hero_image_url || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200';
+        const heroImage = formData.hero_image_url || profile.hero_image_url || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200';
         const previewTitle = formData.title || profile.title || project?.name || 'Untitled';
         const previewTagline = formData.tagline || profile.tagline || '';
         const previewOrigin = formData.origin_story || profile.origin_story;
@@ -818,6 +910,61 @@ const ManagerTraceability = () => {
           </div>
         );
       })()}
+      {/* Save Confirmation Modal */}
+      {showSaveConfirmModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: 16,
+            padding: '40px 32px 32px',
+            maxWidth: 420,
+            width: '90%',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#0d2f1e', margin: '0 0 12px 0' }}>
+              Simpan Perubahan?
+            </h3>
+            <p style={{ fontSize: 14, color: '#5C7A6D', margin: '0 0 28px 0', lineHeight: 1.6 }}>
+              Perubahan yang sudah disimpan tidak dapat dikembalikan.<br />
+              Status akan diubah menjadi <strong style={{ color: '#0d2f1e' }}>Draft</strong>.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button
+                onClick={() => setShowSaveConfirmModal(false)}
+                style={{
+                  padding: '10px 28px', background: 'white', color: '#5C7A6D',
+                  border: '1.5px solid #d1d5db', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={e => { e.target.style.borderColor = '#0d2f1e'; e.target.style.color = '#0d2f1e'; }}
+                onMouseLeave={e => { e.target.style.borderColor = '#d1d5db'; e.target.style.color = '#5C7A6D'; }}
+              >
+                Tidak
+              </button>
+              <button
+                onClick={handleConfirmSave}
+                style={{
+                  padding: '10px 28px', background: '#0d2f1e', color: 'white',
+                  border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={e => { e.target.style.background = '#1a4d33'; }}
+                onMouseLeave={e => { e.target.style.background = '#0d2f1e'; }}
+              >
+                Ya, Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

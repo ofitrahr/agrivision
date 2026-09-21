@@ -51,14 +51,51 @@ def api_public_traceability(profile_id):
             "image_url": sdg.image_url,
         })
 
+    # Collect unique farmers from all farms in this project
+    farmers_data = []
+    seen_farmer_ids = set()
+    for farm in project.farms:
+        for farmer in farm.farmers:
+            if farmer.id not in seen_farmer_ids:
+                seen_farmer_ids.add(farmer.id)
+                farmers_data.append({
+                    "name": farmer.name,
+                    "gender": farmer.gender,
+                    "photo_url": farmer.photo_url,
+                    "age": farmer.age,
+                    "join_year": farmer.join_year,
+                    "farm_name": farm.name,
+                })
+
+    total_farmers = len(farmers_data)
+    female_count = sum(1 for f in farmers_data if f.get('gender') and f['gender'].lower() in ['perempuan', 'female', 'f', 'wanita'])
+    male_count = total_farmers - female_count
+
+    # Collect unique commodities from farm crops
+    commodities = set()
+    for farm in project.farms:
+        for crop in farm.crops:
+            if crop.crop_type:
+                commodities.add(crop.crop_type.strip())
+
+    # Collect unique farm locations
+    locations = set()
+    for farm in project.farms:
+        if farm.location:
+            locations.add(farm.location.strip())
+
+    # Fallback ke project-level jika farm tidak punya data
+    commodity_str = ', '.join(sorted(commodities)) if commodities else (project.commodity or '')
+    location_str = ', '.join(sorted(locations)) if locations else (project.location or '')
+
     return jsonify({
         "success": True,
         "data": {
             "project": {
                 "id": str(project.id),
                 "name": project.name,
-                "commodity": project.commodity,
-                "location": project.location,
+                "commodity": commodity_str,
+                "location": location_str,
                 "company_name": project.company.name if project.company else None,
             },
             "profile": {
@@ -74,6 +111,12 @@ def api_public_traceability(profile_id):
                 "environmental_narrative": profile.environmental_narrative or '',
             },
             "sdgs": project_sdgs,
+            "farmers": farmers_data,
+            "farmer_stats": {
+                "total": total_farmers,
+                "female": female_count,
+                "male": male_count,
+            },
         }
     }), 200
 
@@ -165,7 +208,7 @@ def api_get_project_sdg_selection(current_user, project_id):
 @roles_required(*ASSESS_ROLES)
 def api_save_project_sdg_selection(current_user, project_id):
     data = request.get_json(silent=True) or {}
-    result, status = svc.save_project_sdg_selection(project_id, data)
+    result, status = svc.save_project_sdg_selection(project_id, data, current_user=current_user)
     return jsonify(result), status
 
 
@@ -179,11 +222,11 @@ def api_upload_project_sdg_evidence(current_user, project_id):
     return jsonify(result), status
 
 
-@assessment_bp.route('/projects/<project_id>/project-sdgs/verification/evidence', methods=['DELETE'])
+@assessment_bp.route('/projects/<project_id>/project-sdgs/verification/evidence/<evidence_id>', methods=['DELETE'])
 @token_required
 @roles_required(*ASSESS_ROLES)
-def api_delete_project_sdg_evidence(current_user, project_id):
-    result, status = svc.delete_project_sdg_evidence(project_id)
+def api_delete_project_sdg_evidence_file(current_user, project_id, evidence_id):
+    result, status = svc.delete_project_sdg_evidence_file(project_id, evidence_id)
     return jsonify(result), status
 
 

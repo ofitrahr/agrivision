@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Building2, Package, MapPin, Sprout, Leaf, Users, TrendingUp, Trees, BadgeCheck, QrCode } from 'lucide-react';
+import { Building2, Package, MapPin, Sprout, Leaf, Users, TrendingUp, Trees, BadgeCheck } from 'lucide-react';
 import DetailCard from '../../shared/components/traceability/DetailCard';
 import api from '../../shared/api/axios';
 
@@ -73,7 +73,7 @@ const TraceabilityDashboard = () => {
     </div>
   );
 
-  const { project, profile, sdgs } = data;
+  const { project, profile, sdgs, farmers = [], farmer_stats } = data;
   const projectName = profile?.title || project?.name || '';
   const companyName = project?.company_name || '';
   const tagline = profile?.tagline || '';
@@ -86,7 +86,14 @@ const TraceabilityDashboard = () => {
   const environmentalNarrative = profile?.environmental_narrative || '';
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8f9fa', color: '#191c1d', fontFamily: '"Hanken Grotesk", sans-serif', paddingBottom: 96 }}>
+    <div style={{ minHeight: '100vh', background: '#0d2f1e', color: '#191c1d', fontFamily: '"Hanken Grotesk", sans-serif', position: 'relative', overflow: 'hidden' }}>
+      {/* Decorative Circles */}
+      <div style={{ position: 'absolute', top: -160, right: -180, width: 500, height: 500, borderRadius: '50%', background: 'rgba(22, 78, 46, 0.4)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'absolute', top: 400, left: -220, width: 450, height: 450, borderRadius: '50%', background: 'rgba(30, 95, 55, 0.3)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'absolute', top: 900, right: -200, width: 400, height: 400, borderRadius: '50%', background: 'rgba(16, 60, 34, 0.35)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'absolute', top: 1400, left: -180, width: 380, height: 380, borderRadius: '50%', background: 'rgba(34, 110, 60, 0.25)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'absolute', top: 1900, right: -160, width: 420, height: 420, borderRadius: '50%', background: 'rgba(22, 78, 46, 0.25)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'absolute', top: 2400, left: -200, width: 360, height: 360, borderRadius: '50%', background: 'rgba(30, 95, 55, 0.3)', pointerEvents: 'none', zIndex: 0 }} />
       {/* Header */}
       <header style={{
         display: 'flex',
@@ -101,21 +108,21 @@ const TraceabilityDashboard = () => {
         width: '100%',
         zIndex: 50
       }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#012d1d' }}>Traceability Hub</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#0d2f1e' }}>Traceability Hub</div>
       </header>
 
       {/* Main Content */}
-      <main style={{ maxWidth: 1440, margin: '0 auto', padding: '24px 16px', paddingTop: 88 }}>
+      <main style={{ maxWidth: 1440, margin: '0 auto', padding: '24px 16px', paddingTop: 88, position: 'relative', zIndex: 1 }}>
         {/* Hero Image */}
         <div style={{
           position: 'relative',
           width: '100%',
-          height: 300,
+          aspectRatio: '16/6',
+          height: 'auto',
           borderRadius: 16,
           overflow: 'hidden',
           marginBottom: 32,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-          border: '1px solid #E9ECEF'
+          boxShadow: '0 12px 40px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.1)'
         }}>
           <img
             src={heroImage}
@@ -167,11 +174,11 @@ const TraceabilityDashboard = () => {
         {/* Origin Story */}
         <div style={{
           background: '#ffffff',
-          border: '1px solid #b3cdb7',
-          borderRadius: 12,
+          borderRadius: 16,
           padding: 24,
           marginBottom: 32,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+          transform: 'translateY(-2px)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
             <div style={{ width: 48, height: 48, borderRadius: 12, background: '#1b4332', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
@@ -205,7 +212,7 @@ const TraceabilityDashboard = () => {
           <h2 style={{
             fontSize: 24,
             fontWeight: 600,
-            color: '#191c1d',
+            color: '#ffffff',
             margin: 0,
             marginBottom: 24,
             display: 'flex',
@@ -213,12 +220,12 @@ const TraceabilityDashboard = () => {
             gap: 8,
             lineHeight: '32px'
           }}>
-            <Leaf size={24} style={{ color: '#012d1d' }} />
+            <Leaf size={24} style={{ color: '#86efac' }} />
             Sustainability Impact
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 24 }}>
             {/* Social Impact */}
-            <div style={{ background: '#ffffff', border: '1px solid #E9ECEF', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+            <div style={{ background: '#ffffff', borderRadius: 16, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)', transform: 'translateY(-2px)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: '#1b4332', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
                   <Users size={24} />
@@ -229,8 +236,12 @@ const TraceabilityDashboard = () => {
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
-                {[{ label: 'Partners', value: '42' }, { label: 'Female', value: '38' }, { label: 'Programs', value: '12' }].map((m) => (
-                  <div key={m.label} style={{ background: '#f8f9fa', padding: 8, borderRadius: 12, border: '1px solid rgba(233,236,239,0.5)', textAlign: 'center' }}>
+                {[
+                  { label: 'Partners', value: farmer_stats?.total || farmers.length || 0 },
+                  { label: 'Female', value: farmer_stats?.female || 0 },
+                  { label: 'Male', value: farmer_stats?.male || 0 },
+                ].map((m) => (
+                  <div key={m.label} style={{ background: '#f0f9f4', padding: 8, borderRadius: 12, textAlign: 'center' }}>
                     <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', textTransform: 'uppercase', margin: '0 0 4px 0' }}>{m.label}</p>
                     <p style={{ fontSize: 24, fontWeight: 700, color: '#012d1d', margin: 0 }}>{m.value}</p>
                   </div>
@@ -244,7 +255,7 @@ const TraceabilityDashboard = () => {
             </div>
 
             {/* Economic Impact */}
-            <div style={{ background: '#ffffff', border: '1px solid #E9ECEF', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+            <div style={{ background: '#ffffff', borderRadius: 16, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)', transform: 'translateY(-2px)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: '#1b4332', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
                   <TrendingUp size={24} />
@@ -270,7 +281,7 @@ const TraceabilityDashboard = () => {
             </div>
 
             {/* Environmental Impact */}
-            <div style={{ background: '#ffffff', border: '1px solid #E9ECEF', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+            <div style={{ background: '#ffffff', borderRadius: 16, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)', transform: 'translateY(-2px)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: '#1b4332', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff' }}>
                   <Trees size={24} />
@@ -308,7 +319,7 @@ const TraceabilityDashboard = () => {
           <h2 style={{
             fontSize: 24,
             fontWeight: 600,
-            color: '#191c1d',
+            color: '#ffffff',
             margin: 0,
             marginBottom: 12,
             display: 'flex',
@@ -316,10 +327,10 @@ const TraceabilityDashboard = () => {
             gap: 8,
             lineHeight: '32px'
           }}>
-            <BadgeCheck size={24} style={{ color: '#012d1d' }} />
+            <BadgeCheck size={24} style={{ color: '#86efac' }} />
             SDGs Contribution
           </h2>
-          <p style={{ fontSize: 14, lineHeight: '20px', color: '#414844', marginBottom: 24 }}>
+          <p style={{ fontSize: 14, lineHeight: '20px', color: '#c8ddad', marginBottom: 24 }}>
             This farm contributes to the following Sustainable Development Goals based on Agrivision assessment and verification.
           </p>
           {sdgs && sdgs.length > 0 ? (
@@ -328,13 +339,12 @@ const TraceabilityDashboard = () => {
                 <div key={sdg.goal_number} style={{
                   aspectRatio: '1',
                   background: '#ffffff',
-                  border: '1px solid #E9ECEF',
-                  borderRadius: 8,
+                  borderRadius: 12,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   padding: 8,
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.06)'
                 }}>
                   {sdg.image_url ? (
                     <img
@@ -353,10 +363,10 @@ const TraceabilityDashboard = () => {
           ) : (
             <div style={{
               background: '#ffffff',
-              border: '1px solid #E9ECEF',
               borderRadius: 12,
               padding: 32,
-              textAlign: 'center'
+              textAlign: 'center',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)'
             }}>
               <p style={{ fontSize: 14, color: '#adb5bd', fontStyle: 'italic', margin: 0 }}>
                 Kontribusi SDG belum ditentukan
@@ -366,40 +376,6 @@ const TraceabilityDashboard = () => {
         </section>
       </main>
 
-      {/* Mobile Bottom Nav */}
-      <nav style={{
-        display: 'flex',
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        width: '100%',
-        zIndex: 50,
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        padding: '8px 16px',
-        background: '#ffffff',
-        boxShadow: '0 -4px 20px rgba(0,0,0,0.04)',
-        borderTop: '1px solid #E9ECEF',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12
-      }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#a1f4c8',
-          color: '#1b724f',
-          borderRadius: 16,
-          padding: '4px 16px',
-          width: 80,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
-        }}>
-          <QrCode size={24} style={{ marginBottom: 4 }} />
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>QR Code</span>
-        </div>
-
-      </nav>
     </div>
   );
 };

@@ -1,10 +1,11 @@
 const DetailCard = ({ icon, label, value }) => (
   <div style={{
     background: '#ffffff',
-    border: '1px solid #E9ECEF',
-    borderRadius: 12,
-    padding: 16,
-    boxShadow: '0 4px 20px rgba(0,0,0,0.04)'
+    borderRadius: 16,
+    padding: 20,
+    boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
+    transform: 'translateY(-2px)',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease'
   }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#414844' }}>
       {icon}
