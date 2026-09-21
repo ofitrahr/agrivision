@@ -4,6 +4,7 @@ import joblib
 import numpy as np
 import onnxruntime as ort
 import pandas as pd
+from app.core.climate_defaults import ERA5_DEFAULTS, ERA5_FEATURES
 
 
 class SOCService:
@@ -11,9 +12,13 @@ class SOCService:
     SAMPLING_DEPTH_CM = 20
     OC_GKG_TO_PERCENT = 0.1
 
+    # Urutan wajib sama persis dengan best_model_features_ann_sentinel2_era5.json
+    # dan feature_names_in_ pada scaler - input ONNX bersifat posisional.
     FEATURE_ORDER = [
-        'elevation', 'slope', 'aspect', 'TWI', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12',
-        'NDVI', 'SAVI', 'EVI2', 'GNDVI', 'NDMI', 'NDI45', 'MCARI', 'IRECI', 'CMR', 'NDTI', 'BSI', 'SBI'
+        'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12',
+        'BSI', 'CMR', 'EVI2', 'GNDVI', 'IRECI', 'MCARI', 'NDI45', 'NDMI', 'NDTI', 'NDVI', 'SAVI', 'SBI',
+        'surface_net_solar_radiation', 'temperature_2m', 'total_precipitation',
+        'volumetric_soil_water_layer_1', 'temperature_2m_c',
     ]
 
     def __init__(self, models_dir=None):
@@ -61,11 +66,6 @@ class SOCService:
         b11 = np.array([float(p.get('B11', 0.0)) for p in samples_props_list], dtype=np.float32)
         b12 = np.array([float(p.get('B12', 0.0)) for p in samples_props_list], dtype=np.float32)
 
-        elev = np.array([float(p.get('elevation', 0.0)) for p in samples_props_list], dtype=np.float32)
-        slope = np.array([float(p.get('slope', 0.0)) for p in samples_props_list], dtype=np.float32)
-        aspect = np.array([float(p.get('aspect', 0.0)) for p in samples_props_list], dtype=np.float32)
-        twi = np.array([float(p.get('TWI', 0.0)) for p in samples_props_list], dtype=np.float32)
-
         eps = 1e-6
         ndvi = (b8 - b4) / (b8 + b4 + eps)
         savi = ((b8 - b4) / (b8 + b4 + 0.5)) * 1.5
@@ -80,12 +80,21 @@ class SOCService:
         bsi = ((b11 + b4) - (b8 + b2)) / ((b11 + b4) + (b8 + b2) + eps)
         sbi = (b4 + b3 + b2) / 3.0
 
-        raw_matrix = np.column_stack([
-            elev, slope, aspect, twi,
-            b2, b3, b4, b5, b6, b7, b8, b8a, b11, b12,
-            ndvi, savi, evi2, gndvi, ndmi, ndi45, mcari, ireci, cmr, ndti, bsi, sbi
-        ])
+        columns = {
+            'B2': b2, 'B3': b3, 'B4': b4, 'B5': b5, 'B6': b6, 'B7': b7,
+            'B8': b8, 'B8A': b8a, 'B11': b11, 'B12': b12,
+            'BSI': bsi, 'CMR': cmr, 'EVI2': evi2, 'GNDVI': gndvi, 'IRECI': ireci,
+            'MCARI': mcari, 'NDI45': ndi45, 'NDMI': ndmi, 'NDTI': ndti,
+            'NDVI': ndvi, 'SAVI': savi, 'SBI': sbi,
+        }
+        for feat in ERA5_FEATURES:
+            fallback = ERA5_DEFAULTS[feat]
+            columns[feat] = np.array(
+                [float(p.get(feat) if p.get(feat) is not None else fallback) for p in samples_props_list],
+                dtype=np.float32,
+            )
 
+        raw_matrix = np.column_stack([columns[f] for f in self.FEATURE_ORDER])
         df = pd.DataFrame(raw_matrix, columns=self.FEATURE_ORDER)
         scaled_matrix = self.scaler.transform(df).astype(np.float32)
 

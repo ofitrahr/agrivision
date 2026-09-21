@@ -4,6 +4,7 @@ import logging
 import os
 
 import ee
+from app.core.climate_defaults import ERA5_DEFAULTS
 from google.oauth2 import service_account
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,54 @@ class GEEService:
             raise
 
     DEFAULT_12_BANDS = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B11', 'B12']
+
+    ERA5_COLLECTION = 'ECMWF/ERA5_LAND/MONTHLY_AGGR'
+    ERA5_BAND_ALIASES = {
+        'surface_net_solar_radiation': ('surface_net_solar_radiation_sum', 'surface_net_solar_radiation'),
+        'temperature_2m': ('temperature_2m',),
+        'total_precipitation': ('total_precipitation_sum', 'total_precipitation'),
+        'volumetric_soil_water_layer_1': ('volumetric_soil_water_layer_1',),
+    }
+
+    @classmethod
+    def get_era5_features(cls, aoi, start_date=None, end_date=None):
+        """Rerata iklim ERA5-Land untuk AOI. Selalu mengembalikan 5 fitur lengkap."""
+        features = dict(ERA5_DEFAULTS)
+        try:
+            coll = ee.ImageCollection(cls.ERA5_COLLECTION).filterBounds(aoi)
+            if start_date and end_date:
+                coll = coll.filterDate(str(start_date), str(end_date))
+
+            if coll.size().getInfo() == 0:
+                logger.info("ERA5 belum tersedia untuk periode ini. Memakai citra terbaru yang ada.")
+                coll = (ee.ImageCollection(cls.ERA5_COLLECTION)
+                        .filterBounds(aoi).sort('system:time_start', False).limit(1))
+                if coll.size().getInfo() == 0:
+                    logger.warning("ERA5 tidak tersedia sama sekali. Memakai nilai historis Pangalengan.")
+                    return features
+
+            stats = coll.mean().reduceRegion(
+                reducer=ee.Reducer.mean(), geometry=aoi, scale=11132, maxPixels=1e9
+            ).getInfo() or {}
+
+            for feat, aliases in cls.ERA5_BAND_ALIASES.items():
+                for alias in aliases:
+                    val = stats.get(alias)
+                    if val is not None:
+                        features[feat] = float(val)
+                        break
+
+            features['temperature_2m_c'] = features['temperature_2m'] - 273.15
+            logger.info(
+                f"ERA5: suhu {features['temperature_2m_c']:.2f} C, "
+                f"presipitasi {features['total_precipitation']:.4f}, "
+                f"kelembapan tanah {features['volumetric_soil_water_layer_1']:.3f}"
+            )
+        except Exception as e:
+            logger.warning(f"Gagal mengambil ERA5 ({e}). Memakai nilai historis Pangalengan.")
+            return dict(ERA5_DEFAULTS)
+
+        return features
 
     @classmethod
     def get_sentinel_image(cls, polygon_coords, max_cloud=20, collection='COPERNICUS/S2_SR_HARMONIZED'):
@@ -217,6 +266,10 @@ class GEEService:
         )
         feats = samples_fc.getInfo().get('features', [])
 
+        # ERA5-Land beresolusi ~11 km sehingga seluruh lahan jatuh di satu sel:
+        # diambil sekali lalu disalin ke tiap titik, bukan di-sample per piksel.
+        era5 = cls.get_era5_features(aoi, start_date, end_date)
+
         pixel_data = []
         for feat in feats:
             geom = feat.get('geometry', {})
@@ -226,7 +279,7 @@ class GEEService:
                 pixel_data.append({
                     'lon': float(coords[0]),
                     'lat': float(coords[1]),
-                    'properties': _sanitize_properties(props)
+                    'properties': {**_sanitize_properties(props), **era5}
                 })
 
         # Fallback jika lahan terlalu sempit untuk scale 10m sehingga 0 piksel terambil
@@ -237,7 +290,7 @@ class GEEService:
             pixel_data.append({
                 'lon': float(cent_coords[0]),
                 'lat': float(cent_coords[1]),
-                'properties': _sanitize_properties(sampled_centroid)
+                'properties': {**_sanitize_properties(sampled_centroid), **era5}
             })
 
         return pixel_data, scene_info
