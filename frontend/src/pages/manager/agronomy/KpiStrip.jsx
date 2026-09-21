@@ -22,7 +22,7 @@ const KpiStrip = ({ selectedLayer, activeSubLayer, statsData, farm }) => {
       return [
         { label: 'Rerata NDVI', value: stats?.mean?.toFixed(3) ?? '-', unit: 'index', icon: BarChart3 },
         { 
-          label: 'Perubahan Q-to-Q', 
+          label: 'Perubahan MoM',
           value: stats?.change ? (isUp ? `+${stats.change.toFixed(3)}` : stats.change.toFixed(3)) : '-', 
           unit: isUp ? '(lebih subur)' : (stats?.change < 0 ? '(kurang subur)' : ''), 
           icon: isUp ? ArrowUpRight : ArrowDownRight,
@@ -51,14 +51,14 @@ const KpiStrip = ({ selectedLayer, activeSubLayer, statsData, farm }) => {
 
     if (actualLayer === 'nitrogen' || actualLayer === 'phosphorus' || actualLayer === 'potassium' || actualLayer === 'soilnpk') {
       return [
-        { label: 'Nitrogen (N)', value: sensorData?.nitrogen_mean ?? '-', unit: 'kg/Ha' },
-        { label: 'Fosfor (P)', value: sensorData?.phosphorus_mean ?? '-', unit: 'kg/Ha' },
-        { label: 'Kalium (K)', value: sensorData?.potassium_mean ?? '-', unit: 'kg/Ha' },
+        { label: 'Nitrogen (N)', value: sensorData?.nitrogen_mean ?? '-', unit: '%' },
+        { label: 'Fosfor (P)', value: sensorData?.phosphorus_mean ?? '-', unit: 'mg/kg' },
+        { label: 'Kalium (K)', value: sensorData?.potassium_mean ?? '-', unit: 'mg/kg' },
       ];
     }
 
     // Default (SOC, Biomass)
-    const unit = actualLayer === 'soc' ? 'Ton C/Ha' : 'Kg C/Ha';
+    const unit = actualLayer === 'soc' ? 'Ton C/Ha' : 'Ton/Ha';
     return [
       { label: 'Rerata', value: stats?.mean?.toFixed(3) ?? '-', unit, icon: BarChart3 },
       { label: 'Min', value: stats?.min?.toFixed(3) ?? '-', unit },

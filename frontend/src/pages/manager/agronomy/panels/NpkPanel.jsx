@@ -46,15 +46,15 @@ const NpkPanel = ({ statsData, statsLoading, farm, activeSubLayer, onSubLayerCha
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
               <div style={{ background: '#f4f6f5', padding: '8px 10px', borderRadius: 8, textAlign: 'center' }}>
                 <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>Nitrogen (N)</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#116a3a' }}>{sensor.nitrogen_mean ?? '-'} <span style={{ fontSize: 10, fontWeight: 400 }}>kg/Ha</span></div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#116a3a' }}>{sensor.nitrogen_mean ?? '-'} <span style={{ fontSize: 10, fontWeight: 400 }}>%</span></div>
               </div>
               <div style={{ background: '#f4f6f5', padding: '8px 10px', borderRadius: 8, textAlign: 'center' }}>
                 <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>Fosfor (P)</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#116a3a' }}>{sensor.phosphorus_mean ?? '-'} <span style={{ fontSize: 10, fontWeight: 400 }}>kg/Ha</span></div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#116a3a' }}>{sensor.phosphorus_mean ?? '-'} <span style={{ fontSize: 10, fontWeight: 400 }}>mg/kg</span></div>
               </div>
               <div style={{ background: '#f4f6f5', padding: '8px 10px', borderRadius: 8, textAlign: 'center' }}>
                 <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>Kalium (K)</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#116a3a' }}>{sensor.potassium_mean ?? '-'} <span style={{ fontSize: 10, fontWeight: 400 }}>kg/Ha</span></div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#116a3a' }}>{sensor.potassium_mean ?? '-'} <span style={{ fontSize: 10, fontWeight: 400 }}>mg/kg</span></div>
               </div>
             </div>
           </div>
