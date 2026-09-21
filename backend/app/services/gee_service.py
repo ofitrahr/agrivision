@@ -162,27 +162,34 @@ class GEEService:
             logger.info(f"Lahan sempit ({area_m2/10000:.2f} Ha). Menggunakan micro-scale: {scale}m.")
         # Lahan besar tetap scale native 10m - numPixels di bawah yang membatasi jumlah titik.
 
-        s2_collection = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
-                          .filterBounds(aoi)
-                          .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', max_cloud)))
+        s2_base = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED').filterBounds(aoi)
         if start_date and end_date:
-            s2_collection = s2_collection.filterDate(str(start_date), str(end_date))
+            s2_base = s2_base.filterDate(str(start_date), str(end_date))
 
-        collection_size = s2_collection.size().getInfo()
-        if collection_size == 0:
+        if s2_base.size().getInfo() == 0:
             period_desc = f" pada rentang {start_date} s/d {end_date}" if start_date and end_date else ""
             raise ValueError(
-                f"Tidak ditemukan citra Sentinel-2 dengan tutupan awan di bawah {max_cloud}% "
-                f"untuk area lahan ini{period_desc}. Coba pilih periode/bulan lain."
+                f"Tidak ada satelit Sentinel-2 yang melintas di atas lahan ini{period_desc}. "
+                f"Coba pilih periode/bulan lain."
             )
 
-        s2_image = s2_collection.sort('system:time_start', False).first()
+        # Tutupan awan tidak difilter kaku: ambil citra paling sedikit awannya di periode ini,
+        # supaya bulan basah tetap menghasilkan data walau semua citranya berawan.
+        s2_image = s2_base.sort('CLOUDY_PIXEL_PERCENTAGE', True).first()
 
+        cloud_pct = round(float(s2_image.get('CLOUDY_PIXEL_PERCENTAGE').getInfo()), 2)
         scene_info = {
             'scene_id': str(s2_image.get('system:index').getInfo()),
             'date': str(s2_image.date().format('YYYY-MM-dd HH:mm:ss').getInfo()),
-            'cloud_percentage': round(float(s2_image.get('CLOUDY_PIXEL_PERCENTAGE').getInfo()), 2)
+            'cloud_percentage': cloud_pct,
+            'cloud_exceeds_threshold': cloud_pct >= max_cloud,
         }
+
+        if cloud_pct >= max_cloud:
+            logger.warning(
+                f"Citra terbaik pada periode ini masih berawan {cloud_pct}% (ambang ideal {max_cloud}%). "
+                f"Hasil analisis kurang andal - piksel tertutup awan dapat menggeser nilai indeks."
+            )
 
         s2_selected = s2_image.select(cls.DEFAULT_12_BANDS)
 

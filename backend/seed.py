@@ -390,6 +390,8 @@ def upload_sdg_logos_to_minio():
         return
 
     endpoint = os.getenv('MINIO_INTERNAL_ENDPOINT') or os.getenv('MINIO_ENDPOINT', 'http://localhost:9000')
+    # URL yang disimpan ke DB dibaca browser, jadi harus endpoint publik - bukan nama service Docker
+    public_endpoint = os.getenv('MINIO_ENDPOINT', 'http://localhost:9000').rstrip('/')
     access_key = os.getenv('MINIO_ACCESS_KEY', 'admin_utama')
     secret_key = os.getenv('MINIO_SECRET_KEY', 'password_sangat_kuat_32karakter')
     bucket_name = os.getenv('MINIO_BUCKET_NAME', 'agrivision-uploads')
@@ -432,12 +434,11 @@ def upload_sdg_logos_to_minio():
                 continue
 
             object_name = f"{subfolder}/{filename}"
-            public_url = f"{endpoint}/{bucket_name}/{object_name}"
+            public_url = f"{public_endpoint}/{bucket_name}/{object_name}"
 
-            # Cek apakah sudah ada URL MinIO
             master = SdgMaster.query.filter_by(goal_number=goal_number).first()
-            if master and master.image_url and 'localhost:9000' in str(master.image_url):
-                print(f"  [SKIP] SDG {goal_number:02d}: sudah ada di MinIO")
+            if master and master.image_url == public_url:
+                print(f"  [SKIP] SDG {goal_number:02d}: sudah sesuai")
                 continue
 
             with open(filepath, 'rb') as f:
