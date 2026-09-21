@@ -12,6 +12,21 @@ class SOCService:
     SAMPLING_DEPTH_CM = 20
     OC_GKG_TO_PERCENT = 0.1
 
+    # Koreksi bias lokal terhadap 7 sampel lab Kadatuan (Data-Lab.csv).
+    # Bukan kalibrasi regresi: berkas lab tidak punya koordinat, sehingga sampel
+    # tidak bisa dipasangkan dengan prediksi di titik yang sama. Gain murni
+    # (tanpa offset) agar pola relatif antar piksel dan antar lahan tetap utuh.
+    LAB_OC_MEAN_PERCENT = 3.0957
+    MODEL_REFERENCE_OC_PERCENT = 13.17
+    CALIBRATION_ENABLED = os.getenv('SOC_CALIBRATION', 'true').lower() == 'true'
+    CALIBRATION_GAIN = float(
+        os.getenv('SOC_CALIBRATION_GAIN', LAB_OC_MEAN_PERCENT / MODEL_REFERENCE_OC_PERCENT)
+    )
+
+    @classmethod
+    def calibrate_oc(cls, oc_gkg):
+        return oc_gkg * cls.CALIBRATION_GAIN if cls.CALIBRATION_ENABLED else oc_gkg
+
     # Urutan wajib sama persis dengan best_model_features_ann_sentinel2_era5.json
     # dan feature_names_in_ pada scaler - input ONNX bersifat posisional.
     FEATURE_ORDER = [
@@ -48,7 +63,7 @@ class SOCService:
         return cls.oc_percent_to_stock(oc_gkg * cls.OC_GKG_TO_PERCENT)
 
     def predict_soc_stock_batch(self, samples_props_list):
-        return [self.oc_gkg_to_stock(v) for v in self.predict_soc_batch(samples_props_list)]
+        return [self.oc_gkg_to_stock(self.calibrate_oc(v)) for v in self.predict_soc_batch(samples_props_list)]
 
     def predict_soc_batch(self, samples_props_list):
         """Keluaran model: kandungan OC dalam g/kg."""

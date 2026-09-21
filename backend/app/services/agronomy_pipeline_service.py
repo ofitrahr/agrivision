@@ -63,7 +63,8 @@ class AgronomyPipelineService:
         logger.info(f"Menjalankan inferensi ANN ONNX untuk {len(pixel_samples)} titik piksel lahan '{farm.name}'...")
         props_list = [p['properties'] for p in pixel_samples]
         soc_service = SOCService()
-        oc_gkg = soc_service.predict_soc_batch(props_list)
+        oc_raw = soc_service.predict_soc_batch(props_list)
+        oc_gkg = [SOCService.calibrate_oc(v) for v in oc_raw]
         predictions = [SOCService.oc_gkg_to_stock(v) for v in oc_gkg]
 
         # Inferensi Model Regresi NPK (Nitrogen, Phosphorus, Potassium) - batch, titik piksel yang sama
@@ -108,8 +109,9 @@ class AgronomyPipelineService:
                 unit="Ton C/Ha",
                 is_anomaly=(soc_val < 30.0),
                 source=(
-                    f"GEE Sentinel-2 + NASA SRTM + ANN ONNX (BD "
-                    f"{SOCService.BULK_DENSITY_G_CM3} g/cm3, {SOCService.SAMPLING_DEPTH_CM} cm)"
+                    f"GEE Sentinel-2 + ERA5 + ANN ONNX (BD {SOCService.BULK_DENSITY_G_CM3} g/cm3, "
+                    f"{SOCService.SAMPLING_DEPTH_CM} cm, kalibrasi lab "
+                    f"{'x%.4f' % SOCService.CALIBRATION_GAIN if SOCService.CALIBRATION_ENABLED else 'nonaktif'})"
                 )
             ))
 
@@ -211,6 +213,8 @@ class AgronomyPipelineService:
             "unit": "Ton C/Ha",
             "is_anomaly": mean_val < 30.0,
             "soc_oc_percent": round(float(np.mean(oc_gkg)) * SOCService.OC_GKG_TO_PERCENT, 2),
+            "soc_oc_percent_raw": round(float(np.mean(oc_raw)) * SOCService.OC_GKG_TO_PERCENT, 2),
+            "soc_calibration_gain": round(SOCService.CALIBRATION_GAIN, 4) if SOCService.CALIBRATION_ENABLED else None,
             "soc_bulk_density": SOCService.BULK_DENSITY_G_CM3,
             "soc_depth_cm": SOCService.SAMPLING_DEPTH_CM,
             "ndvi_prediction": round(ndvi_mean, 2),
