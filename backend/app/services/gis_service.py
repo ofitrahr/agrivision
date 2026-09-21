@@ -213,57 +213,24 @@ class GISService:
 
         if has_access:
             if sample_points:
-                from folium.plugins import HeatMap
-
-                vals = [float(p['value']) for p in sample_points if p.get('value') is not None]
-                min_v = min(vals) if vals else 0.0
-                max_v = max(vals) if vals else 100.0
-                val_range = (max_v - min_v) if (max_v - min_v) > 1e-6 else 1.0
-
-                # Normalisasi bobot intensitas 0.2 - 1.0 agar warna terdistribusi tajam dan kontras
-                heat_data = [
-                    [
-                        point['lat'],
-                        point['lon'],
-                        0.2 + 0.8 * ((float(point['value']) - min_v) / val_range)
-                    ]
-                    for point in sample_points
-                    if point.get('value') is not None
-                ]
-                
-                gradients = {
-                    'ndvi': {0.2: '#ef4444', 0.5: '#f59e0b', 0.75: '#10b981', 1.0: '#047857'},
-                    'soc': {0.2: '#deb887', 0.5: '#cd853f', 0.75: '#8b5a2b', 1.0: '#4a2810'},
-                    'biomass': {0.2: '#90ee90', 0.5: '#32cd32', 0.75: '#228b22', 1.0: '#145214'},
-                    'yield': {0.2: '#ffeda0', 0.5: '#feb24c', 0.75: '#f03b20', 1.0: '#bd0026'},
-                    'soilnpk': {0.2: '#ece2f0', 0.5: '#a6bddb', 0.75: '#1c9099', 1.0: '#016450'},
-                    'nitrogen': {0.2: '#ece2f0', 0.5: '#a6bddb', 0.75: '#1c9099', 1.0: '#016450'},
-                    'phosphorus': {0.2: '#ece2f0', 0.5: '#a6bddb', 0.75: '#1c9099', 1.0: '#016450'},
-                    'potassium': {0.2: '#ece2f0', 0.5: '#a6bddb', 0.75: '#1c9099', 1.0: '#016450'},
-                }
-                gradient = gradients.get(layer_type, {0.2: 'blue', 0.6: 'lime', 1.0: 'red'})
-                
-                # Radius 55 dan blur 35 dengan min_opacity 0.25 untuk blending halus tanpa tepi cincin tajam
-                HeatMap(
-                    heat_data,
-                    min_opacity=0.25,
-                    radius=55,
-                    blur=35,
-                    gradient=gradient
-                ).add_to(m)
-
                 unit_label = 'Ton C/Ha' if layer_type == 'soc' else ('Ton/Ha' if layer_type == 'yield' else ('kg/Ha' if 'n' in layer_type else ''))
+                
                 for point in sample_points:
-                    val_display = f"{point['value']:.2f}" if isinstance(point.get('value'), (int, float)) else point.get('value')
-                    folium.CircleMarker(
+                    val = float(point['value']) if point.get('value') is not None else 0.0
+                    val_display = f"{val:.2f}"
+                    
+                    # Gunakan absolute color dari rules yang sama dengan legend!
+                    color = GISService._get_color_for_value(val, layer_type)
+                    
+                    # Kita gunakan folium.Circle (radius dalam meter) = 11 meter (sedikit tumpang tindih untuk cover 20m pixel)
+                    folium.Circle(
                         location=[point['lat'], point['lon']],
-                        radius=15,
+                        radius=11, 
                         weight=0,
-                        color='transparent',
+                        color=color,
                         fill=True,
-                        fill_color='transparent',
-                        fill_opacity=0,
-                        opacity=0,
+                        fill_color=color,
+                        fill_opacity=0.85,
                         tooltip=f"<b>{layer_type.upper()}:</b> {val_display} {unit_label}".strip()
                     ).add_to(m)
             else:

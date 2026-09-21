@@ -15,12 +15,19 @@ class GEEService:
         if cls._initialized:
             return True
         
-        b64_key = os.getenv("GEE_SERVICE_ACCOUNT_B64")
+        from dotenv import dotenv_values
+        # Try to load directly from .env file to bypass any docker-compose truncation issues
+        env_dict = dotenv_values('/app/.env') or dotenv_values(os.path.join(os.path.dirname(__file__), '../../.env'))
+        b64_key = env_dict.get("GEE_SERVICE_ACCOUNT_B64") or os.getenv("GEE_SERVICE_ACCOUNT_B64")
+
         if not b64_key:
             raise ValueError("Environment variable GEE_SERVICE_ACCOUNT_B64 belum diatur di .env")
 
         try:
-            sa_info = json.loads(base64.b64decode(b64_key.strip()).decode('utf-8'))
+            b64_key_stripped = b64_key.strip()
+            # Fix incorrect padding
+            b64_key_padded = b64_key_stripped + '=' * (-len(b64_key_stripped) % 4)
+            sa_info = json.loads(base64.b64decode(b64_key_padded).decode('utf-8'))
             scopes = [
                 'https://www.googleapis.com/auth/earthengine',
                 'https://www.googleapis.com/auth/cloud-platform'
@@ -141,10 +148,6 @@ class GEEService:
 
     @classmethod
     def get_farm_pixel_samples_from_gee(cls, polygon_coords, scale=20, max_cloud=20):
-        """
-        Mengambil sampel piksel spasial di dalam polygon lahan.
-        Setiap sampel berisi koordinat (lon, lat) dan nilai 12 band Sentinel-2 + 4 fitur topografi DEM SRTM.
-        """
         cls.initialize()
         aoi = ee.Geometry.Polygon(polygon_coords)
 

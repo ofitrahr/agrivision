@@ -318,7 +318,39 @@ def seed_comprehensive_data():
     db.session.add_all(recent)
     db.session.commit()
 
-    print("Seed data bersih berhasil digenerate! (Tanpa data lahan, batas polygon, ataupun layer GIS)")
+    # 8. Seed Lahan Demo (~120 Ha) untuk GEE
+    from geoalchemy2.elements import WKTElement
+    coords = [
+        [101.4000, 0.5000],
+        [101.4100, 0.5000],
+        [101.4100, 0.4900],
+        [101.4000, 0.4900],
+        [101.4000, 0.5000]
+    ]
+    wkt_coords = ", ".join([f"{c[0]} {c[1]}" for c in coords])
+    wkt_geom = f"POLYGON(({wkt_coords}))"
+    
+    from sqlalchemy import text
+    calc_area = db.session.scalar(
+        text("SELECT ST_Area(ST_GeomFromText(:wkt, 4326)::geography) / 10000;"),
+        {"wkt": wkt_geom}
+    )
+    
+    new_farm = Farm(
+        project_id=project.id,
+        name="Kebun Sawit Riau (Demo 120 Ha)",
+        location="Pekanbaru, Riau",
+        crop_variety="Kelapa Sawit",
+        total_area_ha=round(float(calc_area), 2) if calc_area else 123.0,
+        boundary=WKTElement(wkt_geom, srid=4326),
+        created_by=manager.id,
+        status='active'
+    )
+    db.session.add(new_farm)
+    db.session.commit()
+    print(f"Seed lahan '{new_farm.name}' berhasil ditambahkan ke Project '{project.name}'.")
+
+    print("Seed data bersih berhasil digenerate! (Termasuk 1 Lahan Demo untuk GEE)")
 
 def upload_sdg_logos_to_minio():
     """Upload 17 SDG logo ke MinIO dan update image_url di database.
@@ -338,7 +370,7 @@ def upload_sdg_logos_to_minio():
         print("[SDG Logos] boto3 tidak terinstall. Logo tetap menggunakan path lokal.")
         return
 
-    endpoint = os.getenv('MINIO_ENDPOINT', 'http://localhost:9000')
+    endpoint = os.getenv('MINIO_INTERNAL_ENDPOINT') or os.getenv('MINIO_ENDPOINT', 'http://localhost:9000')
     access_key = os.getenv('MINIO_ACCESS_KEY', 'admin_utama')
     secret_key = os.getenv('MINIO_SECRET_KEY', 'password_sangat_kuat_32karakter')
     bucket_name = os.getenv('MINIO_BUCKET_NAME', 'agrivision-uploads')
@@ -405,7 +437,6 @@ if __name__ == "__main__":
     with app.app_context():
         seed_sdgs()
         seed_super_admin()
-        seed_kopi_test()
 
         # ==========================================
         # Seed data komprehensif (dev-v2)
