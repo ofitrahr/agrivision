@@ -1,10 +1,83 @@
 import json
+import math
 
 import folium
 from folium.plugins import Draw
 
 
 class GISService:
+    # Ramp gradasi per layer (rendah -> tinggi), ujung-ujungnya mengikuti warna tematik lama.
+    LAYER_RAMPS = {
+        'ndvi': ['#a50026', '#f46d43', '#fee08b', '#a6d96a', '#1a9850'],
+        'soc': ['#f6e8c3', '#dfc27d', '#bf812d', '#8c510a', '#543005'],
+        'biomass': ['#edf8e9', '#bae4b3', '#74c476', '#31a354', '#006d2c'],
+        'yield': ['#ef4444', '#f59e0b', '#eab308', '#84cc16', '#15803d'],
+        'nitrogen': ['#eab308', '#a3d977', '#22c55e', '#15803d', '#14532d'],
+        'phosphorus': ['#fed7aa', '#fdba74', '#ea580c', '#c2410c', '#991b1b'],
+        'potassium': ['#93c5fd', '#a78bfa', '#8b5cf6', '#6d28d9', '#4c1d95'],
+        'soilnpk': ['#99f6e4', '#5eead4', '#14b8a6', '#0d9488', '#065f46'],
+    }
+
+    @staticmethod
+    def _percentile(sorted_vals, p):
+        if not sorted_vals:
+            return 0.0
+        if len(sorted_vals) == 1:
+            return sorted_vals[0]
+        k = (len(sorted_vals) - 1) * p
+        f, c = math.floor(k), math.ceil(k)
+        if f == c:
+            return sorted_vals[int(k)]
+        return sorted_vals[f] * (c - k) + sorted_vals[c] * (k - f)
+
+    @staticmethod
+    def _compute_stretch(sorted_vals):
+        """Rentang warna per lahan pakai persentil 2-98 agar outlier tidak meratakan gradasi."""
+        if not sorted_vals:
+            return 0.0, 1.0
+        lo = GISService._percentile(sorted_vals, 0.02)
+        hi = GISService._percentile(sorted_vals, 0.98)
+        if hi - lo < 1e-9:
+            lo, hi = sorted_vals[0], sorted_vals[-1]
+        if hi - lo < 1e-9:
+            span = abs(hi) * 0.05 or 0.5
+            lo, hi = hi - span, hi + span
+        return lo, hi
+
+    @staticmethod
+    def _lerp_color(ramp, t):
+        t = max(0.0, min(1.0, t))
+        if len(ramp) == 1:
+            return ramp[0]
+        pos = t * (len(ramp) - 1)
+        i = min(int(pos), len(ramp) - 2)
+        local = pos - i
+        c1, c2 = ramp[i].lstrip('#'), ramp[i + 1].lstrip('#')
+        channels = []
+        for ch in (0, 2, 4):
+            a, b = int(c1[ch:ch + 2], 16), int(c2[ch:ch + 2], 16)
+            channels.append(round(a + (b - a) * local))
+        return '#{:02x}{:02x}{:02x}'.format(*channels)
+
+    @staticmethod
+    def _ramp_color(value, layer_type, lo, hi):
+        ramp = GISService.LAYER_RAMPS.get(layer_type)
+        if not ramp:
+            return GISService._get_color_for_value(value, layer_type)
+        t = 0.5 if (hi - lo) < 1e-9 else (value - lo) / (hi - lo)
+        return GISService._lerp_color(ramp, t)
+
+    @staticmethod
+    def _value_fmt(lo, hi):
+        """Jumlah desimal menyesuaikan rentang layer (yield kopi ~0.15 Ton/Ha butuh 3 desimal)."""
+        if lo is None or hi is None:
+            return lambda v: f"{v:.2f}"
+        if abs(hi - lo) < 0.5:
+            return lambda v: f"{v:.3f}"
+        if max(abs(lo), abs(hi)) < 10:
+            return lambda v: f"{v:.2f}"
+        return lambda v: f"{v:.0f}"
+
     @staticmethod
     def generate_global_map():
         m = folium.Map(location=[-0.7893, 113.9213], zoom_start=5, max_zoom=22, tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", attr="Google")
@@ -150,11 +223,14 @@ class GISService:
                 return '#32cd32'
             return '#90ee90'
         elif layer_type == 'yield':
-            if value > 2.0:
-                return '#feb24c'
-            elif value > 1.2:
-                return '#f03b20'
-            return '#ffeda0'
+            # Skala ceri kopi arabika Kadatuan (Ton/Ha per periode panen)
+            if value > 0.25:
+                return '#15803d'
+            elif value > 0.15:
+                return '#84cc16'
+            elif value > 0.08:
+                return '#eab308'
+            return '#ef4444'
         elif layer_type == 'nitrogen':
             # Rentang riil model NPK Kadatuan: 0.45% - 0.86%
             if value > 0.75: return '#14532d'
@@ -177,12 +253,30 @@ class GISService:
         return '#6b7280'
 
     @staticmethod
-    def _build_legend_html(layer_type):
+    def _build_legend_html(layer_type, lo=None, hi=None, unit=''):
+        ramp = GISService.LAYER_RAMPS.get(layer_type)
+        if ramp and lo is not None and hi is not None:
+            fmt = GISService._value_fmt(lo, hi)
+            unit_suffix = f" {unit}" if unit else ''
+            return (
+                f'<div style="position:absolute;bottom:30px;left:10px;z-index:1000;'
+                f'background:rgba(255,255,255,0.92);border:1px solid #d1fae5;border-radius:8px;'
+                f'padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.1);font-family:sans-serif;">'
+                f'<div style="font-size:11px;font-weight:600;color:#116a3a;margin-bottom:6px;">'
+                f'{layer_type.upper()}{unit_suffix}</div>'
+                f'<div style="width:160px;height:10px;border-radius:5px;'
+                f'background:linear-gradient(to right,{",".join(ramp)});"></div>'
+                f'<div style="display:flex;justify-content:space-between;width:160px;'
+                f'margin-top:3px;font-size:10px;color:#374151;">'
+                f'<span>{fmt(lo)}</span><span>{fmt((lo + hi) / 2)}</span><span>{fmt(hi)}</span>'
+                f'</div></div>'
+            )
+
         legends = {
             'ndvi': [('#10b981', 'Sehat (>0.7)'), ('#f59e0b', 'Waspada (0.4-0.7)'), ('#ef4444', 'Kritis (<0.4)')],
             'soc': [('#8b5a2b', 'Tinggi (>50)'), ('#cd853f', 'Sedang (30-50)'), ('#deb887', 'Rendah (<30)')],
             'biomass': [('#228b22', 'Tinggi (>150)'), ('#32cd32', 'Sedang (80-150)'), ('#90ee90', 'Rendah (<80)')],
-            'yield': [('#feb24c', 'Tinggi (>2.0)'), ('#f03b20', 'Sedang (1.2-2.0)'), ('#ffeda0', 'Rendah (<1.2)')],
+            'yield': [('#15803d', 'Tinggi (>0.25 Ton/Ha)'), ('#84cc16', 'Optimal (0.15-0.25)'), ('#eab308', 'Cukup (0.08-0.15)'), ('#ef4444', 'Rendah (<0.08)')],
             'soilnpk': [('#065f46', 'Optimal (>140)'), ('#0d9488', 'Cukup (100-140)'), ('#99f6e4', 'Defisit (<100)')],
             'nitrogen': [('#14532d', 'Tinggi (>0.75%)'), ('#22c55e', 'Sedang (0.55-0.75%)'), ('#eab308', 'Rendah (<0.55%)')],
             'phosphorus': [('#991b1b', 'Tinggi (>150 mg/kg)'), ('#ea580c', 'Sedang (50-150 mg/kg)'), ('#fed7aa', 'Rendah (<50 mg/kg)')],
@@ -207,6 +301,8 @@ class GISService:
     @staticmethod
     def generate_agronomy_map(farm_boundary_geojson=None, existing_blocks_geojson=None, layer_type='ndvi', has_access=False, sample_points=None):
         m = folium.Map(location=[-0.7893, 113.9213], zoom_start=5, max_zoom=22, tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", attr="Google")
+        legend_lo = legend_hi = None
+        legend_unit = ''
 
         if farm_boundary_geojson:
             bounds_layer = folium.GeoJson(
@@ -230,14 +326,18 @@ class GISService:
                 }
                 unit_label = unit_map.get(layer_type, '')
 
+                all_vals = sorted(float(p['value']) for p in sample_points if p.get('value') is not None)
+                legend_lo, legend_hi = GISService._compute_stretch(all_vals)
+                legend_unit = unit_label
+                val_fmt = GISService._value_fmt(legend_lo, legend_hi)
+
                 if len(sample_points) < 3 and farm_boundary_geojson:
-                    vals = [float(p['value']) for p in sample_points if p.get('value') is not None]
-                    avg_val = sum(vals) / len(vals) if vals else 0.0
+                    avg_val = sum(all_vals) / len(all_vals) if all_vals else 0.0
                     color = GISService._get_color_for_value(avg_val, layer_type)
                     folium.GeoJson(
                         farm_boundary_geojson,
                         style_function=lambda x, c=color: {'color': c, 'fillColor': c, 'weight': 2, 'fillOpacity': 0.75},
-                        tooltip=f"<b>{layer_type.upper()}:</b> {avg_val:.2f} {unit_label}".strip()
+                        tooltip=f"<b>{layer_type.upper()}:</b> {val_fmt(avg_val)} {unit_label}".strip()
                     ).add_to(m)
                 else:
                     try:
@@ -263,8 +363,8 @@ class GISService:
                             for i, point in enumerate(sample_points):
                                 pt = pts_list[i]
                                 val = float(point['value']) if point.get('value') is not None else 0.0
-                                val_display = f"{val:.2f}"
-                                color = GISService._get_color_for_value(val, layer_type)
+                                val_display = val_fmt(val)
+                                color = GISService._ramp_color(val, layer_type, legend_lo, legend_hi)
 
                                 matching_poly = None
                                 res = tree.query(pt)
@@ -294,8 +394,8 @@ class GISService:
                         # Fallback ke bentuk lingkaran jika gagal
                         for point in sample_points:
                             val = float(point['value']) if point.get('value') is not None else 0.0
-                            val_display = f"{val:.2f}"
-                            color = GISService._get_color_for_value(val, layer_type)
+                            val_display = val_fmt(val)
+                            color = GISService._ramp_color(val, layer_type, legend_lo, legend_hi)
                             folium.Circle(
                                 location=[point['lat'], point['lon']],
                                 radius=5.5,
@@ -318,7 +418,7 @@ class GISService:
                         color = GISService._get_color_for_value(value, layer_type)
                         popup_html = f"<b>Estimasi Biomassa:</b> {value} ton/ha"
                     elif layer_type == 'yield':
-                        value = round(random.uniform(0.8, 3.5), 2)
+                        value = round(random.uniform(0.05, 0.35), 3)
                         color = GISService._get_color_for_value(value, layer_type)
                         popup_html = f"<b>Estimasi Produksi (Yield):</b> {value} Ton/Ha"
                     elif layer_type == 'soilnpk':
@@ -362,7 +462,7 @@ class GISService:
         m.get_root().html.add_child(folium.Element("<style>.leaflet-control-attribution { display: none !important; }</style>"))
 
         if has_access:
-            legend_html = GISService._build_legend_html(layer_type)
+            legend_html = GISService._build_legend_html(layer_type, legend_lo, legend_hi, legend_unit)
             m.get_root().html.add_child(folium.Element(legend_html))
 
         ref_pts_json = json.dumps([[p['lat'], p['lon']] for p in sample_points[:2]]) if (sample_points and len(sample_points) >= 2) else "[]"

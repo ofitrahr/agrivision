@@ -778,7 +778,7 @@ const GIS = () => {
                         <div style={{ marginBottom: '16px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                 <span style={{ fontSize: '12px', fontWeight: '700', color: '#374151' }}>Hasil 5 Parameter Observasi:</span>
-                                <span style={{ fontSize: '11px', color: '#64748b' }}>3 Selesai • 2 Menunggu Model R&D</span>
+                                <span style={{ fontSize: '11px', color: '#64748b' }}>4 Selesai • 1 Menunggu Model R&D</span>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
                                 {/* 1. SOC (Active - Hasil Real AI) */}
@@ -847,16 +847,22 @@ const GIS = () => {
                                     </div>
                                 </div>
 
-                                {/* 5. Estimasi Yield (Pending - belum ada model resmi) */}
-                                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
+                                {/* 5. Estimasi Yield (Active - NDVI terkalibrasi data panen) */}
+                                <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Estimasi Yield</span>
-                                        <span style={{ fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '10px', background: '#e2e8f0', color: '#64748b' }}>
-                                            Menunggu Model R&D
+                                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#166534' }}>Estimasi Yield</span>
+                                        <span style={{
+                                            fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '10px',
+                                            background: analysisResult.yield_prediction >= 0.08 ? '#dcfce7' : '#fee2e2',
+                                            color: analysisResult.yield_prediction >= 0.08 ? '#15803d' : '#991b1b'
+                                        }}>
+                                            {analysisResult.yield_prediction >= 0.15 ? 'Optimal' : analysisResult.yield_prediction >= 0.08 ? 'Normal' : 'Rendah'}
                                         </span>
                                     </div>
-                                    <div style={{ fontSize: '20px', fontWeight: '700', color: '#94a3b8', margin: '2px 0' }}>-</div>
-                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Dalam tahap pengembangan</div>
+                                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#15803d', margin: '2px 0' }}>
+                                        {analysisResult.yield_prediction ?? '-'} <span style={{ fontSize: '11px', fontWeight: '500' }}>{analysisResult.yield_unit || 'Ton/Ha'}</span>
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: '#166534' }}>Terkalibrasi Data Panen &amp; NDVI</div>
                                 </div>
                             </div>
                         </div>

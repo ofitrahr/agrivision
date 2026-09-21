@@ -9,15 +9,15 @@ const NpkPanel = ({ statsData, statsLoading, farm, activeSubLayer, onSubLayerCha
   return (
     <div className="agro-panel agro-panel-left">
       <h2 style={{ fontSize: 16, marginTop: 0, marginBottom: 16, color: '#116a3a' }}>Nutrisi Tanah (NPK)</h2>
-      
+
       {/* Sub-layer toggle */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {['nitrogen', 'phosphorus', 'potassium'].map(layer => (
-          <button 
+          <button
             key={layer}
             onClick={() => onSubLayerChange(layer)}
             style={{
-              flex: 1, padding: '6px', borderRadius: 20, border: '1px solid #116a3a', 
+              flex: 1, padding: '6px', borderRadius: 20, border: '1px solid #116a3a',
               background: activeSubLayer === layer ? '#116a3a' : 'transparent',
               color: activeSubLayer === layer ? 'white' : '#116a3a',
               cursor: 'pointer', fontSize: 12, fontWeight: 600
@@ -28,35 +28,9 @@ const NpkPanel = ({ statsData, statsLoading, farm, activeSubLayer, onSubLayerCha
         ))}
       </div>
 
-      {/* Color Legend Mini Banner */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #e2e8f0', fontSize: '11px' }}>
-        <span style={{ fontWeight: 600, color: '#475569' }}>Keterangan Warna:</span>
-        {activeSubLayer === 'nitrogen' && (
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#eab308' }} /> Rendah (&lt;0.55%)</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e' }} /> Sedang</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#14532d' }} /> Tinggi (&gt;0.75%)</span>
-          </div>
-        )}
-        {activeSubLayer === 'phosphorus' && (
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#fed7aa' }} /> Rendah (&lt;50)</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ea580c' }} /> Sedang</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#991b1b' }} /> Tinggi (&gt;150)</span>
-          </div>
-        )}
-        {activeSubLayer === 'potassium' && (
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#93c5fd' }} /> Rendah (&lt;130)</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#8b5cf6' }} /> Sedang</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#4c1d95' }} /> Tinggi (&gt;150)</span>
-          </div>
-        )}
-      </div>
-
       <DistributionChart histogram={statsData?.histogram} loading={statsLoading} layerLabel={activeSubLayer} />
       <AnomalyWarning anomaly={statsData?.anomaly} anomalyHa={anomalyHa} anomalyPercent={statsData?.anomaly?.percent ?? 0} selectedLayer={activeSubLayer} />
-      
+
       {statsData?.stats && (
         <>
           <div className="agro-panel-divider" />
@@ -86,7 +60,7 @@ const NpkPanel = ({ statsData, statsLoading, farm, activeSubLayer, onSubLayerCha
           </div>
         </>
       )}
-      
+
       <div className="agro-panel-divider" />
       <div className="agro-panel-section">
         <div className="agro-panel-label">Data Sensor Lapangan</div>

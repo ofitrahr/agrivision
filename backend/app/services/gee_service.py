@@ -105,8 +105,8 @@ class GEEService:
                     .clip(aoi)
                     .select(bands))
 
-        # Ambil Topografi dari DEM NASA SRTM 30m
-        dem = ee.Image('USGS/SRTMGL1_003').clip(aoi) #coba cari tau NASA/NASADEM_HGT/001
+        # DEM tidak di-clip: kernel 3x3 slope/aspect butuh tetangga di luar AOI
+        dem = ee.Image('USGS/SRTMGL1_003')
         elevation = dem.select('elevation')
         slope = ee.Terrain.slope(elevation).rename('slope')
         aspect = ee.Terrain.aspect(elevation).rename('aspect')
@@ -186,8 +186,10 @@ class GEEService:
 
         s2_selected = s2_image.select(cls.DEFAULT_12_BANDS)
 
-        # Ambil Topografi dari DEM NASA SRTM 30m
-        dem = ee.Image('USGS/SRTMGL1_003').clip(aoi)
+        # DEM tidak di-clip: kernel 3x3 slope/aspect butuh tetangga di luar AOI, kalau
+        # di-clip seluruh slope/aspect/TWI jadi NULL di lahan sempit dan dropNulls=True
+        # membuang semua titik sampelnya.
+        dem = ee.Image('USGS/SRTMGL1_003')
         elevation = dem.select('elevation')
         slope = ee.Terrain.slope(elevation).rename('slope')
         aspect = ee.Terrain.aspect(elevation).rename('aspect')

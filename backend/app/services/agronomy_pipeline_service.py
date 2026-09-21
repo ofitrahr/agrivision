@@ -10,6 +10,7 @@ from app.db.models import Farm, GisLayer
 from app.services.gee_service import GEEService
 from app.services.npk_service import NPKService
 from app.services.soc_service import SOCService
+from app.services.yield_service import YieldService
 from geoalchemy2.functions import ST_AsGeoJSON
 
 logger = logging.getLogger(__name__)
@@ -75,22 +76,27 @@ class AgronomyPipelineService:
         b8_arr = np.array([float(p.get('B8', 0.0)) for p in props_list], dtype=np.float64)
         ndvi_arr = compute_ndvi(b8_arr, b4_arr)
 
-        # Catatan: Biomassa (AGB) dan Yield BELUM memiliki model resmi terlatih - jangan
-        # simpan estimasi fiktif ke gis_layers. Tunggu model R&D sebelum mengaktifkan lagi.
+        # Estimasi Yield spasial: sebaran NDVI relatif dikalibrasi ke catatan panen riil
+        logger.info(f"Menghitung estimasi yield spasial untuk lahan '{farm.name}' periode {period}...")
+        yield_service = YieldService()
+        yield_predictions = yield_service.estimate_yield_batch(farm.id, period, ndvi_arr)
+
+        # Catatan: Biomassa (AGB) BELUM memiliki model resmi terlatih - jangan simpan
+        # estimasi fiktif ke gis_layers. Tunggu model R&D sebelum mengaktifkan lagi.
 
         # Hapus record layer lama untuk periode ini agar tidak duplikat
         GisLayer.query.filter(
             GisLayer.farm_id == farm.id,
             GisLayer.period == period,
             GisLayer.parameter_type.in_([
-                'soc', 'ndvi', 'nitrogen', 'phosphorus', 'potassium', 'soilnpk'
+                'soc', 'ndvi', 'nitrogen', 'phosphorus', 'potassium', 'soilnpk', 'yield'
             ])
         ).delete(synchronize_session=False)
 
         # Simpan seluruh titik piksel spasial ke tabel gis_layers
         new_layers = []
-        for p, soc_val, npk_val, ndvi_val in zip(
-            pixel_samples, predictions, npk_predictions, ndvi_arr
+        for p, soc_val, npk_val, ndvi_val, yield_val in zip(
+            pixel_samples, predictions, npk_predictions, ndvi_arr, yield_predictions
         ):
             new_layers.append(GisLayer(
                 farm_id=farm.id,
@@ -112,6 +118,17 @@ class AgronomyPipelineService:
                 unit="index",
                 is_anomaly=(ndvi_val < 0.40),
                 source="GEE Sentinel-2 (NDVI Band Ratio)"
+            ))
+
+            new_layers.append(GisLayer(
+                farm_id=farm.id,
+                coordinate=f"SRID=4326;POINT({p['lon']} {p['lat']})",
+                parameter_type='yield',
+                period=period,
+                numerical_value=round(yield_val, 3),
+                unit="Ton/Ha",
+                is_anomaly=(yield_val < 0.05),
+                source="Sentinel-2 NDVI Calibrated Yield Model"
             ))
 
             n_val, p_val, k_val = npk_val['nitrogen'], npk_val['phosphorus'], npk_val['potassium']
@@ -147,8 +164,9 @@ class AgronomyPipelineService:
         p_mean = float(np.mean([v['phosphorus'] for v in npk_predictions]))
         k_mean = float(np.mean([v['potassium'] for v in npk_predictions]))
 
-        # Statistik Ringkasan NDVI
+        # Statistik Ringkasan NDVI & Yield
         ndvi_mean = float(np.mean(ndvi_arr))
+        yield_mean = float(np.mean(yield_predictions)) if yield_predictions else 0.0
 
         # Hitung Statistik Spasial
         mean_val = float(np.mean(predictions))
@@ -172,7 +190,7 @@ class AgronomyPipelineService:
         logger.info(
             f"Analisis spasial lahan '{farm.name}' selesai! "
             f"Piksel: {len(predictions)}, Mean SOC: {mean_val:.2f}, Min: {min_val:.2f}, Max: {max_val:.2f}, Std: {std_val:.2f}, "
-            f"Mean NDVI: {ndvi_mean:.2f}, "
+            f"Mean NDVI: {ndvi_mean:.2f}, Mean Yield: {yield_mean:.3f} Ton/Ha, "
             f"Mean N: {n_mean:.2f}%, Mean P: {p_mean:.2f} mg/kg, Mean K: {k_mean:.2f} mg/kg"
         )
 
@@ -190,7 +208,8 @@ class AgronomyPipelineService:
             "is_anomaly": mean_val < 30.0,
             "ndvi_prediction": round(ndvi_mean, 2),
             "biomass_prediction": None,  # Belum ada model resmi
-            "yield_prediction": None,    # Belum ada model resmi
+            "yield_prediction": round(yield_mean, 2),
+            "yield_unit": "Ton/Ha",
             "npk_prediction": {
                 "nitrogen": round(n_mean, 2),
                 "phosphorus": round(p_mean, 1),
