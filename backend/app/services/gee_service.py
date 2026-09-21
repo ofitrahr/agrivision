@@ -8,6 +8,11 @@ from google.oauth2 import service_account
 
 logger = logging.getLogger(__name__)
 
+
+def _sanitize_properties(props):
+    return {k: (0.0 if v is None else v) for k, v in (props or {}).items()}
+
+
 class GEEService:
     _initialized = False
 
@@ -147,8 +152,15 @@ class GEEService:
 
     @classmethod
     def get_farm_pixel_samples_from_gee(cls, polygon_coords, scale=10, max_cloud=20, start_date=None, end_date=None):
+        import math
         cls.initialize()
         aoi = ee.Geometry.Polygon(polygon_coords)
+
+        area_m2 = aoi.area().getInfo()
+        if area_m2 < 15000:
+            scale = max(3, math.floor(math.sqrt(area_m2 / 80)))
+            logger.info(f"Lahan sempit ({area_m2/10000:.2f} Ha). Menggunakan micro-scale: {scale}m.")
+        # Lahan besar tetap scale native 10m - numPixels di bawah yang membatasi jumlah titik.
 
         s2_collection = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
                           .filterBounds(aoi)
@@ -186,7 +198,8 @@ class GEEService:
         topo_image = elevation.addBands([slope, aspect, twi])
         combined = s2_selected.addBands(topo_image)
 
-        buffered_aoi = aoi.buffer(15)
+        buf_dist = max(10, int(scale * 1.5))
+        buffered_aoi = aoi.buffer(buf_dist)
 
         MAX_SAMPLE_PIXELS = 4000
         samples_fc = combined.sample(
@@ -204,7 +217,7 @@ class GEEService:
                 pixel_data.append({
                     'lon': float(coords[0]),
                     'lat': float(coords[1]),
-                    'properties': props
+                    'properties': _sanitize_properties(props)
                 })
 
         # Fallback jika lahan terlalu sempit untuk scale 10m sehingga 0 piksel terambil
@@ -215,7 +228,7 @@ class GEEService:
             pixel_data.append({
                 'lon': float(cent_coords[0]),
                 'lat': float(cent_coords[1]),
-                'properties': sampled_centroid
+                'properties': _sanitize_properties(sampled_centroid)
             })
 
         return pixel_data, scene_info

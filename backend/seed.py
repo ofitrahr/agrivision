@@ -207,14 +207,14 @@ def seed_kadatuan_data():
     # 2. Akun Pengguna
     manager = User(
         project_id=project.id,
-        username="manager_kadatuan",
+        username="manager",
         password_hash=get_password_hash("password123"),
         full_name="Manager Kebun Kadatuan",
         role="manager",
     )
     board = User(
         project_id=project.id,
-        username="board_kadatuan",
+        username="board",
         password_hash=get_password_hash("password123"),
         full_name="Board Kadatuan Koffie",
         role="board",

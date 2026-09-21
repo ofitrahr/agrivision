@@ -760,6 +760,8 @@ def get_agronomy_stats(current_user, farm_id):
             idx = min(int((v - min_val) / bin_width), 9)
             bins[idx]['count'] += 1
         histogram = [{'bin': str(b['bin']), 'count': b['count'], 'area_ha': round(b['count'] * area_per_pixel, 2)} for b in bins]
+    else:
+        histogram = [{'bin': str(round(min_val, 3)), 'count': len(values), 'area_ha': round(len(values) * area_per_pixel, 2)}]
 
     # Anomali
     anomaly_rows = [r for r in rows if r.is_anomaly]

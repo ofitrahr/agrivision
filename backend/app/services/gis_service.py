@@ -7,7 +7,7 @@ from folium.plugins import Draw
 class GISService:
     @staticmethod
     def generate_global_map():
-        m = folium.Map(location=[-0.7893, 113.9213], zoom_start=5, max_zoom=22, tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", attr="Google")
+        m = folium.Map(location=[-0.7893, 113.9213], zoom_start=5, max_zoom=22, tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", attr="Google")
 
         draw = Draw(
             draw_options={
@@ -60,7 +60,7 @@ class GISService:
             location=[-0.7893, 113.9213],
             zoom_start=5,
             max_zoom=22,
-            tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+            tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
             attr="Google",
             zoom_control= False,
         )
@@ -206,7 +206,7 @@ class GISService:
 
     @staticmethod
     def generate_agronomy_map(farm_boundary_geojson=None, existing_blocks_geojson=None, layer_type='ndvi', has_access=False, sample_points=None):
-        m = folium.Map(location=[-0.7893, 113.9213], zoom_start=5, max_zoom=22, tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", attr="Google")
+        m = folium.Map(location=[-0.7893, 113.9213], zoom_start=5, max_zoom=22, tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", attr="Google")
 
         if farm_boundary_geojson:
             bounds_layer = folium.GeoJson(
@@ -230,72 +230,82 @@ class GISService:
                 }
                 unit_label = unit_map.get(layer_type, '')
 
-                try:
-                    if not farm_boundary_geojson:
-                        raise ValueError("No boundary geojson")
+                if len(sample_points) < 3 and farm_boundary_geojson:
+                    vals = [float(p['value']) for p in sample_points if p.get('value') is not None]
+                    avg_val = sum(vals) / len(vals) if vals else 0.0
+                    color = GISService._get_color_for_value(avg_val, layer_type)
+                    folium.GeoJson(
+                        farm_boundary_geojson,
+                        style_function=lambda x, c=color: {'color': c, 'fillColor': c, 'weight': 2, 'fillOpacity': 0.75},
+                        tooltip=f"<b>{layer_type.upper()}:</b> {avg_val:.2f} {unit_label}".strip()
+                    ).add_to(m)
+                else:
+                    try:
+                        if not farm_boundary_geojson:
+                            raise ValueError("No boundary geojson")
 
-                    from shapely.geometry import MultiPoint, Point, mapping, shape
-                    from shapely.ops import voronoi_diagram
-                    from shapely.strtree import STRtree
+                        from shapely.geometry import MultiPoint, Point, mapping, shape
+                        from shapely.ops import voronoi_diagram
+                        from shapely.strtree import STRtree
 
-                    boundary_poly = shape(farm_boundary_geojson)
+                        boundary_poly = shape(farm_boundary_geojson)
 
-                    pts_list = [Point(p['lon'], p['lat']) for p in sample_points]
-                    pts_multi = MultiPoint(pts_list)
+                        pts_list = [Point(p['lon'], p['lat']) for p in sample_points]
+                        pts_multi = MultiPoint(pts_list)
 
-                    # Buat voronoi diagram (ini akan menutupi semua ruang secara penuh tanpa ada celah antar titik)
-                    vd = voronoi_diagram(pts_multi, envelope=boundary_poly)
-                    polys = list(vd.geoms) if hasattr(vd, 'geoms') else []
+                        # Buat voronoi diagram (ini akan menutupi semua ruang secara penuh tanpa ada celah antar titik)
+                        vd = voronoi_diagram(pts_multi, envelope=boundary_poly)
+                        polys = list(vd.geoms) if hasattr(vd, 'geoms') else []
 
-                    if polys:
-                        tree = STRtree(polys)
+                        if polys:
+                            tree = STRtree(polys)
 
-                        for i, point in enumerate(sample_points):
-                            pt = pts_list[i]
+                            for i, point in enumerate(sample_points):
+                                pt = pts_list[i]
+                                val = float(point['value']) if point.get('value') is not None else 0.0
+                                val_display = f"{val:.2f}"
+                                color = GISService._get_color_for_value(val, layer_type)
+
+                                matching_poly = None
+                                res = tree.query(pt)
+                                for idx in res:
+                                    if polys[idx].intersects(pt):
+                                        matching_poly = polys[idx]
+                                        break
+
+                                if matching_poly:
+                                    clipped_geom = matching_poly.intersection(boundary_poly)
+                                    if not clipped_geom.is_empty:
+                                        smoothed_geom = clipped_geom.buffer(0.000005)
+                                        folium.GeoJson(
+                                            data=mapping(smoothed_geom),
+                                            style_function=lambda x, c=color: {
+                                                'fillColor': c,
+                                                'color': c,
+                                                'stroke': False,
+                                                'weight': 0,
+                                                'fillOpacity': 0.95
+                                            },
+                                            tooltip=f"<b>{layer_type.upper()}:</b> {val_display} {unit_label}".strip()
+                                        ).add_to(m)
+
+                    except Exception as e:
+                        print("Error clipping geometry:", str(e))
+                        # Fallback ke bentuk lingkaran jika gagal
+                        for point in sample_points:
                             val = float(point['value']) if point.get('value') is not None else 0.0
                             val_display = f"{val:.2f}"
                             color = GISService._get_color_for_value(val, layer_type)
-
-                            matching_poly = None
-                            res = tree.query(pt)
-                            for idx in res:
-                                if polys[idx].intersects(pt):
-                                    matching_poly = polys[idx]
-                                    break
-
-                            if matching_poly:
-                                clipped_geom = matching_poly.intersection(boundary_poly)
-                                if not clipped_geom.is_empty:
-                                    smoothed_geom = clipped_geom.buffer(0.000005)
-                                    folium.GeoJson(
-                                        data=mapping(smoothed_geom),
-                                        style_function=lambda x, c=color: {
-                                            'fillColor': c,
-                                            'color': c,
-                                            'stroke': False,
-                                            'weight': 0,
-                                            'fillOpacity': 0.95
-                                        },
-                                        tooltip=f"<b>{layer_type.upper()}:</b> {val_display} {unit_label}".strip()
-                                    ).add_to(m)
-
-                except Exception as e:
-                    print("Error clipping geometry:", str(e))
-                    # Fallback ke bentuk lingkaran jika gagal
-                    for point in sample_points:
-                        val = float(point['value']) if point.get('value') is not None else 0.0
-                        val_display = f"{val:.2f}"
-                        color = GISService._get_color_for_value(val, layer_type)
-                        folium.Circle(
-                            location=[point['lat'], point['lon']],
-                            radius=5.5,
-                            weight=0,
-                            color=color,
-                            fill=True,
-                            fill_color=color,
-                            fill_opacity=0.85,
-                            tooltip=f"<b>{layer_type.upper()}:</b> {val_display} {unit_label}".strip()
-                        ).add_to(m)
+                            folium.Circle(
+                                location=[point['lat'], point['lon']],
+                                radius=5.5,
+                                weight=0,
+                                color=color,
+                                fill=True,
+                                fill_color=color,
+                                fill_opacity=0.85,
+                                tooltip=f"<b>{layer_type.upper()}:</b> {val_display} {unit_label}".strip()
+                            ).add_to(m)
             else:
                 import random
                 if farm_boundary_geojson:
