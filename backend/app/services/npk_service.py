@@ -16,10 +16,11 @@ class NPKService:
         'phosphorus': 'mg/kg',
         'potassium': 'mg/kg',
     }
+    # Ambang "rendah", diselaraskan dengan batas warna peta di GISService.
     ANOMALY_THRESH = {
-        'nitrogen': 15.0,
-        'phosphorus': 10.0,
-        'potassium': 20.0,
+        'nitrogen': 0.55,
+        'phosphorus': 50.0,
+        'potassium': 130.0,
     }
 
     # Rentang keluaran riil model NPK Kadatuan, dipakai menormalkan komposit.
