@@ -191,8 +191,8 @@ def manager_traceability_profile(current_user):
                         img = Image.open(file)
                         width, height = img.size
                         file.seek(0)
-                        if width < 800 or height < 400:
-                            return jsonify({'success': False, 'message': 'Resolusi gambar terlalu kecil. Minimum 800 x 400 px.'}), 400
+                        if width < 400 or height < 200:
+                            return jsonify({'success': False, 'message': 'Resolusi gambar terlalu kecil. Minimum 400 x 200 px.'}), 400
                         if width > 4000 or height > 4000:
                             return jsonify({'success': False, 'message': 'Resolusi gambar terlalu besar. Maksimum 4000 x 4000 px.'}), 400
                     except Exception:

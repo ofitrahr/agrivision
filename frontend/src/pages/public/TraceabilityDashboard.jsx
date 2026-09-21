@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Building2, Package, MapPin, Sprout, Leaf, Users, TrendingUp, Trees, BadgeCheck } from 'lucide-react';
+import { Building2, Package, MapPin, Sprout, Leaf, Users, TrendingUp, Trees, BadgeCheck, User } from 'lucide-react';
 import DetailCard from '../../shared/components/traceability/DetailCard';
 import api from '../../shared/api/axios';
 
@@ -73,7 +73,7 @@ const TraceabilityDashboard = () => {
     </div>
   );
 
-  const { project, profile, sdgs } = data;
+  const { project, profile, sdgs, farmers = [], farmer_stats } = data;
   const projectName = profile?.title || project?.name || '';
   const companyName = project?.company_name || '';
   const tagline = profile?.tagline || '';
@@ -236,7 +236,11 @@ const TraceabilityDashboard = () => {
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
-                {[{ label: 'Partners', value: '42' }, { label: 'Female', value: '38' }, { label: 'Programs', value: '12' }].map((m) => (
+                {[
+                  { label: 'Partners', value: farmer_stats?.total || farmers.length || 0 },
+                  { label: 'Female', value: farmer_stats?.female || 0 },
+                  { label: 'Male', value: farmer_stats?.male || 0 },
+                ].map((m) => (
                   <div key={m.label} style={{ background: '#f0f9f4', padding: 8, borderRadius: 12, textAlign: 'center' }}>
                     <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', textTransform: 'uppercase', margin: '0 0 4px 0' }}>{m.label}</p>
                     <p style={{ fontSize: 24, fontWeight: 700, color: '#012d1d', margin: 0 }}>{m.value}</p>
@@ -248,6 +252,47 @@ const TraceabilityDashboard = () => {
             ) : (
               <p style={{ fontSize: 14, lineHeight: '20px', color: '#adb5bd', fontStyle: 'italic', margin: 0 }}>Belum diisi</p>
             )}
+              {farmers.length > 0 && (
+                <div style={{ marginTop: 16, borderTop: '1px solid rgba(233,236,239,0.4)', paddingTop: 16 }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', textTransform: 'uppercase', margin: '0 0 12px 0' }}>Our Farmers</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+                    {farmers.map((farmer, idx) => (
+                      <div key={idx} style={{
+                        background: '#f0f9f4',
+                        borderRadius: 12,
+                        padding: 16,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12
+                      }}>
+                        <div style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: '50%',
+                          background: '#e8f5e9',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
+                          flexShrink: 0
+                        }}>
+                          {farmer.photo_url ? (
+                            <img src={farmer.photo_url} alt={farmer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <User size={20} style={{ color: '#1b4332' }} />
+                          )}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: '#191c1d', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{farmer.name}</p>
+                          <p style={{ fontSize: 11, color: '#6C757D', margin: '2px 0 0 0' }}>
+                            {farmer.gender || '—'}{farmer.age ? ` · ${farmer.age} th` : ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Economic Impact */}

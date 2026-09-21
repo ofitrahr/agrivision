@@ -51,6 +51,26 @@ def api_public_traceability(profile_id):
             "image_url": sdg.image_url,
         })
 
+    # Collect unique farmers from all farms in this project
+    farmers_data = []
+    seen_farmer_ids = set()
+    for farm in project.farms:
+        for farmer in farm.farmers:
+            if farmer.id not in seen_farmer_ids:
+                seen_farmer_ids.add(farmer.id)
+                farmers_data.append({
+                    "name": farmer.name,
+                    "gender": farmer.gender,
+                    "photo_url": farmer.photo_url,
+                    "age": farmer.age,
+                    "join_year": farmer.join_year,
+                    "farm_name": farm.name,
+                })
+
+    total_farmers = len(farmers_data)
+    female_count = sum(1 for f in farmers_data if f.get('gender') and f['gender'].lower() in ['perempuan', 'female', 'f', 'wanita'])
+    male_count = total_farmers - female_count
+
     return jsonify({
         "success": True,
         "data": {
@@ -74,6 +94,12 @@ def api_public_traceability(profile_id):
                 "environmental_narrative": profile.environmental_narrative or '',
             },
             "sdgs": project_sdgs,
+            "farmers": farmers_data,
+            "farmer_stats": {
+                "total": total_farmers,
+                "female": female_count,
+                "male": male_count,
+            },
         }
     }), 200
 
