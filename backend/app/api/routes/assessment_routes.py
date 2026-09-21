@@ -208,7 +208,7 @@ def api_get_project_sdg_selection(current_user, project_id):
 @roles_required(*ASSESS_ROLES)
 def api_save_project_sdg_selection(current_user, project_id):
     data = request.get_json(silent=True) or {}
-    result, status = svc.save_project_sdg_selection(project_id, data)
+    result, status = svc.save_project_sdg_selection(project_id, data, current_user=current_user)
     return jsonify(result), status
 
 
@@ -222,11 +222,11 @@ def api_upload_project_sdg_evidence(current_user, project_id):
     return jsonify(result), status
 
 
-@assessment_bp.route('/projects/<project_id>/project-sdgs/verification/evidence', methods=['DELETE'])
+@assessment_bp.route('/projects/<project_id>/project-sdgs/verification/evidence/<evidence_id>', methods=['DELETE'])
 @token_required
 @roles_required(*ASSESS_ROLES)
-def api_delete_project_sdg_evidence(current_user, project_id):
-    result, status = svc.delete_project_sdg_evidence(project_id)
+def api_delete_project_sdg_evidence_file(current_user, project_id, evidence_id):
+    result, status = svc.delete_project_sdg_evidence_file(project_id, evidence_id)
     return jsonify(result), status
 
 

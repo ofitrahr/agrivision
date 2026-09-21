@@ -648,10 +648,32 @@ class ProjectSdgVerification(db.Model):
     evidence_file_url = db.Column(db.Text)
     evidence_file_type = db.Column(db.String(20))
     assessment_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    # Assessment (questionnaire ke-N) yang dipilih Admin sebagai sumber SDG project
+    source_assessment_id = db.Column(UUID(as_uuid=True), db.ForeignKey('trace_assessments.id', ondelete='SET NULL'))
+    # Status simpan ala Google Classroom: 'saved' | 'unsaved' (UI: tombol TERSIMPAN vs SIMPAN PERUBAHAN)
+    save_state = db.Column(db.String(20), nullable=False, server_default='unsaved')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     project_traceability = db.relationship('ProjectTraceabilityProfile', backref=db.backref('sdg_verification', uselist=False))
+
+
+class ProjectSdgEvidence(db.Model):
+    """Bukti pendukung verifikasi SDG project — multi-file.
+
+    Admin dapat mengunggah beberapa dokumen (append, bukan replace).
+    `original_name` dipertahankan agar file mudah dikenali di UI.
+    """
+    __tablename__ = 'project_sdg_evidence'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    verification_id = db.Column(UUID(as_uuid=True), db.ForeignKey('project_sdg_verifications.id', ondelete='CASCADE'), nullable=False)
+    file_url = db.Column(db.Text, nullable=False)
+    file_type = db.Column(db.String(20))
+    original_name = db.Column(db.String(255))
+    uploaded_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    verification = db.relationship('ProjectSdgVerification', backref=db.backref('evidences', cascade='all, delete-orphan'))
 
 
 class RecentActivity(db.Model):

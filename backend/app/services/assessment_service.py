@@ -27,6 +27,7 @@ from app.db.models import (
     AssessmentSdgResult,
     ProjectSdg,
     ProjectSdgVerification,
+    ProjectSdgEvidence,
 )
 from app.services.upload_service import save_file_locally
 
@@ -763,7 +764,21 @@ def delete_assessment(assessment_id):
     if not assessment:
         return {"success": False, "message": "Assessment tidak ditemukan"}, 404
     profile_id = assessment.project_traceability_id
-    ProjectSdg.query.filter_by(project_traceability_id=profile_id).delete()
+
+    # Bug fix: hapus HANYA ProjectSdg yang result-nya berasal dari assessment
+    # ini -- bukan seluruh SDG project (ProjectSdg milik profile tetap utuh).
+    result_ids = [r.id for r in AssessmentSdgResult.query.filter_by(assessment_id=assessment.id).all()]
+    if result_ids:
+        ProjectSdg.query.filter(
+            ProjectSdg.assessment_sdg_result_id.in_(result_ids)
+        ).delete(synchronize_session=False)
+
+    # Lepaskan tautan sumber di verification bila menunjuk assessment ini;
+    # fallback otomatis kembali ke assessment completed terbaru tersisa.
+    ProjectSdgVerification.query.filter_by(source_assessment_id=assessment.id).update(
+        {"source_assessment_id": None}, synchronize_session=False
+    )
+
     db.session.delete(assessment)
     db.session.commit()
     return {"success": True, "message": "Assessment dihapus"}, 200
@@ -803,11 +818,23 @@ def get_company_sdg_summary(company_id):
 # PROJECT SDG SELECTION (admin/traceability, per project)
 # ---------------------------------------------------------------
 def _serialize_project_verification(verification):
+    evidences = []
+    if verification:
+        for ev in sorted(verification.evidences, key=lambda e: e.uploaded_at or datetime.min):
+            evidences.append({
+                "id": str(ev.id),
+                "file_url": ev.file_url,
+                "file_type": ev.file_type,
+                "original_name": ev.original_name,
+                "uploaded_at": ev.uploaded_at.isoformat() if ev.uploaded_at else None,
+            })
     return {
         "assessed_by": verification.assessed_by if verification else None,
-        "evidence_file_url": verification.evidence_file_url if verification else None,
-        "evidence_file_type": verification.evidence_file_type if verification else None,
         "assessment_date": verification.assessment_date.isoformat() if verification and verification.assessment_date else None,
+        "source_assessment_id": str(verification.source_assessment_id) if verification and verification.source_assessment_id else None,
+        "evidences": evidences,
+        # Status simpan untuk UI (Google Classroom-style): "saved" | "unsaved"
+        "save_state": getattr(verification, 'save_state', 'unsaved') if verification else 'unsaved',
     }
 
 
@@ -826,9 +853,64 @@ def _get_latest_completed_assessment(profile):
     ).order_by(TraceAssessment.completed_at.desc()).first()
 
 
+def _list_completed_assessments(profile):
+    """Semua assessment completed milik profile, urut terbaru -> lama."""
+    if not profile:
+        return []
+    return TraceAssessment.query.filter_by(
+        project_traceability_id=profile.id,
+        status='completed',
+    ).order_by(TraceAssessment.completed_at.desc()).all()
+
+
+def _serialize_completed_assessment(assessment, result_rows=None):
+    """Ringkasan assessment completed utk dropdown pemilihan sumber SDG."""
+    if result_rows is None:
+        result_rows = AssessmentSdgResult.query.filter_by(assessment_id=assessment.id).all()
+    return {
+        "id": str(assessment.id),
+        "questionnaire_name": assessment.questionnaire.name if assessment.questionnaire else None,
+        "questionnaire_version": assessment.questionnaire.version if assessment.questionnaire else None,
+        "completed_at": assessment.completed_at.isoformat() if assessment.completed_at else None,
+        "assessor_name": assessment.assessor_name,
+        "assessed_count": len(result_rows),
+        "met_count": sum(1 for r in result_rows if r.is_met),
+    }
+
+
+def _resolve_source_assessment(profile, verification, requested_assessment_id=None):
+    """Tentukan assessment sumber (questionnaire ke-N) untuk SDG project.
+
+    Prioritas: assessment_id yang diminta admin (validasi milik project ini &
+    completed) -> assessment tersimpan di verification -> assessment terbaru.
+    Return (assessment, error_message).
+    """
+    completed = _list_completed_assessments(profile)
+
+    if requested_assessment_id:
+        source = TraceAssessment.query.filter_by(
+            id=requested_assessment_id,
+            project_traceability_id=profile.id,
+            status='completed',
+        ).first()
+        if not source:
+            return None, "Assessment sumber tidak valid untuk project ini (harus completed & milik project)"
+        return source, None
+
+    if verification and verification.source_assessment_id:
+        persisted = next(
+            (a for a in completed if a.id == verification.source_assessment_id), None
+        )
+        if persisted:
+            return persisted, None
+
+    return (completed[0] if completed else None), None
+
+
 def get_project_sdg_selection(project_id):
     """Data halaman admin/traceability (project-level):
-    katalog SDG + status terpilih + verifikasi + ringkasan assessment terakhir."""
+    katalog SDG + status terpilih + verifikasi + daftar assessment completed
+    (dropdown pemilihan sumber/questionnaire ke-N) + hasil dari sumber terpilih."""
     project = Project.query.get(project_id)
     if not project:
         return {"success": False, "message": "Project tidak ditemukan"}, 404
@@ -839,6 +921,24 @@ def get_project_sdg_selection(project_id):
         selected_rows = ProjectSdg.query.filter_by(project_traceability_id=profile.id).all()
     selected_map = {ps.sdg_id: ps for ps in selected_rows}
     verification = ProjectSdgVerification.query.filter_by(project_traceability_id=profile.id).first() if profile else None
+
+    # Sumber hasil: assessment yang dipilih admin (persist di verification),
+    # fallback ke assessment terbaru bila belum pernah memilih.
+    source, _err = _resolve_source_assessment(profile, verification)
+
+    # Hasil per-SDG dari assessment terpilih, panduan checklist admin.
+    result_map = {}
+    source_results = []
+    if source:
+        source_results = AssessmentSdgResult.query.filter_by(assessment_id=source.id).all()
+        for r in source_results:
+            result_map[r.sdg_id] = {
+                "result_id": str(r.id),
+                "score": float(r.score),
+                "status": r.status,
+                "is_met": r.is_met,
+                "threshold": float(r.threshold),
+            }
 
     sdgs = []
     for sdg in SdgMaster.query.order_by(SdgMaster.goal_number).all():
@@ -852,29 +952,24 @@ def get_project_sdg_selection(project_id):
             "threshold": float(sdg.fulfilled_score),
             "selected": ps is not None,
             "display_order": ps.display_order if hasattr(ps, 'display_order') else 0,
+            "assessment_result": result_map.get(sdg.id),
         })
 
-    latest = _get_latest_completed_assessment(profile) if profile else None
+    assessments = [_serialize_completed_assessment(a) for a in _list_completed_assessments(profile)]
     latest_assessment = None
-    if latest:
-        results = [
-            {
-                "goal_number": r.sdg_master.goal_number if r.sdg_master else None,
-                "name": r.sdg_master.name if r.sdg_master else None,
-                "score": float(r.score),
-                "threshold": float(r.threshold),
-                "is_met": r.is_met,
-            }
-            for r in AssessmentSdgResult.query.filter_by(assessment_id=latest.id).all()
-        ]
+    if source:
         latest_assessment = {
-            "id": str(latest.id),
-            "questionnaire_name": latest.questionnaire.name if latest.questionnaire else None,
-            "completed_at": latest.completed_at.isoformat() if latest.completed_at else None,
-            "assessor_name": latest.assessor_name,
-            "results": results,
-            "assessed_count": len(results),
-            "met_count": sum(1 for r in results if r["is_met"]),
+            **_serialize_completed_assessment(source, result_rows=source_results),
+            "results": [
+                {
+                    "goal_number": r.sdg_master.goal_number if r.sdg_master else None,
+                    "name": r.sdg_master.name if r.sdg_master else None,
+                    "score": float(r.score),
+                    "threshold": float(r.threshold),
+                    "is_met": r.is_met,
+                }
+                for r in source_results
+            ],
         }
 
     return {
@@ -890,14 +985,16 @@ def get_project_sdg_selection(project_id):
             },
             "sdgs": sdgs,
             "verification": _serialize_project_verification(verification),
+            "assessments": assessments,
+            "selected_assessment_id": str(source.id) if source else None,
             "latest_assessment": latest_assessment,
             "project_sdg_ids": [str(ps.sdg_id) for ps in selected_rows],
         }
     }, 200
 
 
-def save_project_sdg_selection(project_id, data):
-    """Simpan checklist SDG project + nama assessor. Menulis ProjectSdg."""
+def save_project_sdg_selection(project_id, data, current_user=None):
+    """Simpan checklist SDG project + lock assessor (username admin) + save state."""
     project = Project.query.get(project_id)
     if not project:
         return {"success": False, "message": "Project tidak ditemukan"}, 404
@@ -908,13 +1005,19 @@ def save_project_sdg_selection(project_id, data):
         db.session.add(profile)
         db.session.flush()
 
+    # Assessment sumber (questionnaire ke-N) yang dipilih admin.
+    source_assessment, err = _resolve_source_assessment(
+        profile, None, requested_assessment_id=data.get('assessment_id')
+    )
+    if err:
+        return {"success": False, "message": err}, 400
+
     submitted = data.get('sdgs', [])
     submitted_ids = set()
-    latest = _get_latest_completed_assessment(profile)
-    latest_result_map = {}
-    if latest:
-        for r in AssessmentSdgResult.query.filter_by(assessment_id=latest.id).all():
-            latest_result_map[r.sdg_id] = r.id
+    result_map = {}
+    if source_assessment:
+        for r in AssessmentSdgResult.query.filter_by(assessment_id=source_assessment.id).all():
+            result_map[r.sdg_id] = r.id
 
     for item in submitted:
         sdg_id = item.get('sdg_id')
@@ -928,9 +1031,12 @@ def save_project_sdg_selection(project_id, data):
             ps = ProjectSdg(
                 project_traceability_id=profile.id,
                 sdg_id=sdg_id,
-                assessment_sdg_result_id=latest_result_map.get(sdg_id),
+                assessment_sdg_result_id=result_map.get(sdg_id),
             )
             db.session.add(ps)
+        elif ps.assessment_sdg_result_id != result_map.get(sdg_id):
+            # Re-link ke hasil dari assessment sumber yang dipilih admin
+            ps.assessment_sdg_result_id = result_map.get(sdg_id)
 
     removed_query = ProjectSdg.query.filter(ProjectSdg.project_traceability_id == profile.id)
     if submitted_ids:
@@ -939,14 +1045,21 @@ def save_project_sdg_selection(project_id, data):
         db.session.delete(r)
 
     verification = _get_or_create_project_verification(profile)
-    verification.assessed_by = (data.get('assessed_by') or '').strip() or None
+    # Assessor dikunci dari akun superadmin yang sedang login (tidak bisa diedit admin)
+    if current_user is not None:
+        verification.assessed_by = (getattr(current_user, 'full_name', None)
+                                    or getattr(current_user, 'username', None)
+                                    or verification.assessed_by)
+    if source_assessment:
+        verification.source_assessment_id = source_assessment.id
+    verification.save_state = 'saved'
 
     db.session.commit()
 
     selected = ProjectSdg.query.filter_by(project_traceability_id=profile.id).all()
     return {
         "success": True,
-        "message": "SDG project berhasil disimpan",
+        "message": "Perubahan berhasil disimpan",
         "data": {
             "project_sdg_ids": [str(ps.sdg_id) for ps in selected],
             "verification": _serialize_project_verification(verification),
@@ -955,6 +1068,7 @@ def save_project_sdg_selection(project_id, data):
 
 
 def upload_project_sdg_evidence(project_id, file):
+    """Upload bukti pendukung (APPEND — multi dokumen, tidak menimpa)."""
     project = Project.query.get(project_id)
     if not project:
         return {"success": False, "message": "Project tidak ditemukan"}, 404
@@ -972,34 +1086,49 @@ def upload_project_sdg_evidence(project_id, file):
     ext = original_name.rsplit('.', 1)[1].lower() if '.' in original_name else ''
 
     verification = _get_or_create_project_verification(profile)
-    verification.evidence_file_url = file_url
-    verification.evidence_file_type = ext
-    verification.assessment_date = datetime.utcnow()
-
+    evidence = ProjectSdgEvidence(
+        verification_id=verification.id,
+        file_url=file_url,
+        file_type=ext,
+        original_name=(original_name or '')[:255] or None,
+        uploaded_at=datetime.utcnow(),
+    )
+    db.session.add(evidence)
+    # Evidence baru = ada perubahan yang belum difinalisasi
+    verification.save_state = 'unsaved'
     db.session.commit()
 
     return {
         "success": True,
-        "message": "Bukti berhasil diupload",
+        "message": "Bukti berhasil ditambahkan",
         "data": _serialize_project_verification(verification),
     }, 200
 
 
-def delete_project_sdg_evidence(project_id):
+def delete_project_sdg_evidence_file(project_id, evidence_id):
+    """Hapus SATU file bukti berdasarkan id (bukan semua)."""
     project = Project.query.get(project_id)
     if not project:
         return {"success": False, "message": "Project tidak ditemukan"}, 404
 
     profile = ProjectTraceabilityProfile.query.filter_by(project_id=project.id).first()
     verification = ProjectSdgVerification.query.filter_by(project_traceability_id=profile.id).first() if profile else None
-    if verification:
-        verification.evidence_file_url = None
-        verification.evidence_file_type = None
-        db.session.commit()
+    if not verification:
+        return {"success": False, "message": "Verifikasi belum ada"}, 404
+
+    evidence = ProjectSdgEvidence.query.filter_by(
+        id=evidence_id, verification_id=verification.id
+    ).first()
+    if not evidence:
+        return {"success": False, "message": "File bukti tidak ditemukan"}, 404
+
+    db.session.delete(evidence)
+    verification.save_state = 'unsaved'
+    db.session.commit()
 
     return {
         "success": True,
-        "message": "Bukti berhasil dihapus",
+        "message": "File bukti berhasil dihapus",
         "data": _serialize_project_verification(verification),
     }, 200
 
