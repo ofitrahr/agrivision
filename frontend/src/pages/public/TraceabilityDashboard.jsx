@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Building2, Package, MapPin, Sprout, Leaf, Users, TrendingUp, Trees, BadgeCheck, User } from 'lucide-react';
+import { Building2, Package, MapPin, Sprout, Leaf, Users, TrendingUp, Trees, BadgeCheck } from 'lucide-react';
 import DetailCard from '../../shared/components/traceability/DetailCard';
 import api from '../../shared/api/axios';
 
@@ -252,47 +252,6 @@ const TraceabilityDashboard = () => {
             ) : (
               <p style={{ fontSize: 14, lineHeight: '20px', color: '#adb5bd', fontStyle: 'italic', margin: 0 }}>Belum diisi</p>
             )}
-              {farmers.length > 0 && (
-                <div style={{ marginTop: 16, borderTop: '1px solid rgba(233,236,239,0.4)', paddingTop: 16 }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', color: '#414844', textTransform: 'uppercase', margin: '0 0 12px 0' }}>Our Farmers</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
-                    {farmers.map((farmer, idx) => (
-                      <div key={idx} style={{
-                        background: '#f0f9f4',
-                        borderRadius: 12,
-                        padding: 16,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12
-                      }}>
-                        <div style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: '50%',
-                          background: '#e8f5e9',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          overflow: 'hidden',
-                          flexShrink: 0
-                        }}>
-                          {farmer.photo_url ? (
-                            <img src={farmer.photo_url} alt={farmer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          ) : (
-                            <User size={20} style={{ color: '#1b4332' }} />
-                          )}
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: '#191c1d', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{farmer.name}</p>
-                          <p style={{ fontSize: 11, color: '#6C757D', margin: '2px 0 0 0' }}>
-                            {farmer.gender || '—'}{farmer.age ? ` · ${farmer.age} th` : ''}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Economic Impact */}

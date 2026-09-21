@@ -71,14 +71,31 @@ def api_public_traceability(profile_id):
     female_count = sum(1 for f in farmers_data if f.get('gender') and f['gender'].lower() in ['perempuan', 'female', 'f', 'wanita'])
     male_count = total_farmers - female_count
 
+    # Collect unique commodities from farm crops
+    commodities = set()
+    for farm in project.farms:
+        for crop in farm.crops:
+            if crop.crop_type:
+                commodities.add(crop.crop_type.strip())
+
+    # Collect unique farm locations
+    locations = set()
+    for farm in project.farms:
+        if farm.location:
+            locations.add(farm.location.strip())
+
+    # Fallback ke project-level jika farm tidak punya data
+    commodity_str = ', '.join(sorted(commodities)) if commodities else (project.commodity or '')
+    location_str = ', '.join(sorted(locations)) if locations else (project.location or '')
+
     return jsonify({
         "success": True,
         "data": {
             "project": {
                 "id": str(project.id),
                 "name": project.name,
-                "commodity": project.commodity,
-                "location": project.location,
+                "commodity": commodity_str,
+                "location": location_str,
                 "company_name": project.company.name if project.company else None,
             },
             "profile": {
