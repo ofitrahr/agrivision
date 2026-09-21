@@ -690,6 +690,28 @@ def get_agronomy_farm_map(current_user, farm_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+def _project_next_value(values, window=6):
+    """Ekstrapolasi linear dari titik tren terakhir, di-clamp ke rentang yang pernah terjadi."""
+    pts = [float(v) for v in values[-window:] if v is not None]
+    if not pts:
+        return None
+    if len(pts) == 1:
+        return round(pts[0], 4)
+
+    n = len(pts)
+    mx = (n - 1) / 2.0
+    my = sum(pts) / n
+    denom = sum((i - mx) ** 2 for i in range(n))
+    slope = sum((i - mx) * (pts[i] - my) for i in range(n)) / denom if denom else 0.0
+
+    projected = my + slope * (n - mx)
+    lo, hi = min(pts), max(pts)
+    span = (hi - lo) or abs(my) * 0.1
+    floor = max(0.01, lo - span)
+    ceil = min(1.5, hi + span)
+    return round(min(max(projected, floor), max(floor, ceil)), 4)
+
+
 @manager_bp.route('/farms/<farm_id>/agronomy-stats', methods=['GET'])
 @token_required
 @role_required('manager')
@@ -851,8 +873,19 @@ def get_agronomy_stats(current_user, farm_id):
         if fc_vals:
             forecast = {
                 'period': next_p,
-                'value': round(statistics.mean(fc_vals), 4)
+                'value': round(statistics.mean(fc_vals), 4),
+                'method': 'model',
+                'label': 'Prediksi model',
             }
+        else:
+            projected = _project_next_value([t['value'] for t in trend])
+            if projected is not None:
+                forecast = {
+                    'period': next_p,
+                    'value': projected,
+                    'method': 'tren',
+                    'label': 'Proyeksi tren, bukan model',
+                }
 
     return jsonify({
         'success': True,

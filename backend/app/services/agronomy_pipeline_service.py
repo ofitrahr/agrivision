@@ -132,7 +132,7 @@ class AgronomyPipelineService:
                 numerical_value=round(yield_val, 3),
                 unit="Ton/Ha",
                 is_anomaly=(yield_val < 0.05),
-                source="Sentinel-2 NDVI Calibrated Yield Model"
+                source=f"Sentinel-2 NDVI Calibrated Yield Model ({yield_service.last_source})"
             ))
 
             n_val, p_val, k_val = npk_val['nitrogen'], npk_val['phosphorus'], npk_val['potassium']
@@ -215,8 +215,9 @@ class AgronomyPipelineService:
             "soc_depth_cm": SOCService.SAMPLING_DEPTH_CM,
             "ndvi_prediction": round(ndvi_mean, 2),
             "biomass_prediction": None,  # Belum ada model resmi
-            "yield_prediction": round(yield_mean, 2),
+            "yield_prediction": round(yield_mean, 3),
             "yield_unit": "Ton/Ha",
+            "yield_baseline_source": yield_service.last_source,
             "npk_prediction": {
                 "nitrogen": round(n_mean, 2),
                 "phosphorus": round(p_mean, 1),

@@ -1,6 +1,7 @@
 import logging
 
 import numpy as np
+from app.db.database import db
 from app.db.models import Farm, HarvestRecord
 
 logger = logging.getLogger(__name__)
@@ -9,12 +10,16 @@ logger = logging.getLogger(__name__)
 class YieldService:
     DEFAULT_COFFEE_BASELINE_TON_HA = 0.15
 
+    def __init__(self):
+        self.last_baseline = None
+        self.last_source = None
+
     def estimate_yield_batch(self, farm_id, period, ndvi_array):
         ndvi = np.asarray(ndvi_array, dtype=np.float64)
         if ndvi.size == 0:
             return []
 
-        baseline_ton_ha = self._resolve_baseline(farm_id, period)
+        baseline_ton_ha, _ = self.resolve_baseline(farm_id, period)
 
         ndvi_mean = float(np.mean(ndvi))
         if ndvi_mean <= 0.05:
@@ -25,22 +30,53 @@ class YieldService:
 
         return [float(round(y, 3)) for y in yield_preds]
 
-    def _resolve_baseline(self, farm_id, period):
-        harvest = HarvestRecord.query.filter_by(farm_id=farm_id, period=period).first()
-        yield_kg = float(harvest.yield_kg) if harvest and harvest.yield_kg else 0.0
-
-        if yield_kg <= 0:
-            logger.info(
-                f"Tidak ada catatan panen untuk lahan {farm_id} periode {period}. "
-                f"Memakai baseline kopi default {self.DEFAULT_COFFEE_BASELINE_TON_HA} Ton/Ha."
-            )
-            return self.DEFAULT_COFFEE_BASELINE_TON_HA
-
+    def resolve_baseline(self, farm_id, period):
+        """Urutan: panen lahan ini -> panen kebun bulan yang sama -> rata-rata kebun -> default."""
         farm = Farm.query.get(farm_id)
-        area_ha = float(farm.total_area_ha) if farm and farm.total_area_ha else 1.0
-        baseline = (yield_kg / 1000.0) / max(0.1, area_ha)
-        logger.info(
-            f"Baseline yield lahan {farm_id} periode {period}: {baseline:.3f} Ton/Ha "
-            f"(kalibrasi {yield_kg:.0f} kg / {area_ha:.2f} Ha)."
-        )
-        return baseline
+        project_id = farm.project_id if farm else None
+
+        baseline = self._farm_baseline(farm_id, period)
+        source = 'panen lahan'
+
+        if baseline is None and project_id:
+            baseline = self._project_baseline(project_id, period=period)
+            source = 'panen kebun bulan sama'
+
+        if baseline is None and project_id:
+            baseline = self._project_baseline(project_id, period=None)
+            source = 'rata-rata panen kebun'
+
+        if baseline is None:
+            baseline = self.DEFAULT_COFFEE_BASELINE_TON_HA
+            source = 'default kopi arabika'
+
+        self.last_baseline, self.last_source = baseline, source
+        logger.info(f"Baseline yield lahan {farm_id} periode {period}: {baseline:.4f} Ton/Ha ({source}).")
+        return baseline, source
+
+    @staticmethod
+    def _farm_baseline(farm_id, period):
+        row = db.session.query(HarvestRecord.yield_kg, Farm.total_area_ha).join(
+            Farm, Farm.id == HarvestRecord.farm_id
+        ).filter(HarvestRecord.farm_id == farm_id, HarvestRecord.period == period).first()
+        return YieldService._to_ton_ha(row)
+
+    @staticmethod
+    def _project_baseline(project_id, period=None):
+        q = db.session.query(HarvestRecord.yield_kg, Farm.total_area_ha).join(
+            Farm, Farm.id == HarvestRecord.farm_id
+        ).filter(Farm.project_id == project_id)
+        if period:
+            q = q.filter(HarvestRecord.period == period)
+
+        values = [v for v in (YieldService._to_ton_ha(r) for r in q.all()) if v is not None]
+        return float(np.mean(values)) if values else None
+
+    @staticmethod
+    def _to_ton_ha(row):
+        if not row or not row[0] or not row[1]:
+            return None
+        kg, area = float(row[0]), float(row[1])
+        if kg <= 0 or area <= 0:
+            return None
+        return (kg / 1000.0) / max(0.1, area)
