@@ -16,7 +16,8 @@ class SOCService:
     def __init__(self, models_dir=None):
         if not models_dir:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            models_dir = os.getenv("ML_MODELS_DIR", os.path.join(base_dir, "ml_models"))
+            default_dir = os.path.join(base_dir, "ml_models", "soc")
+            models_dir = os.getenv("ML_MODELS_DIR", default_dir)
 
         onnx_path = os.path.join(models_dir, "best_model_ann.onnx")
         scaler_path = os.path.join(models_dir, "scaler_ann.joblib")

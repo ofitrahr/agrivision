@@ -6,6 +6,7 @@ from decimal import Decimal
 
 import bcrypt
 from app import create_app
+from app.core.period_utils import period_label, shift_period
 from app.db.database import db
 from app.db.models import (
     ActivityLog,
@@ -497,8 +498,16 @@ def run_complete_seed():
     # -------------------------------------------------------------
     print("[6/11] Menanam titik observasi spasial satelit (NDVI, SOC, Biomassa, Yield, NPK) lintas 5 periode...")
 
-    periods = ["Q1_2025", "Q2_2025", "Q3_2025", "Q4_2025", "Q1_2026"]
+    # 5 periode bulanan berurutan yang berakhir di bulan berjalan (format 'YYYY-MM')
+    _today = date.today()
+    periods = []
+    for _offset in range(4, -1, -1):
+        _y, _m = divmod((_today.year * 12 + (_today.month - 1)) - _offset, 12)
+        periods.append(f"{_y:04d}-{_m + 1:02d}")
     period_idx_map = {p: i for i, p in enumerate(periods)}
+    # Alias periode relatif dipakai pada data historis (2 bulan lalu, bulan lalu, bulan berjalan)
+    period_prev2, period_prev1, period_curr = periods[2], periods[3], periods[4]
+    period_next = shift_period(period_curr, 1)  # untuk yield_forecast
 
     def generate_grid_points(min_lon, max_lon, min_lat, max_lat, count=25):
         # 5x5 grid evenly spaced
@@ -583,7 +592,7 @@ def run_complete_seed():
 
         for p_str in periods:
             p_step = period_idx_map[p_str]
-            growth_factor = 1.0 + (p_step * 0.028)  # gradual improvement across quarters
+            growth_factor = 1.0 + (p_step * 0.028)  # gradual improvement across months
 
             for idx, (lon, lat) in enumerate(pts):
                 # Variasi spasial kecil per titik
@@ -665,8 +674,7 @@ def run_complete_seed():
                 )
             )
 
-        # Tambahkan Forecast Yield untuk Periode Mendatang (Q2_2026)
-        next_p = "Q2_2026"
+        # Tambahkan Forecast Yield untuk Periode Mendatang (1 bulan setelah periode berjalan)
         for idx, (lon, lat) in enumerate(pts):
             fc_val = round(f_cfg["base_yield"] * 1.18 + (((idx % 5) - 2) * 0.04), 2)
             gis_layers_to_insert.append(
@@ -674,7 +682,7 @@ def run_complete_seed():
                     farm_id=f_obj.id,
                     coordinate=f"SRID=4326;POINT({lon} {lat})",
                     parameter_type="yield_forecast",
-                    period=next_p,
+                    period=period_next,
                     numerical_value=fc_val,
                     unit=UNITS["yield_forecast"],
                     is_anomaly=False,
@@ -695,7 +703,7 @@ def run_complete_seed():
         FinancialRecord(
             company_id=company.id,
             farm_id=farm1.id,
-            period="Q3_2025",
+            period=period_prev2,
             total_production_kg=16800.0,
             operational_cost=88000000.0,
             estimated_revenue=134000000.0,
@@ -704,7 +712,7 @@ def run_complete_seed():
         FinancialRecord(
             company_id=company.id,
             farm_id=farm1.id,
-            period="Q4_2025",
+            period=period_prev1,
             total_production_kg=19500.0,
             operational_cost=85000000.0,
             estimated_revenue=156000000.0,
@@ -713,7 +721,7 @@ def run_complete_seed():
         FinancialRecord(
             company_id=company.id,
             farm_id=farm1.id,
-            period="Q1_2026",
+            period=period_curr,
             total_production_kg=23400.0,
             operational_cost=80000000.0,
             estimated_revenue=188000000.0,
@@ -723,7 +731,7 @@ def run_complete_seed():
         FinancialRecord(
             company_id=company.id,
             farm_id=farm2.id,
-            period="Q3_2025",
+            period=period_prev2,
             total_production_kg=29000.0,
             operational_cost=148000000.0,
             estimated_revenue=232000000.0,
@@ -732,7 +740,7 @@ def run_complete_seed():
         FinancialRecord(
             company_id=company.id,
             farm_id=farm2.id,
-            period="Q4_2025",
+            period=period_prev1,
             total_production_kg=34200.0,
             operational_cost=142000000.0,
             estimated_revenue=275000000.0,
@@ -741,7 +749,7 @@ def run_complete_seed():
         FinancialRecord(
             company_id=company.id,
             farm_id=farm2.id,
-            period="Q1_2026",
+            period=period_curr,
             total_production_kg=41000.0,
             operational_cost=134000000.0,
             estimated_revenue=330000000.0,
@@ -751,7 +759,7 @@ def run_complete_seed():
         FinancialRecord(
             company_id=company.id,
             farm_id=farm3.id,
-            period="Q4_2025",
+            period=period_prev1,
             total_production_kg=215000.0,
             operational_cost=205000000.0,
             estimated_revenue=430000000.0,
@@ -760,7 +768,7 @@ def run_complete_seed():
         FinancialRecord(
             company_id=company.id,
             farm_id=farm3.id,
-            period="Q1_2026",
+            period=period_curr,
             total_production_kg=248000.0,
             operational_cost=194000000.0,
             estimated_revenue=496000000.0,
@@ -773,7 +781,7 @@ def run_complete_seed():
         HarvestRecord(
             company_id=company.id,
             farm_id=farm1.id,
-            period="Q4_2025",
+            period=period_prev1,
             yield_kg=19500.0,
             area_harvested_ha=42.0,
             notes="Panen ceri kopi arabika matang pohon penuh.",
@@ -781,7 +789,7 @@ def run_complete_seed():
         HarvestRecord(
             company_id=company.id,
             farm_id=farm1.id,
-            period="Q1_2026",
+            period=period_curr,
             yield_kg=23400.0,
             area_harvested_ha=43.5,
             notes="Produktivitas meningkat 20% dibandingkan periode sebelumnya.",
@@ -789,7 +797,7 @@ def run_complete_seed():
         HarvestRecord(
             company_id=company.id,
             farm_id=farm2.id,
-            period="Q4_2025",
+            period=period_prev1,
             yield_kg=34200.0,
             area_harvested_ha=72.0,
             notes="Sortasi ceri dengan rasio floaters di bawah 2%.",
@@ -797,7 +805,7 @@ def run_complete_seed():
         HarvestRecord(
             company_id=company.id,
             farm_id=farm2.id,
-            period="Q1_2026",
+            period=period_curr,
             yield_kg=41000.0,
             area_harvested_ha=76.0,
             notes="Panen puncak musim basah dengan kadar gula brix 21°.",
@@ -809,7 +817,7 @@ def run_complete_seed():
         EsgMetric(
             company_id=company.id,
             farm_id=farm1.id,
-            period="Q4_2025",
+            period=period_prev1,
             carbon_footprint=14.2,
             water_usage=1250.0,
             biodiversity_index=4.2,
@@ -818,7 +826,7 @@ def run_complete_seed():
         EsgMetric(
             company_id=company.id,
             farm_id=farm1.id,
-            period="Q1_2026",
+            period=period_curr,
             carbon_footprint=12.5,
             water_usage=1140.0,
             biodiversity_index=4.5,
@@ -827,7 +835,7 @@ def run_complete_seed():
         EsgMetric(
             company_id=company.id,
             farm_id=farm2.id,
-            period="Q1_2026",
+            period=period_curr,
             carbon_footprint=11.8,
             water_usage=1200.0,
             biodiversity_index=4.6,
@@ -1164,7 +1172,7 @@ def run_complete_seed():
             title="Laporan Operasional Komprehensif Semester II 2025",
             report_type="comprehensive",
             farm_name="Semua Lahan",
-            period="Q4_2025",
+            period=period_prev1,
             format="pdf",
             status="available",
             file_url=None,
@@ -1172,10 +1180,10 @@ def run_complete_seed():
         DocumentReport(
             company_id=company.id,
             farm_id=farm1.id,
-            title="Laporan Kesehatan Tanah & Keseimbangan Nutrisi NPK Q1 2026",
+            title=f"Laporan Kesehatan Tanah & Keseimbangan Nutrisi NPK {period_label(period_curr)}",
             report_type="agronomy",
             farm_name=farm1.name,
-            period="Q1_2026",
+            period=period_curr,
             format="pdf",
             status="available",
             file_url=None,
@@ -1186,7 +1194,7 @@ def run_complete_seed():
             title="Laporan Neraca Cadangan Karbon (SOC) & MRV Biomassa 2025",
             report_type="carbon",
             farm_name=farm1.name,
-            period="Q4_2025",
+            period=period_prev1,
             format="pdf",
             status="available",
             file_url=None,
@@ -1194,10 +1202,10 @@ def run_complete_seed():
         DocumentReport(
             company_id=company.id,
             farm_id=None,
-            title="Laporan Kinerja Keuangan & Pertumbuhan Produktivitas Q1 2026",
+            title=f"Laporan Kinerja Keuangan & Pertumbuhan Produktivitas {period_label(period_curr)}",
             report_type="finance",
             farm_name="Semua Lahan",
-            period="Q1_2026",
+            period=period_curr,
             format="pdf",
             status="available",
             file_url=None,
@@ -1208,7 +1216,7 @@ def run_complete_seed():
             title="Laporan Kemitraan Petani & Pemberdayaan Komunitas 2025",
             report_type="social",
             farm_name="Semua Lahan",
-            period="Q4_2025",
+            period=period_prev1,
             format="pdf",
             status="available",
             file_url=None,

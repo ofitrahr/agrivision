@@ -3,6 +3,7 @@ import os
 import base64
 from datetime import datetime
 from app.core.security import token_required, role_required
+from app.core.period_utils import current_period_id, period_label, shift_period
 from app.services.upload_service import save_file_locally
 from app.db.models import Company, Farm, Farmer
 from app.db.database import db
@@ -623,7 +624,7 @@ def get_agronomy_farm_map(current_user, farm_id):
         from app.db.models import GisLayer
         from geoalchemy2.functions import ST_X, ST_Y
 
-        latest_period = request.args.get('period', 'Q1_2026')
+        latest_period = request.args.get('period', current_period_id())
         gis_rows = GisLayer.query.filter_by(
             farm_id=farm_id,
             parameter_type=layer_type,
@@ -672,7 +673,7 @@ def get_agronomy_stats(current_user, farm_id):
         return jsonify({'success': False, 'message': 'Perusahaan Anda tidak berlangganan Modul Agronomi'}), 403
 
     layer_type = request.args.get('layer', 'ndvi')
-    period = request.args.get('period', 'Q1_2026')
+    period = request.args.get('period', current_period_id())
 
     # Cek permission per layer
     layer_perm_map = {
@@ -701,8 +702,15 @@ def get_agronomy_stats(current_user, farm_id):
 
     values = [float(r.numerical_value) for r in rows if r.numerical_value is not None]
 
-    # Calculate previous period for change delta
-    all_periods = ['Q1_2025', 'Q2_2025', 'Q3_2025', 'Q4_2025', 'Q1_2026']
+    # Seluruh periode yang tersedia untuk farm & layer ini (bulanan, terurut kronologis
+    # karena format 'YYYY-MM' bisa diurutkan secara leksikografis)
+    all_periods = sorted({
+        p[0] for p in db.session.query(GisLayer.period)
+        .filter_by(farm_id=farm_id, parameter_type=layer_type)
+        .distinct().all() if p[0]
+    })
+
+    # Calculate previous period (MoM) for change delta
     prev_period = None
     if period in all_periods:
         idx = all_periods.index(period)
@@ -759,10 +767,6 @@ def get_agronomy_stats(current_user, farm_id):
     anomaly_percent = round((anomaly_count / total_count) * 100, 2) if total_count > 0 else 0.0
 
     # Tren lintas waktu
-    period_labels = {
-        'Q1_2025': 'Jan-Mar 2025', 'Q2_2025': 'Apr-Jun 2025',
-        'Q3_2025': 'Jul-Sep 2025', 'Q4_2025': 'Okt-Des 2025', 'Q1_2026': 'Jan-Mar 2026'
-    }
     trend = []
     for p in all_periods:
         period_rows = GisLayer.query.filter_by(
@@ -771,7 +775,7 @@ def get_agronomy_stats(current_user, farm_id):
         period_vals = [float(r.numerical_value) for r in period_rows if r.numerical_value is not None]
         if period_vals:
             trend.append({
-                'period': period_labels.get(p, p),
+                'period': period_label(p, short=True),
                 'period_id': p,
                 'value': round(statistics.mean(period_vals), 4)
             })
@@ -804,21 +808,17 @@ def get_agronomy_stats(current_user, farm_id):
         sensor_data['phosphorus_mean'] = round(statistics.mean(p_vals), 2) if p_vals else None
         sensor_data['potassium_mean'] = round(statistics.mean(k_vals), 2) if k_vals else None
 
-    # Forecast (Yield)
+    # Forecast (Yield) - selalu 1 bulan setelah periode yang diminta
     forecast = None
     if layer_type == 'yield':
-        # Get forecast for next period
-        next_period_idx = all_periods.index(period) + 1 if period in all_periods else -1
-        if next_period_idx > 0 and next_period_idx <= len(all_periods):
-            # For simplicity, if we are at Q1_2026, next is Q2_2026
-            next_p = 'Q2_2026' if period == 'Q1_2026' else all_periods[next_period_idx]
-            fc_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='yield_forecast', period=next_p).all()
-            fc_vals = [float(r.numerical_value) for r in fc_rows if r.numerical_value is not None]
-            if fc_vals:
-                forecast = {
-                    'period': next_p,
-                    'value': round(statistics.mean(fc_vals), 4)
-                }
+        next_p = shift_period(period, 1)
+        fc_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='yield_forecast', period=next_p).all()
+        fc_vals = [float(r.numerical_value) for r in fc_rows if r.numerical_value is not None]
+        if fc_vals:
+            forecast = {
+                'period': next_p,
+                'value': round(statistics.mean(fc_vals), 4)
+            }
 
     return jsonify({
         'success': True,
@@ -1118,30 +1118,10 @@ def get_available_periods(current_user):
         .distinct()\
         .all()
 
-    period_label_map = {
-        'Q1': 'Jan - Mar', 'Q2': 'Apr - Jun',
-        'Q3': 'Jul - Sep', 'Q4': 'Okt - Des',
-    }
+    # Format 'YYYY-MM' bisa diurutkan langsung secara leksikografis (kronologis)
+    period_strs = sorted(p[0] for p in rows if p[0])
 
-    def parse_period_for_sort(p):
-        try:
-            q, y = p.split('_')
-            return int(y) * 10 + int(q.replace('Q', ''))
-        except:
-            return 0
-
-    period_strs = [p[0] for p in rows if p[0]]
-    period_strs.sort(key=parse_period_for_sort)
-
-    periods = []
-    for p in period_strs:
-        parts = p.split('_')
-        if len(parts) == 2:
-            quarter, year = parts[0], parts[1]
-            label = f"{period_label_map.get(quarter, quarter)} {year}"
-        else:
-            label = p
-        periods.append({'id': p, 'label': label})
+    periods = [{'id': p, 'label': period_label(p)} for p in period_strs]
 
     return jsonify({'success': True, 'data': periods}), 200
 

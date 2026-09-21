@@ -2,11 +2,16 @@ import { useState, useEffect } from 'react';
 import { UploadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import api from '../../shared/api/axios';
 
+const getCurrentPeriodId = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
 const AdminGISUploader = () => {
   const [file, setFile] = useState(null);
   const [farms, setFarms] = useState([]);
   const [selectedFarm, setSelectedFarm] = useState('');
-  const [period, setPeriod] = useState('Q1_2026');
+  const [period, setPeriod] = useState(getCurrentPeriodId());
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState(null);
 
@@ -86,19 +91,14 @@ const AdminGISUploader = () => {
         </div>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>
-            Periode Data
+            Periode Data (Bulan)
           </label>
-          <select 
-            value={period} 
+          <input
+            type="month"
+            value={period}
             onChange={(e) => setPeriod(e.target.value)}
             style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #D1D5DB' }}
-          >
-            <option value="Q1_2025">Jan - Mar 2025 (Q1)</option>
-            <option value="Q2_2025">Apr - Jun 2025 (Q2)</option>
-            <option value="Q3_2025">Jul - Sep 2025 (Q3)</option>
-            <option value="Q4_2025">Okt - Des 2025 (Q4)</option>
-            <option value="Q1_2026">Jan - Mar 2026 (Q1)</option>
-          </select>
+          />
         </div>
       </div>
 

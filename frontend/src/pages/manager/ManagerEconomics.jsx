@@ -9,9 +9,10 @@ const MONTH_NAMES_ID = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
-const getCurrentMonthIndonesian = () => {
+// Identifier periode kanonis format 'YYYY-MM', dipakai sebagai value asli yang dikirim ke backend
+const getCurrentPeriodId = () => {
   const d = new Date();
-  return `${MONTH_NAMES_ID[d.getMonth()]} ${d.getFullYear()}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
 const formatYearMonthToIndonesian = (yyyyMm) => {
@@ -25,16 +26,15 @@ const formatYearMonthToIndonesian = (yyyyMm) => {
   return yyyyMm;
 };
 
-// Komponen Kalender Pemilih Bulan & Tahun Interaktif (Non-input string)
 const MonthYearPicker = ({ value, onChange, label }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = React.useRef(null);
 
   const currentYear = new Date().getFullYear();
   const [navYear, setNavYear] = useState(() => {
-    if (value) {
-      const match = value.match(/\d{4}/);
-      if (match) return parseInt(match[0], 10);
+    if (value && value.includes('-')) {
+      const y = parseInt(value.split('-')[0], 10);
+      if (!Number.isNaN(y)) return y;
     }
     return currentYear;
   });
@@ -53,14 +53,12 @@ const MonthYearPicker = ({ value, onChange, label }) => {
     };
   }, [isOpen]);
 
-  let selectedMonth = '';
+  let selectedMonthIdx = -1;
   let selectedYear = null;
-  if (value) {
-    const parts = value.split(' ');
-    if (parts.length === 2) {
-      selectedMonth = parts[0];
-      selectedYear = parseInt(parts[1], 10);
-    }
+  if (value && value.includes('-')) {
+    const [yearStr, monthStr] = value.split('-');
+    selectedYear = parseInt(yearStr, 10);
+    selectedMonthIdx = parseInt(monthStr, 10) - 1;
   }
 
   return (
@@ -79,7 +77,7 @@ const MonthYearPicker = ({ value, onChange, label }) => {
         }}
       >
         <span style={{ color: value ? 'var(--color-text-main)' : 'var(--color-text-muted)', fontWeight: value ? 600 : 400 }}>
-          {value || 'Pilih Bulan & Tahun'}
+          {value ? formatYearMonthToIndonesian(value) : 'Pilih Bulan & Tahun'}
         </span>
         <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--color-main-green)' }}>
           calendar_month
@@ -128,15 +126,15 @@ const MonthYearPicker = ({ value, onChange, label }) => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-            {MONTH_NAMES_ID.map((m) => {
-              const isSelected = selectedMonth === m && selectedYear === navYear;
+            {MONTH_NAMES_ID.map((m, monthIdx) => {
+              const isSelected = selectedMonthIdx === monthIdx && selectedYear === navYear;
               return (
                 <button
                   key={m}
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onChange(`${m} ${navYear}`);
+                    onChange(`${navYear}-${String(monthIdx + 1).padStart(2, '0')}`);
                     setIsOpen(false);
                   }}
                   style={{
@@ -175,7 +173,7 @@ const ManagerEconomics = () => {
   const [recordType, setRecordType] = useState('finance'); // 'finance' | 'harvest'
 
   // Finance form states
-  const [period, setPeriod] = useState(getCurrentMonthIndonesian());
+  const [period, setPeriod] = useState(getCurrentPeriodId());
   const [production, setProduction] = useState('');
   const [cost, setCost] = useState('');
   const [revenue, setRevenue] = useState('');
@@ -183,7 +181,7 @@ const ManagerEconomics = () => {
   const [savingFinance, setSavingFinance] = useState(false);
 
   // Harvest form states
-  const [analyticsPeriod, setAnalyticsPeriod] = useState(getCurrentMonthIndonesian());
+  const [analyticsPeriod, setAnalyticsPeriod] = useState(getCurrentPeriodId());
   const [analyticsYield, setAnalyticsYield] = useState('');
   const [analyticsNotes, setAnalyticsNotes] = useState('');
   const [savingHarvest, setSavingHarvest] = useState(false);
@@ -282,9 +280,8 @@ const ManagerEconomics = () => {
 
     setSavingFinance(true);
     try {
-      const formattedPeriod = formatYearMonthToIndonesian(period) || period;
       const payload = {
-        period: formattedPeriod,
+        period,
         total_production_kg: parseFloat(production) || 0,
         operational_cost: parseFloat(cost) || 0,
         estimated_revenue: parseFloat(revenue) || 0,
@@ -293,7 +290,7 @@ const ManagerEconomics = () => {
       const response = await api.post(`/manager/farms/${selectedFarm}/financials`, payload);
       if (response.data.success) {
         alert('Data keuangan berhasil disimpan!');
-        setPeriod(getCurrentMonthIndonesian());
+        setPeriod(getCurrentPeriodId());
         setProduction('');
         setCost('');
         setRevenue('');
@@ -313,16 +310,15 @@ const ManagerEconomics = () => {
 
     setSavingHarvest(true);
     try {
-      const formattedPeriod = formatYearMonthToIndonesian(analyticsPeriod) || analyticsPeriod;
       const payload = {
-        period: formattedPeriod,
+        period: analyticsPeriod,
         yield_kg: parseFloat(analyticsYield) || 0,
         notes: analyticsNotes,
       };
       const response = await api.post(`/manager/farms/${selectedFarm}/harvests`, payload);
       if (response.data.success) {
         alert('Data panen berhasil disimpan!');
-        setAnalyticsPeriod(getCurrentMonthIndonesian());
+        setAnalyticsPeriod(getCurrentPeriodId());
         setAnalyticsYield('');
         setAnalyticsNotes('');
         fetchAnalyticsData(selectedFarm);
@@ -353,14 +349,15 @@ const ManagerEconomics = () => {
       : reportFarm.map(id => farms.find((f) => String(f.id) === String(id))?.name).filter(Boolean).join(', ');
 
     const now = new Date();
-    const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-    const currentMonth = monthNames[now.getMonth()];
+    const currentMonth = MONTH_NAMES_ID[now.getMonth()];
     const currentYear = now.getFullYear();
-    const currentQuarter = Math.ceil((now.getMonth() + 1) / 3);
+    const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonth = MONTH_NAMES_ID[prevMonthDate.getMonth()];
+    const previousMonthYear = prevMonthDate.getFullYear();
 
     const periodNames = {
       current_month: `${currentMonth} ${currentYear}`,
-      current_quarter: `Kuartal ${currentQuarter === 1 ? 'I' : currentQuarter === 2 ? 'II' : currentQuarter === 3 ? 'III' : 'IV'} ${currentYear}`,
+      previous_month: `${previousMonth} ${previousMonthYear}`,
       year_to_date: `Tahun ${currentYear} (YTD)`,
     };
 
@@ -391,8 +388,8 @@ const ManagerEconomics = () => {
   };
 
   const handleDownload = (report) => {
-    const token = localStorage.getItem('token'); 
-    
+    const token = localStorage.getItem('token');
+
     fetch(`${api.defaults.baseURL || 'http://localhost:5000/api'}/manager/reports/${report.id}/download`, {
       method: 'GET',
       headers: {
@@ -430,12 +427,12 @@ const ManagerEconomics = () => {
   const agbBiomass = observationSummary?.agb_biomass || '230';
   const plantHealth = observationSummary?.plant_health || '80';
 
-  const estimasiPendapatan = records.length > 0 
+  const estimasiPendapatan = records.length > 0
     ? Number(records[0].estimated_revenue).toLocaleString('id-ID')
     : '8.670.000';
-  
+
   const estimasiPendapatanCarbon = observationSummary?.estimasi_pendapatan_carbon || '8.670.000';
-  
+
   const nValue = observationSummary?.n_value ? String(observationSummary.n_value).replace(/[^\d.]/g, '') : '46.9';
   const pValue = observationSummary?.p_value ? String(observationSummary.p_value).replace(/[^\d.]/g, '') : '46.8';
   const kValue = observationSummary?.k_value ? String(observationSummary.k_value).replace(/[^\d.]/g, '') : '46.4';
@@ -798,7 +795,7 @@ const ManagerEconomics = () => {
                       <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Biomassa Karbon</span>
                       <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{agbBiomass} <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)' }}>ton CO2e</span></span>
                     </div>
-                    
+
                     {/* Bagian Nutrisi (NPK) Dipisah */}
                     <div style={{ paddingTop: '2px' }}>
                       <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500, display: 'block', marginBottom: '8px' }}>
@@ -1479,14 +1476,15 @@ const ManagerEconomics = () => {
                   >
                     {(() => {
                       const now = new Date();
-                      const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-                      const m = monthNames[now.getMonth()];
+                      const m = MONTH_NAMES_ID[now.getMonth()];
                       const y = now.getFullYear();
-                      const q = Math.ceil((now.getMonth() + 1) / 3);
+                      const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                      const pm = MONTH_NAMES_ID[prev.getMonth()];
+                      const py = prev.getFullYear();
                       return (
                         <>
                           <option value="current_month">{`Bulan Ini (${m} ${y})`}</option>
-                          <option value="current_quarter">{`Kuartal Ini (Q${q} ${y})`}</option>
+                          <option value="previous_month">{`Bulan Lalu (${pm} ${py})`}</option>
                           <option value="year_to_date">{`Tahun ${y} (YTD)`}</option>
                         </>
                       );

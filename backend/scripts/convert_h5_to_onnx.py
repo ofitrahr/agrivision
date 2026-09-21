@@ -4,7 +4,7 @@ import tf2onnx
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKEND_DIR = os.path.dirname(CURRENT_DIR)
-MODELS_DIR = os.path.join(BACKEND_DIR, "app", "ml_models")
+MODELS_DIR = os.path.join(BACKEND_DIR, "app", "ml_models", "soc")
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 

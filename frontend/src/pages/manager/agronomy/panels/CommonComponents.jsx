@@ -98,7 +98,7 @@ export const SummaryStats = ({ stats, loading }) => {
           <div className="agro-stat-item"><span className="agro-stat-label">Max</span><span className="agro-stat-val">{stats.max?.toFixed(3) ?? '-'}</span></div>
           <div className="agro-stat-item"><span className="agro-stat-label">Std Dev</span><span className="agro-stat-val">{stats.std_dev?.toFixed(3) ?? '-'}</span></div>
           <div className="agro-stat-item">
-            <span className="agro-stat-label">Tren Q-to-Q</span>
+            <span className="agro-stat-label">Tren MoM</span>
             <span className="agro-stat-val" style={{ color: isUp ? '#10b981' : (stats?.change < 0 ? '#ef4444' : 'inherit') }}>
               {stats?.change != null ? (isUp ? `+${stats.change.toFixed(3)}` : stats.change.toFixed(3)) : '-'}
             </span>

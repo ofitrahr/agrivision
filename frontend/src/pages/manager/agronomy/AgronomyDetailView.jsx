@@ -9,13 +9,24 @@ import YieldPanel from './panels/YieldPanel';
 import ErrorBoundary from '../../../shared/components/ErrorBoundary';
 import api from '../../../shared/api/axios';
 
-const FALLBACK_PERIODS = [
-  { id: 'Q1_2025', label: 'Jan - Mar 2025' },
-  { id: 'Q2_2025', label: 'Apr - Jun 2025' },
-  { id: 'Q3_2025', label: 'Jul - Sep 2025' },
-  { id: 'Q4_2025', label: 'Okt - Des 2025' },
-  { id: 'Q1_2026', label: 'Jan - Mar 2026' },
+const MONTH_NAMES_ID = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+  'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
 ];
+
+// 5 bulan berurutan berakhir di bulan berjalan, dipakai sebelum daftar periode asli dari API tersedia
+const buildFallbackPeriods = () => {
+  const now = new Date();
+  const periods = [];
+  for (let offset = 4; offset >= 0; offset--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    const id = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    periods.push({ id, label: `${MONTH_NAMES_ID[d.getMonth()]} ${d.getFullYear()}` });
+  }
+  return periods;
+};
+
+const FALLBACK_PERIODS = buildFallbackPeriods();
 
 const AgronomyDetailView = ({
   farm,
@@ -25,6 +36,8 @@ const AgronomyDetailView = ({
   onBack,
   onLayerChange,
   selectedLayer,
+  selectedPeriod,
+  onPeriodChange,
   permissions,
 }) => {
   const [periods, setPeriods] = useState(FALLBACK_PERIODS);
@@ -66,10 +79,12 @@ const AgronomyDetailView = ({
     }
   }, []);
 
+  // Periode yang sedang aktif pada time slider (dipakai untuk fetch statistik & notifikasi ke parent)
+  const activePeriodId = periods[currentPeriodIdx]?.id ?? periods[periods.length - 1]?.id ?? null;
+
   useEffect(() => {
     if (!farm?.id || periods.length === 0) return;
-    const period = periods[currentPeriodIdx]?.id ?? periods[periods.length - 1]?.id;
-    
+
     // When selectedLayer is soilnpk, we fetch based on activeSubLayer
     let fetchLayer = selectedLayer;
     if (selectedLayer === 'soilnpk') {
@@ -78,9 +93,17 @@ const AgronomyDetailView = ({
     } else if (['nitrogen', 'phosphorus', 'potassium'].includes(selectedLayer)) {
       fetchLayer = selectedLayer;
     }
-    
-    fetchStats(farm.id, fetchLayer, period);
-  }, [farm?.id, selectedLayer, currentPeriodIdx, fetchStats, periods, activeSubLayer, onLayerChange]);
+
+    fetchStats(farm.id, fetchLayer, activePeriodId);
+  }, [farm?.id, selectedLayer, currentPeriodIdx, fetchStats, periods, activeSubLayer, onLayerChange, activePeriodId]);
+
+  // Beri tahu parent (ManagerAgronomy) setiap kali periode berganti, supaya peta Folium
+  // ikut dimuat ulang untuk bulan yang dipilih. Sengaja dipisah dari effect di atas agar
+  // pergantian layer saja (tanpa ganti periode) tidak memicu fetch peta yang duplikat.
+  useEffect(() => {
+    if (!activePeriodId || !onPeriodChange || activePeriodId === selectedPeriod) return;
+    onPeriodChange(activePeriodId);
+  }, [activePeriodId, onPeriodChange, selectedPeriod]);
 
   const handleSubLayerChange = (layer) => {
     setActiveSubLayer(layer);
@@ -97,9 +120,9 @@ const AgronomyDetailView = ({
 
   // Determine which panel to render
   const renderLeftPanel = () => {
-    const actualLayer = ['nitrogen', 'phosphorus', 'potassium'].includes(selectedLayer) 
+    const actualLayer = ['nitrogen', 'phosphorus', 'potassium'].includes(selectedLayer)
       ? 'soilnpk' : selectedLayer;
-      
+
     switch(actualLayer) {
       case 'ndvi':
         return <NdviPanel statsData={statsData} statsLoading={statsLoading} farm={farm} />;
@@ -109,10 +132,10 @@ const AgronomyDetailView = ({
         return <BiomassPanel statsData={statsData} statsLoading={statsLoading} farm={farm} />;
       case 'soilnpk':
         return (
-          <NpkPanel 
-            statsData={statsData} 
-            statsLoading={statsLoading} 
-            farm={farm} 
+          <NpkPanel
+            statsData={statsData}
+            statsLoading={statsLoading}
+            farm={farm}
             activeSubLayer={['nitrogen', 'phosphorus', 'potassium'].includes(selectedLayer) ? selectedLayer : activeSubLayer}
             onSubLayerChange={handleSubLayerChange}
           />

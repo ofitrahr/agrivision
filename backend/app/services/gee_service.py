@@ -115,11 +115,11 @@ class GEEService:
 
         # Hitung rata-rata regional
         s2_stats_raw = s2_image.reduceRegion(
-            reducer=ee.Reducer.mean(), geometry=aoi, scale=20, maxPixels=1e9
+            reducer=ee.Reducer.mean(), geometry=aoi, scale=10, maxPixels=1e9
         ).getInfo() or {}
 
         topo_stats_raw = topo_image.reduceRegion(
-            reducer=ee.Reducer.mean(), geometry=aoi, scale=20, maxPixels=1e9
+            reducer=ee.Reducer.mean(), geometry=aoi, scale=10, maxPixels=1e9
         ).getInfo() or {}
 
         # Filter jika kosong
@@ -146,15 +146,25 @@ class GEEService:
         return clean_topo, clean_bands
 
     @classmethod
-    def get_farm_pixel_samples_from_gee(cls, polygon_coords, scale=20, max_cloud=20):
+    def get_farm_pixel_samples_from_gee(cls, polygon_coords, scale=10, max_cloud=20, start_date=None, end_date=None):
         cls.initialize()
         aoi = ee.Geometry.Polygon(polygon_coords)
 
-        s2_image = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
-                    .filterBounds(aoi)
-                    .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', max_cloud))
-                    .sort('system:time_start', False)
-                    .first())
+        s2_collection = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+                          .filterBounds(aoi)
+                          .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', max_cloud)))
+        if start_date and end_date:
+            s2_collection = s2_collection.filterDate(str(start_date), str(end_date))
+
+        collection_size = s2_collection.size().getInfo()
+        if collection_size == 0:
+            period_desc = f" pada rentang {start_date} s/d {end_date}" if start_date and end_date else ""
+            raise ValueError(
+                f"Tidak ditemukan citra Sentinel-2 dengan tutupan awan di bawah {max_cloud}% "
+                f"untuk area lahan ini{period_desc}. Coba pilih periode/bulan lain."
+            )
+
+        s2_image = s2_collection.sort('system:time_start', False).first()
 
         scene_info = {
             'scene_id': str(s2_image.get('system:index').getInfo()),
@@ -176,11 +186,13 @@ class GEEService:
         topo_image = elevation.addBands([slope, aspect, twi])
         combined = s2_selected.addBands(topo_image)
 
-        # Buffer AOI sejauh 30 meter agar piksel di perbatasan garis ikut terambil
-        buffered_aoi = aoi.buffer(30)
+        buffered_aoi = aoi.buffer(15)
 
-        # Sampling kumpulan piksel di dalam buffered AOI dengan resolusi seragam (default 20m)
-        samples_fc = combined.sample(region=buffered_aoi, scale=scale, geometries=True)
+        MAX_SAMPLE_PIXELS = 4000
+        samples_fc = combined.sample(
+            region=buffered_aoi, scale=scale, geometries=True,
+            numPixels=MAX_SAMPLE_PIXELS, seed=42, dropNulls=True
+        )
         feats = samples_fc.getInfo().get('features', [])
 
         pixel_data = []
@@ -195,7 +207,7 @@ class GEEService:
                     'properties': props
                 })
 
-        # Fallback jika lahan terlalu sempit untuk scale 20m sehingga 0 piksel terambil
+        # Fallback jika lahan terlalu sempit untuk scale 10m sehingga 0 piksel terambil
         if not pixel_data:
             centroid = aoi.centroid()
             sampled_centroid = combined.reduceRegion(reducer=ee.Reducer.mean(), geometry=aoi, scale=scale).getInfo() or {}

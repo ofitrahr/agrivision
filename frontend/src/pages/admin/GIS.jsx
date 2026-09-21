@@ -5,6 +5,22 @@ import { Plus, Map, Leaf, Maximize, Calendar, Sprout, Upload, FileCode, CheckCir
 import InputNumber from '../../shared/components/UI/InputNumber';
 import AdminGISUploader from './AdminGISUploader';
 
+const MONTH_NAMES_ID = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
+
+const getCurrentPeriodId = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const formatPeriodLabel = (yyyyMm) => {
+    if (!yyyyMm || !yyyyMm.includes('-')) return yyyyMm || '-';
+    const [year, month] = yyyyMm.split('-');
+    const idx = parseInt(month, 10) - 1;
+    return idx >= 0 && idx < 12 ? `${MONTH_NAMES_ID[idx]} ${year}` : yyyyMm;
+};
 
 const FarmMapThumbnail = ({ farmId }) => {
     const [mapHtml, setMapHtml] = useState(null);
@@ -59,6 +75,7 @@ const GIS = () => {
     const [geoJsonStatus, setGeoJsonStatus] = useState(null);
 
     // State untuk Analisis Satelit GEE & Model AI
+    const [observationPeriod, setObservationPeriod] = useState(getCurrentPeriodId());
     const [analyzingFarm, setAnalyzingFarm] = useState(null);
     const [loadingStep, setLoadingStep] = useState(1);
     const [analysisResult, setAnalysisResult] = useState(null);
@@ -77,7 +94,7 @@ const GIS = () => {
 
         try {
             const res = await api.post(`/admin/farms/${farm.id}/run-observation`, {
-                period: 'Q1_2026'
+                period: observationPeriod
             });
             if (res.data.success) {
                 setAnalysisResult(res.data);
@@ -474,9 +491,21 @@ const GIS = () => {
     // Default view: Grid
     return (
         <div>
-            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                 <h1 className="page-title" style={{ fontSize: '24px', margin: 0 }}>Global GIS & Lahan</h1>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <label htmlFor="observation-period" style={{ fontSize: '13px', color: '#4b5563', fontWeight: 500 }}>
+                            Periode Observasi:
+                        </label>
+                        <input
+                            id="observation-period"
+                            type="month"
+                            value={observationPeriod}
+                            onChange={(e) => setObservationPeriod(e.target.value)}
+                            style={{ padding: '7px 10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}
+                        />
+                    </div>
                     <button className="secondary-btn" onClick={() => setIsUploadingData(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #10b981', color: '#10b981', background: 'transparent' }}>
                         <UploadCloud size={16} />
                         Import Data ML
@@ -612,7 +641,7 @@ const GIS = () => {
                             Menjalankan Analisis Satelit & AI
                         </h3>
                         <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#64748b' }}>
-                            Lahan: <strong>{analyzingFarm.name}</strong> • Periode: <strong>Q1 2026</strong>
+                            Lahan: <strong>{analyzingFarm.name}</strong> • Periode: <strong>{formatPeriodLabel(observationPeriod)}</strong>
                         </p>
 
                         {/* Stepper Progres */}
@@ -704,7 +733,7 @@ const GIS = () => {
                                 </div>
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#111827' }}>Analisis Satelit Berhasil</h3>
-                                    <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{analysisResult.farm_name} ({analysisResult.period})</p>
+                                    <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{analysisResult.farm_name} ({formatPeriodLabel(analysisResult.period)})</p>
                                 </div>
                             </div>
                             <button className="close-btn" onClick={() => setAnalysisResult(null)}>&times;</button>
@@ -714,7 +743,7 @@ const GIS = () => {
                         <div style={{ marginBottom: '16px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                 <span style={{ fontSize: '12px', fontWeight: '700', color: '#374151' }}>Hasil 5 Parameter Observasi:</span>
-                                <span style={{ fontSize: '11px', color: '#64748b' }}>1 Selesai • 4 Menunggu Model</span>
+                                <span style={{ fontSize: '11px', color: '#64748b' }}>3 Selesai • 2 Menunggu Model R&D</span>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
                                 {/* 1. SOC (Active - Hasil Real AI) */}
@@ -738,51 +767,61 @@ const GIS = () => {
                                 </div>
 
                                 {/* 2. Vegetasi NDVI */}
-                                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
+                                <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Vegetasi (NDVI)</span>
-                                        <span style={{ fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '10px', background: '#e2e8f0', color: '#64748b' }}>
-                                            Belum ada data
+                                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#166534' }}>Vegetasi (NDVI)</span>
+                                        <span style={{
+                                            fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '10px',
+                                            background: analysisResult.ndvi_prediction > 0.4 ? '#dcfce7' : '#fee2e2',
+                                            color: analysisResult.ndvi_prediction > 0.4 ? '#15803d' : '#991b1b'
+                                        }}>
+                                            {analysisResult.ndvi_prediction > 0.4 ? 'Sehat' : 'Kritis'}
                                         </span>
                                     </div>
-                                    <div style={{ fontSize: '20px', fontWeight: '700', color: '#94a3b8', margin: '2px 0' }}>-</div>
-                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Menunggu model inferensi</div>
+                                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#15803d', margin: '2px 0' }}>
+                                        {analysisResult.ndvi_prediction}
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: '#166534' }}>Sentinel-2 Index (B8/B4)</div>
                                 </div>
 
-                                {/* 3. Biomassa Karbon */}
+                                {/* 3. Biomassa Karbon (Pending - belum ada model resmi) */}
                                 <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                                         <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Biomassa Karbon</span>
                                         <span style={{ fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '10px', background: '#e2e8f0', color: '#64748b' }}>
-                                            Belum ada data
+                                            Menunggu Model R&D
                                         </span>
                                     </div>
                                     <div style={{ fontSize: '20px', fontWeight: '700', color: '#94a3b8', margin: '2px 0' }}>-</div>
-                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Menunggu model inferensi</div>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Dalam tahap pengembangan</div>
                                 </div>
 
                                 {/* 4. Nutrisi NPK */}
-                                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
+                                <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Nutrisi (NPK)</span>
-                                        <span style={{ fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '10px', background: '#e2e8f0', color: '#64748b' }}>
-                                            Belum ada data
+                                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#166534' }}>Nutrisi (NPK)</span>
+                                        <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '10px', background: '#dcfce7', color: '#15803d' }}>
+                                            Tercukupi
                                         </span>
                                     </div>
-                                    <div style={{ fontSize: '20px', fontWeight: '700', color: '#94a3b8', margin: '2px 0' }}>-</div>
-                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Menunggu model inferensi</div>
+                                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#15803d', margin: '2px 0' }}>
+                                        N: {analysisResult.npk_prediction?.nitrogen}%
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: '#166534' }}>
+                                        P: {analysisResult.npk_prediction?.phosphorus} • K: {analysisResult.npk_prediction?.potassium} mg/kg
+                                    </div>
                                 </div>
 
-                                {/* 5. Estimasi Yield */}
+                                {/* 5. Estimasi Yield (Pending - belum ada model resmi) */}
                                 <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                                         <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Estimasi Yield</span>
                                         <span style={{ fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '10px', background: '#e2e8f0', color: '#64748b' }}>
-                                            Belum ada data
+                                            Menunggu Model R&D
                                         </span>
                                     </div>
                                     <div style={{ fontSize: '20px', fontWeight: '700', color: '#94a3b8', margin: '2px 0' }}>-</div>
-                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Menunggu model inferensi</div>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Dalam tahap pengembangan</div>
                                 </div>
                             </div>
                         </div>

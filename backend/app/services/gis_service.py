@@ -8,7 +8,7 @@ class GISService:
     @staticmethod
     def generate_global_map():
         m = folium.Map(location=[-0.7893, 113.9213], zoom_start=5, max_zoom=22, tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", attr="Google")
-        
+
         draw = Draw(
             draw_options={
                 'polyline': False,
@@ -33,23 +33,23 @@ class GISService:
                         break;
                     }
                 }
-                
+
                 if (mapInstance) {
                     mapInstance.on('draw:created', function(e) {
                         var layer = e.layer;
                         var geojson = layer.toGeoJSON();
-                        
+
                         window.parent.postMessage({
                             type: 'GIS_DRAW_CREATED',
                             geometry: geojson.geometry
                         }, '*');
-                        
+
                         mapInstance.addLayer(layer);
                     });
                 }
             }, 1000);
         </script>
-        """ 
+        """
         m.get_root().html.add_child(folium.Element(js_code))
 
         return m.get_root().render()
@@ -57,14 +57,14 @@ class GISService:
     @staticmethod
     def generate_manager_map(farm_boundary_geojson=None, existing_blocks_geojson=None, thumbnail=False):
         m = folium.Map(
-            location=[-0.7893, 113.9213], 
-            zoom_start=5, 
-            max_zoom=22, 
-            tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", 
-            attr="Google",  
+            location=[-0.7893, 113.9213],
+            zoom_start=5,
+            max_zoom=22,
+            tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
+            attr="Google",
             zoom_control= False,
         )
-        
+
         if farm_boundary_geojson:
             bounds_layer = folium.GeoJson(
                 farm_boundary_geojson,
@@ -106,23 +106,23 @@ class GISService:
                             break;
                         }
                     }
-                    
+
                     if (mapInstance) {
                         mapInstance.on('draw:created', function(e) {
                             var layer = e.layer;
                             var geojson = layer.toGeoJSON();
-                            
+
                             window.parent.postMessage({
                                 type: 'GIS_DRAW_CREATED',
                                 geometry: geojson.geometry
                             }, '*');
-                            
+
                             mapInstance.addLayer(layer);
                         });
                     }
                 }, 1000);
             </script>
-            """ 
+            """
             m.get_root().html.add_child(folium.Element(js_code))
         else:
             m.get_root().html.add_child(folium.Element("<style>.leaflet-control-attribution { display: none !important; }</style>"))
@@ -156,21 +156,24 @@ class GISService:
                 return '#f03b20'
             return '#ffeda0'
         elif layer_type == 'nitrogen':
-            if value > 40: return '#1c9099'
-            elif value > 20: return '#a6bddb'
-            return '#ece2f0'
+            # Rentang riil model NPK Kadatuan: 0.45% - 0.86%
+            if value > 0.75: return '#14532d'
+            elif value > 0.55: return '#22c55e'
+            return '#eab308'
         elif layer_type == 'phosphorus':
-            if value > 20: return '#1c9099'
-            elif value > 10: return '#a6bddb'
-            return '#ece2f0'
+            # Rentang riil model NPK Kadatuan: 7 - 370 mg/kg
+            if value > 150: return '#991b1b'
+            elif value > 50: return '#ea580c'
+            return '#fed7aa'
         elif layer_type == 'potassium':
-            if value > 45: return '#1c9099'
-            elif value > 30: return '#a6bddb'
-            return '#ece2f0'
+            # Rentang riil model NPK Kadatuan: 115 - 165 mg/kg
+            if value > 150: return '#4c1d95'
+            elif value > 130: return '#8b5cf6'
+            return '#93c5fd'
         elif layer_type == 'soilnpk':
-            if value > 180: return '#1c9099'
-            elif value > 100: return '#a6bddb'
-            return '#ece2f0'
+            if value > 140: return '#065f46'
+            elif value > 100: return '#0d9488'
+            return '#99f6e4'
         return '#6b7280'
 
     @staticmethod
@@ -180,10 +183,10 @@ class GISService:
             'soc': [('#8b5a2b', 'Tinggi (>50)'), ('#cd853f', 'Sedang (30-50)'), ('#deb887', 'Rendah (<30)')],
             'biomass': [('#228b22', 'Tinggi (>150)'), ('#32cd32', 'Sedang (80-150)'), ('#90ee90', 'Rendah (<80)')],
             'yield': [('#feb24c', 'Tinggi (>2.0)'), ('#f03b20', 'Sedang (1.2-2.0)'), ('#ffeda0', 'Rendah (<1.2)')],
-            'soilnpk': [('#1c9099', 'Tinggi (>180)'), ('#a6bddb', 'Sedang (100-180)'), ('#ece2f0', 'Rendah (<100)')],
-            'nitrogen': [('#1c9099', 'Tinggi (>40)'), ('#a6bddb', 'Sedang (20-40)'), ('#ece2f0', 'Rendah (<20)')],
-            'phosphorus': [('#1c9099', 'Tinggi (>20)'), ('#a6bddb', 'Sedang (10-20)'), ('#ece2f0', 'Rendah (<10)')],
-            'potassium': [('#1c9099', 'Tinggi (>45)'), ('#a6bddb', 'Sedang (30-45)'), ('#ece2f0', 'Rendah (<30)')],
+            'soilnpk': [('#065f46', 'Optimal (>140)'), ('#0d9488', 'Cukup (100-140)'), ('#99f6e4', 'Defisit (<100)')],
+            'nitrogen': [('#14532d', 'Tinggi (>0.75%)'), ('#22c55e', 'Sedang (0.55-0.75%)'), ('#eab308', 'Rendah (<0.55%)')],
+            'phosphorus': [('#991b1b', 'Tinggi (>150 mg/kg)'), ('#ea580c', 'Sedang (50-150 mg/kg)'), ('#fed7aa', 'Rendah (<50 mg/kg)')],
+            'potassium': [('#4c1d95', 'Tinggi (>150 mg/kg)'), ('#8b5cf6', 'Sedang (130-150 mg/kg)'), ('#93c5fd', 'Rendah (<130 mg/kg)')],
         }
         items = legends.get(layer_type, [])
         rows_html = ''.join(
@@ -215,51 +218,67 @@ class GISService:
 
         if has_access:
             if sample_points:
-                unit_label = 'Ton C/Ha' if layer_type == 'soc' else ('Ton/Ha' if layer_type == 'yield' else ('kg/Ha' if 'n' in layer_type else ''))
-                
+                unit_map = {
+                    'soc': 'Ton C/Ha',
+                    'biomass': 'Ton/Ha',
+                    'yield': 'Ton/Ha',
+                    'ndvi': '',
+                    'nitrogen': '%',
+                    'phosphorus': 'mg/kg',
+                    'potassium': 'mg/kg',
+                    'soilnpk': 'kg NPK/Ha'
+                }
+                unit_label = unit_map.get(layer_type, '')
+
                 try:
                     if not farm_boundary_geojson:
                         raise ValueError("No boundary geojson")
-                    
+
                     from shapely.geometry import MultiPoint, Point, mapping, shape
                     from shapely.ops import voronoi_diagram
                     from shapely.strtree import STRtree
-                    
+
                     boundary_poly = shape(farm_boundary_geojson)
-                    
+
                     pts_list = [Point(p['lon'], p['lat']) for p in sample_points]
                     pts_multi = MultiPoint(pts_list)
-                    
+
                     # Buat voronoi diagram (ini akan menutupi semua ruang secara penuh tanpa ada celah antar titik)
                     vd = voronoi_diagram(pts_multi, envelope=boundary_poly)
                     polys = list(vd.geoms) if hasattr(vd, 'geoms') else []
-                    
+
                     if polys:
                         tree = STRtree(polys)
-                        
+
                         for i, point in enumerate(sample_points):
                             pt = pts_list[i]
                             val = float(point['value']) if point.get('value') is not None else 0.0
                             val_display = f"{val:.2f}"
                             color = GISService._get_color_for_value(val, layer_type)
-                            
+
                             matching_poly = None
                             res = tree.query(pt)
                             for idx in res:
                                 if polys[idx].intersects(pt):
                                     matching_poly = polys[idx]
                                     break
-                                    
+
                             if matching_poly:
                                 clipped_geom = matching_poly.intersection(boundary_poly)
                                 if not clipped_geom.is_empty:
-                                    # Weight 0.1 menghilangkan border line tebal agar kotak-kotak menyatu mulus
+                                    smoothed_geom = clipped_geom.buffer(0.000005)
                                     folium.GeoJson(
-                                        data=mapping(clipped_geom),
-                                        style_function=lambda x, c=color: {'color': c, 'fillColor': c, 'weight': 0.1, 'fillOpacity': 0.95},
+                                        data=mapping(smoothed_geom),
+                                        style_function=lambda x, c=color: {
+                                            'fillColor': c,
+                                            'color': c,
+                                            'stroke': False,
+                                            'weight': 0,
+                                            'fillOpacity': 0.95
+                                        },
                                         tooltip=f"<b>{layer_type.upper()}:</b> {val_display} {unit_label}".strip()
                                     ).add_to(m)
-                            
+
                 except Exception as e:
                     print("Error clipping geometry:", str(e))
                     # Fallback ke bentuk lingkaran jika gagal
@@ -269,7 +288,7 @@ class GISService:
                         color = GISService._get_color_for_value(val, layer_type)
                         folium.Circle(
                             location=[point['lat'], point['lon']],
-                            radius=11, 
+                            radius=5.5,
                             weight=0,
                             color=color,
                             fill=True,
@@ -350,7 +369,7 @@ class GISService:
                         heatLayer = window[key];
                     }}
                 }}
-                
+
                 if (mapInstance) {{
                     var refPts = {ref_pts_json};
                     function updateHeatScale() {{

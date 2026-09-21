@@ -470,12 +470,13 @@ def get_admin_farm_map(current_user, farm_id):
 @token_required
 @role_required('super_admin')
 def run_farm_observation(current_user, farm_id):
+    from app.core.period_utils import current_period_id
     from app.services.agronomy_pipeline_service import AgronomyPipelineService
     data = request.json or {}
-    period = data.get('period', 'Q1_2026')
+    period = data.get('period') or current_period_id()
 
     try:
-        result = AgronomyPipelineService.run_soc_prediction_for_farm(farm_id, period=period)
+        result = AgronomyPipelineService.run_pipeline_for_farm(farm_id, period=period)
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400

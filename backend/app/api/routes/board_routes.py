@@ -1,3 +1,4 @@
+from app.core.period_utils import period_label
 from app.core.security import role_required, token_required
 from app.db.database import db
 from app.db.models import Farm, FarmCrop, Farmer, User
@@ -105,7 +106,7 @@ def get_dashboard_summary(current_user):
             period_data[p]['profit'] += float((r.estimated_revenue or 0) - (r.operational_cost or 0))
             
         financial_chart_data = [
-            {"period": k, "revenue": v['revenue'], "cost": v['cost'], "profit": v['profit']}
+            {"period": period_label(k, short=True), "period_id": k, "revenue": v['revenue'], "cost": v['cost'], "profit": v['profit']}
             for k, v in sorted(period_data.items())
         ]
         

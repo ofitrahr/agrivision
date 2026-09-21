@@ -14,6 +14,7 @@ const ManagerAgronomy = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [selectedLayer, setSelectedLayer] = useState('ndvi');
+  const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [permissions, setPermissions] = useState(null);
   const [viewMode, setViewMode] = useState('selector');
 
@@ -74,13 +75,13 @@ const ManagerAgronomy = () => {
   };
 
   const loadAgronomyMap = useCallback(
-    async (farmId, layer = selectedLayer) => {
+    async (farmId, layer = selectedLayer, period = selectedPeriod) => {
       setLoading(true);
       setErrorMsg('');
       setMapHtml('');
       try {
         const mapRes = await api.get(
-          `/manager/farms/${farmId}/agronomy-map?layer=${layer}`
+          `/manager/farms/${farmId}/agronomy-map?layer=${layer}${period ? `&period=${period}` : ''}`
         );
         if (mapRes.data.success) {
           setMapHtml(mapRes.data.data.html);
@@ -95,7 +96,7 @@ const ManagerAgronomy = () => {
         setLoading(false);
       }
     },
-    [selectedLayer]
+    [selectedLayer, selectedPeriod]
   );
 
   const handleSelectFarm = useCallback((farm) => {
@@ -128,6 +129,16 @@ const ManagerAgronomy = () => {
     [selectedFarm, loadAgronomyMap]
   );
 
+  const handlePeriodChange = useCallback(
+    (periodId) => {
+      setSelectedPeriod(periodId);
+      if (selectedFarm) {
+        loadAgronomyMap(selectedFarm.id, selectedLayer, periodId);
+      }
+    },
+    [selectedFarm, selectedLayer, loadAgronomyMap]
+  );
+
   if (viewMode === 'detail' && selectedFarm) {
     return (
       <AgronomyDetailView
@@ -138,6 +149,8 @@ const ManagerAgronomy = () => {
         onBack={handleBackToSelector}
         onLayerChange={handleLayerChange}
         selectedLayer={selectedLayer}
+        selectedPeriod={selectedPeriod}
+        onPeriodChange={handlePeriodChange}
         permissions={permissions}
       />
     );
