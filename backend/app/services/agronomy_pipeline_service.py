@@ -63,7 +63,8 @@ class AgronomyPipelineService:
         logger.info(f"Menjalankan inferensi ANN ONNX untuk {len(pixel_samples)} titik piksel lahan '{farm.name}'...")
         props_list = [p['properties'] for p in pixel_samples]
         soc_service = SOCService()
-        predictions = soc_service.predict_soc_batch(props_list)
+        oc_gkg = soc_service.predict_soc_batch(props_list)
+        predictions = [SOCService.oc_gkg_to_stock(v) for v in oc_gkg]
 
         # Inferensi Model Regresi NPK (Nitrogen, Phosphorus, Potassium) - batch, titik piksel yang sama
         logger.info(f"Menjalankan inferensi regresi NPK untuk {len(pixel_samples)} titik piksel lahan '{farm.name}'...")
@@ -106,7 +107,10 @@ class AgronomyPipelineService:
                 numerical_value=round(soc_val, 3),
                 unit="Ton C/Ha",
                 is_anomaly=(soc_val < 30.0),
-                source="GEE Sentinel-2 + NASA SRTM + ANN ONNX"
+                source=(
+                    f"GEE Sentinel-2 + NASA SRTM + ANN ONNX (BD "
+                    f"{SOCService.BULK_DENSITY_G_CM3} g/cm3, {SOCService.SAMPLING_DEPTH_CM} cm)"
+                )
             ))
 
             new_layers.append(GisLayer(
@@ -206,6 +210,9 @@ class AgronomyPipelineService:
             "pixel_count": len(predictions),
             "unit": "Ton C/Ha",
             "is_anomaly": mean_val < 30.0,
+            "soc_oc_percent": round(float(np.mean(oc_gkg)) * SOCService.OC_GKG_TO_PERCENT, 2),
+            "soc_bulk_density": SOCService.BULK_DENSITY_G_CM3,
+            "soc_depth_cm": SOCService.SAMPLING_DEPTH_CM,
             "ndvi_prediction": round(ndvi_mean, 2),
             "biomass_prediction": None,  # Belum ada model resmi
             "yield_prediction": round(yield_mean, 2),

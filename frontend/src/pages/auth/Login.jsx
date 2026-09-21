@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../features/auth/AuthContext';
+import { clearSession, isTokenValid } from '../../shared/utils/token';
 import './Login.css';
 
 const Login = () => {
@@ -11,8 +12,15 @@ const Login = () => {
   const { login } = useContext(AuthContext);
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    if (localStorage.getItem('token') && userData) {
+
+    if (!isTokenValid(token) || !userData) {
+      clearSession();
+      return;
+    }
+
+    try {
       const parsedUser = JSON.parse(userData);
       if (parsedUser.role === 'super_admin') {
         navigate('/admin/dashboard');
@@ -21,6 +29,8 @@ const Login = () => {
       } else if (parsedUser.role === 'board') {
         navigate('/board/dashboard');
       }
+    } catch {
+      clearSession();
     }
   }, [navigate]);
 

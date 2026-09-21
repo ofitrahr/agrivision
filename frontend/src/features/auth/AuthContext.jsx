@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import api from '../../shared/api/axios';
+import { clearSession, isTokenValid } from '../../shared/utils/token';
 
 export const AuthContext = createContext();
 
@@ -10,9 +11,19 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
-        
-        if (token && userData) {
+
+        if (!isTokenValid(token) || !userData) {
+            clearSession();
+            setUser(null);
+            setLoading(false);
+            return;
+        }
+
+        try {
             setUser(JSON.parse(userData));
+        } catch {
+            clearSession();
+            setUser(null);
         }
         setLoading(false);
     }, []);
@@ -32,8 +43,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        clearSession();
         setUser(null);
     };
 

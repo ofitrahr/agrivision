@@ -5,9 +5,12 @@ import numpy as np
 import onnxruntime as ort
 import pandas as pd
 
-# harusnya bukan per stock tapi gram / kg
 
 class SOCService:
+    BULK_DENSITY_G_CM3 = 1.05
+    SAMPLING_DEPTH_CM = 20
+    OC_GKG_TO_PERCENT = 0.1
+
     FEATURE_ORDER = [
         'elevation', 'slope', 'aspect', 'TWI', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12',
         'NDVI', 'SAVI', 'EVI2', 'GNDVI', 'NDMI', 'NDI45', 'MCARI', 'IRECI', 'CMR', 'NDTI', 'BSI', 'SBI'
@@ -31,10 +34,19 @@ class SOCService:
         self.session = ort.InferenceSession(onnx_path)
         self.input_name = self.session.get_inputs()[0].name
 
+    @classmethod
+    def oc_percent_to_stock(cls, oc_percent):
+        return oc_percent * cls.BULK_DENSITY_G_CM3 * cls.SAMPLING_DEPTH_CM
+
+    @classmethod
+    def oc_gkg_to_stock(cls, oc_gkg):
+        return cls.oc_percent_to_stock(oc_gkg * cls.OC_GKG_TO_PERCENT)
+
+    def predict_soc_stock_batch(self, samples_props_list):
+        return [self.oc_gkg_to_stock(v) for v in self.predict_soc_batch(samples_props_list)]
+
     def predict_soc_batch(self, samples_props_list):
-        """
-        Prediksi nilai SOC untuk batch piksel spasial secara paralel (vektor).
-        """
+        """Keluaran model: kandungan OC dalam g/kg."""
         if not samples_props_list:
             return []
 
