@@ -1135,11 +1135,13 @@ def delete_project_sdg_evidence_file(project_id, evidence_id):
 # ---------------------------------------------------------------
 # QR CODE GENERATION (On-Demand, No DB Storage)
 # ---------------------------------------------------------------
-def generate_traceability_qr(project_id):
+def generate_traceability_qr(project_id, base_url=None):
     """Generate QR code untuk public traceability profile.
 
     QR berisi link ke: /public/trace/{profile_id}
     Bukan pakai project name (cegah duplikasi).
+
+    base_url diresolusi di route (origin request) agar link mengikuti domain deploy.
 
     Return: base64 encoded image + link (tanpa disimpan ke DB/storage)
     """
@@ -1157,9 +1159,7 @@ def generate_traceability_qr(project_id):
     if not profile:
         return {"success": False, "message": "Traceability profile tidak ditemukan"}, 404
 
-    # URL yang di-encode di QR: gunakan profile ID
-    # Untuk development gunakan localhost:5173, untuk production gunakan domain dari env
-    base_url = os.getenv('PUBLIC_BASE_URL', 'http://localhost:5173')
+    base_url = (base_url or os.getenv('PUBLIC_BASE_URL') or 'http://localhost:5173').rstrip('/')
     qr_link = f"{base_url}/trace/{str(profile.id)}"
 
     try:

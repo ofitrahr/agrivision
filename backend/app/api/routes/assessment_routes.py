@@ -1,10 +1,20 @@
 ﻿import uuid
 
 from app.core.security import roles_required, token_required
-from app.db.models import Project, ProjectSdg, ProjectTraceabilityProfile, SdgMaster
+from app.db.database import db
+from app.db.models import (
+    FinancialRecord,
+    GisLayer,
+    HarvestRecord,
+    Project,
+    ProjectSdg,
+    ProjectTraceabilityProfile,
+    SdgMaster,
+)
 from app.services import assessment_service as svc
 from app.services.assessment_service import get_or_create_profile
 from flask import Blueprint, jsonify, request
+from sqlalchemy import func
 
 assessment_bp = Blueprint('assessment_bp', __name__)
 
@@ -88,6 +98,31 @@ def api_public_traceability(profile_id):
     commodity_str = ', '.join(sorted(commodities)) if commodities else (project.commodity or '')
     location_str = ', '.join(sorted(locations)) if locations else (project.location or '')
 
+    farm_ids = [f.id for f in project.farms]
+    total_area_ha = sum(float(f.total_area_ha) for f in project.farms if f.total_area_ha)
+
+    annual_yield_kg = 0.0
+    estimated_revenue = 0.0
+    soc_mean = None
+    if farm_ids:
+        annual_yield_kg = float(db.session.query(
+            func.coalesce(func.sum(HarvestRecord.yield_kg), 0)
+        ).filter(HarvestRecord.farm_id.in_(farm_ids)).scalar() or 0)
+
+        estimated_revenue = float(db.session.query(
+            func.coalesce(func.sum(FinancialRecord.estimated_revenue), 0)
+        ).filter(FinancialRecord.farm_id.in_(farm_ids)).scalar() or 0)
+
+        soc_mean = db.session.query(func.avg(GisLayer.numerical_value)).filter(
+            GisLayer.farm_id.in_(farm_ids),
+            GisLayer.parameter_type == 'soc',
+        ).scalar()
+
+    carbon_stock_ton = round(float(soc_mean) * total_area_ha, 1) if soc_mean and total_area_ha else 0.0
+
+    practices = sorted({f.agroforestry_system.strip() for f in project.farms if f.agroforestry_system})
+    farm_practice = ', '.join(practices) if practices else 'Agroforestry'
+
     return jsonify({
         "success": True,
         "data": {
@@ -116,6 +151,16 @@ def api_public_traceability(profile_id):
                 "total": total_farmers,
                 "female": female_count,
                 "male": male_count,
+            },
+            "economic_metrics": {
+                "active_farm_area_ha": round(total_area_ha, 2),
+                "annual_yield_kg": round(annual_yield_kg, 2),
+                "estimated_revenue": round(estimated_revenue, 2),
+            },
+            "environmental_metrics": {
+                "land_area_ha": round(total_area_ha, 2),
+                "carbon_stock_ton": carbon_stock_ton,
+                "farm_practice": farm_practice,
             },
         }
     }), 200

@@ -73,7 +73,7 @@ const TraceabilityDashboard = () => {
     </div>
   );
 
-  const { project, profile, sdgs, farmers = [], farmer_stats } = data;
+  const { project, profile, sdgs, farmers = [], farmer_stats, economic_metrics, environmental_metrics } = data;
   const projectName = profile?.title || project?.name || '';
   const companyName = project?.company_name || '';
   const tagline = profile?.tagline || '';
@@ -84,6 +84,13 @@ const TraceabilityDashboard = () => {
   const socialNarrative = profile?.social_narrative || '';
   const economicNarrative = profile?.economic_narrative || '';
   const environmentalNarrative = profile?.environmental_narrative || '';
+
+  const formatRupiah = (v) => `Rp${((Number(v) || 0) / 1e6).toFixed(1)}M`;
+  const economicStats = [
+    { label: 'Active Farm Area', value: `${economic_metrics?.active_farm_area_ha || 0} Ha` },
+    { label: 'Annual Yield', value: `${(economic_metrics?.annual_yield_kg || 0).toLocaleString('id-ID')} Kg` },
+    { label: 'Carbon Credit', value: formatRupiah(economic_metrics?.estimated_revenue) },
+  ];
 
   return (
     <div style={{ minHeight: '100vh', background: '#0d2f1e', color: '#191c1d', fontFamily: '"Hanken Grotesk", sans-serif', position: 'relative', overflow: 'hidden' }}>
@@ -266,7 +273,7 @@ const TraceabilityDashboard = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 16 }}>
-                {[{ label: 'Active Farm Area', value: '25 Ha' }, { label: 'Annual Yield', value: '1,250 Kg' }, { label: 'Carbon Credit', value: 'Rp136.7M' }].map((m, i, arr) => (
+                {economicStats.map((m, i, arr) => (
                   <div key={m.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < arr.length - 1 ? '1px solid rgba(233,236,239,0.4)' : 'none' }}>
                     <span style={{ fontSize: 14, color: '#414844' }}>{m.label}</span>
                     <span style={{ fontWeight: 700, color: '#191c1d' }}>{m.value}</span>
@@ -294,15 +301,15 @@ const TraceabilityDashboard = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(233,236,239,0.4)' }}>
                   <span style={{ fontSize: 14, color: '#414844' }}>Land Area</span>
-                  <span style={{ fontWeight: 700, color: '#191c1d' }}>186 Ha</span>
+                  <span style={{ fontWeight: 700, color: '#191c1d' }}>{environmental_metrics?.land_area_ha || 0} Ha</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(233,236,239,0.4)' }}>
                   <span style={{ fontSize: 14, color: '#414844' }}>Carbon Stock</span>
-                  <span style={{ fontWeight: 700, color: '#191c1d' }}>186 Ton C</span>
+                  <span style={{ fontWeight: 700, color: '#191c1d' }}>{environmental_metrics?.carbon_stock_ton || 0} Ton C</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-                  <span style={{ fontSize: 14, color: '#414844' }}>Farm Practice</span>
-                  <span style={{ display: 'inline-block', padding: '4px 12px', background: '#d4edda', color: '#155724', fontSize: 11, fontWeight: 700, borderRadius: 9999, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Organic</span>
+                  <span style={{ fontSize: 14, color: '#414844', flexShrink: 0 }}>Farm Practice</span>
+                  <span style={{ display: 'inline-block', padding: '4px 12px', marginLeft: 12, background: '#d4edda', color: '#155724', fontSize: 11, fontWeight: 700, borderRadius: 9999, textTransform: 'uppercase', letterSpacing: '0.03em', textAlign: 'right', lineHeight: '16px' }}>{environmental_metrics?.farm_practice || 'Agroforestry'}</span>
                 </div>
               </div>
               {environmentalNarrative ? (

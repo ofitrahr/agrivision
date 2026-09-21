@@ -995,7 +995,15 @@ def generate_traceability_qr(current_user, project_id):
     if str(current_user.project_id) != str(project_id):
         return jsonify({"success": False, "message": "Tidak memiliki akses ke project ini"}), 403
 
-    result, status_code = gen_qr(project_id)
+    payload = request.get_json(silent=True) or {}
+    base_url = (
+        payload.get('origin')
+        or request.headers.get('Origin')
+        or os.getenv('PUBLIC_BASE_URL')
+        or request.host_url.rstrip('/')
+    )
+
+    result, status_code = gen_qr(project_id, base_url=base_url)
     return jsonify(result), status_code
 
 

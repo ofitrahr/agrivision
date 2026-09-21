@@ -190,7 +190,9 @@ const ManagerTraceability = () => {
 
     setQrLoading(true);
     try {
-      const res = await api.post(`/manager/projects/${projectId}/traceability/qr/generate`);
+      const res = await api.post(`/manager/projects/${projectId}/traceability/qr/generate`, {
+        origin: window.location.origin,
+      });
       if (res.data.success) {
         setQrData(res.data.data);
         setShowQrModal(true);

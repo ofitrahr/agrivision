@@ -22,4 +22,8 @@ COPY . .
 EXPOSE 8000
 
 # Command to run Flask app with Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "run:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", \
+     "--workers", "2", \
+     "--timeout", "600", \
+     "--graceful-timeout", "60", \
+     "run:app"]

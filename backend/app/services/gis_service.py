@@ -307,7 +307,12 @@ class GISService:
         if farm_boundary_geojson:
             bounds_layer = folium.GeoJson(
                 farm_boundary_geojson,
-                style_function=lambda x: {'color': '#fdb134', 'fillColor': 'transparent', 'weight': 3}
+                style_function=lambda x: {
+                    'color': '#fdb134',
+                    'fillColor': 'transparent',
+                    'weight': 3,
+                    'className': 'farm-boundary',
+                }
             )
             bounds_layer.add_to(m)
             m.fit_bounds(bounds_layer.get_bounds())
@@ -468,53 +473,69 @@ class GISService:
         ref_pts_json = json.dumps([[p['lat'], p['lon']] for p in sample_points[:2]]) if (sample_points and len(sample_points) >= 2) else "[]"
         js_code = f"""
         <script>
-            setTimeout(function() {{
-                var mapInstance = null;
-                var heatLayer = null;
+        (function() {{
+            var refPts = {ref_pts_json};
+            var mapInstance = null;
+            var heatLayer = null;
+            var pendingOpacity = null;
+
+            function findMap() {{
                 for (var key in window) {{
-                    if (key.startsWith('map_')) {{
-                        mapInstance = window[key];
-                    }}
-                    if (key.startsWith('heat_map_')) {{
-                        heatLayer = window[key];
-                    }}
+                    if (key.indexOf('map_') === 0) {{ mapInstance = window[key]; }}
+                    if (key.indexOf('heat_map_') === 0) {{ heatLayer = window[key]; }}
                 }}
+                return mapInstance;
+            }}
 
-                if (mapInstance) {{
-                    var refPts = {ref_pts_json};
-                    function updateHeatScale() {{
-                        if (heatLayer && refPts && refPts.length >= 2) {{
-                            var p1 = mapInstance.latLngToContainerPoint(refPts[0]);
-                            var p2 = mapInstance.latLngToContainerPoint(refPts[1]);
-                            var dist = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-                            if (dist > 5) {{
-                                var newR = Math.max(35, Math.round(dist * 0.95));
-                                var newB = Math.max(20, Math.round(newR * 0.6));
-                                heatLayer.setOptions({{ radius: newR, blur: newB }});
-                            }}
-                        }}
+            function applyOpacity(value) {{
+                if (!mapInstance) return;
+                mapInstance.eachLayer(function(layer) {{
+                    if (typeof L !== 'undefined' && L.TileLayer && layer instanceof L.TileLayer) return;
+                    var opts = layer.options || {{}};
+                    if (opts.className === 'farm-boundary') return;
+                    if (layer._canvas) {{
+                        layer._canvas.style.opacity = value;
+                        return;
                     }}
-                    mapInstance.on('zoomend', updateHeatScale);
-                    setTimeout(updateHeatScale, 250);
+                    if (typeof layer.setStyle === 'function') {{
+                        layer.setStyle({{ fillOpacity: value }});
+                    }}
+                }});
+            }}
 
-                    window.addEventListener('message', function(event) {{
-                        if (event.data && event.data.type === 'SET_LAYER_OPACITY') {{
-                            var targetOpacity = event.data.opacity / 100;
-                            mapInstance.eachLayer(function(layer) {{
-                                if (layer.setStyle && typeof layer.setStyle === 'function') {{
-                                    layer.setStyle({{
-                                        fillOpacity: targetOpacity * 0.7,
-                                        opacity: targetOpacity
-                                    }});
-                                }}
-                                if (layer._canvas) {{
-                                    layer._canvas.style.opacity = targetOpacity;
-                                }}
-                            }});
-                        }}
+            window.addEventListener('message', function(event) {{
+                if (!event.data || event.data.type !== 'SET_LAYER_OPACITY') return;
+                var raw = Number(event.data.opacity);
+                if (!isFinite(raw)) return;
+                var value = Math.max(0, Math.min(1, raw / 100));
+                pendingOpacity = value;
+                applyOpacity(value);
+            }});
+
+            function updateHeatScale() {{
+                if (!mapInstance || !heatLayer || !refPts || refPts.length < 2) return;
+                var p1 = mapInstance.latLngToContainerPoint(refPts[0]);
+                var p2 = mapInstance.latLngToContainerPoint(refPts[1]);
+                var dist = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+                if (dist > 5) {{
+                    heatLayer.setOptions({{
+                        radius: Math.max(35, Math.round(dist * 0.95)),
+                        blur: Math.max(20, Math.round(Math.max(35, Math.round(dist * 0.95)) * 0.6))
                     }});
                 }}
-            }}, 300);
+            }}
+
+            var tries = 0;
+            (function waitForMap() {{
+                if (findMap()) {{
+                    mapInstance.on('zoomend', updateHeatScale);
+                    setTimeout(updateHeatScale, 250);
+                    if (pendingOpacity !== null) applyOpacity(pendingOpacity);
+                    return;
+                }}
+                if (++tries < 120) setTimeout(waitForMap, 25);
+            }})();
+        }})();
         </script>
         """
         m.get_root().html.add_child(folium.Element(js_code))
