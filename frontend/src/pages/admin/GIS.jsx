@@ -82,6 +82,7 @@ const GIS = () => {
     const [selectedMapFarm, setSelectedMapFarm] = useState(null);
     const [mapModalHtml, setMapModalHtml] = useState(null);
     const [mapModalLoading, setMapModalLoading] = useState(false);
+    const [batchProgress, setBatchProgress] = useState(null);
 
     const handleRunObservation = async (e, farm) => {
         e.stopPropagation();
@@ -105,6 +106,28 @@ const GIS = () => {
             clearInterval(timer);
             setAnalyzingFarm(null);
         }
+    };
+
+    const handleRunAllObservations = async () => {
+        if (farms.length === 0) {
+            alert('Tidak ada lahan untuk dianalisis.');
+            return;
+        }
+
+        setBatchProgress({ current: 0, total: farms.length, currentFarmName: farms[0].name, status: 'running', errors: [] });
+
+        const errors = [];
+        for (let i = 0; i < farms.length; i++) {
+            setBatchProgress(prev => ({ ...prev, current: i + 1, currentFarmName: farms[i].name }));
+            try {
+                await api.post(`/admin/farms/${farms[i].id}/run-observation`, { period: observationPeriod });
+            } catch (err) {
+                errors.push({ farmName: farms[i].name, message: err.response?.data?.message || err.message });
+            }
+        }
+
+        setBatchProgress(prev => ({ ...prev, status: 'done', errors }));
+        fetchFarms();
     };
 
     const handleOpenMapModal = async (e, farm) => {
@@ -506,6 +529,18 @@ const GIS = () => {
                             style={{ padding: '7px 10px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px' }}
                         />
                     </div>
+                    <button
+                        onClick={handleRunAllObservations}
+                        disabled={batchProgress?.status === 'running' || farms.length === 0}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '6px', background: '#059669', color: '#fff',
+                            border: 'none', borderRadius: '8px', padding: '8px 14px', fontWeight: 600,
+                            cursor: (batchProgress?.status === 'running' || farms.length === 0) ? 'not-allowed' : 'pointer',
+                            opacity: (batchProgress?.status === 'running' || farms.length === 0) ? 0.6 : 1,
+                        }}
+                    >
+                        <Satellite size={16} /> Analisis Semua Lahan ({farms.length})
+                    </button>
                     <button className="secondary-btn" onClick={() => setIsUploadingData(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #10b981', color: '#10b981', background: 'transparent' }}>
                         <UploadCloud size={16} />
                         Import Data ML
@@ -906,6 +941,50 @@ const GIS = () => {
                                 <div style={{ color: '#94a3b8' }}>Gagal memuat peta lahan</div>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {batchProgress && (
+                <div className="modal-overlay" style={{ zIndex: 10000 }}>
+                    <div className="modal-content" style={{ maxWidth: '480px', borderRadius: '14px', padding: '28px', textAlign: 'center' }}>
+                        <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#dcfce7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+                            <Satellite size={28} className={batchProgress.status === 'running' ? 'animate-bounce' : ''} />
+                        </div>
+                        <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: '700', color: '#111827' }}>
+                            Menganalisis Citra Satelit Seluruh Lahan
+                        </h3>
+                        <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#64748b' }}>
+                            Lahan {batchProgress.current} dari {batchProgress.total}: {batchProgress.currentFarmName}
+                        </p>
+                        <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginBottom: '20px' }}>
+                            <div style={{
+                                width: `${(batchProgress.current / batchProgress.total) * 100}%`,
+                                height: '100%',
+                                background: '#059669',
+                                borderRadius: '4px',
+                                transition: 'width 0.4s ease',
+                            }} />
+                        </div>
+                        {batchProgress.errors.length > 0 && (
+                            <div style={{ textAlign: 'left', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 12px', marginBottom: '16px', fontSize: '12px', color: '#991b1b', maxHeight: '120px', overflowY: 'auto' }}>
+                                {batchProgress.errors.map((err, idx) => (
+                                    <div key={idx}>{err.farmName}: {err.message}</div>
+                                ))}
+                            </div>
+                        )}
+                        <button
+                            className="primary-btn"
+                            onClick={() => setBatchProgress(null)}
+                            disabled={batchProgress.status !== 'done'}
+                            style={{
+                                width: '100%', padding: '10px 16px', fontSize: '13px', fontWeight: '600',
+                                opacity: batchProgress.status !== 'done' ? 0.5 : 1,
+                                cursor: batchProgress.status !== 'done' ? 'not-allowed' : 'pointer',
+                            }}
+                        >
+                            {batchProgress.status === 'done' ? 'Tutup' : 'Memproses...'}
+                        </button>
                     </div>
                 </div>
             )}

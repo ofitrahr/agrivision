@@ -1,16 +1,14 @@
 import os
 import json
-import random
 from datetime import date, datetime, timedelta, timezone
 from app import create_app
 from app.db.database import db
 from app.db.models import (
-    User, Company, Project, ProjectPermission, Sdg, SdgMaster, CompanySdg, CompanySdgVerification,
-    Farm, FarmCrop, Farmer, farm_farmers, GisLayer,
-    TraceTemplate, TraceTemplateStep, Batch, BatchCheckpoint, QrCode,
-    AgronomyActivity, HarvestRecord, FinancialRecord, EsgMetric,
-    ActivityLog, RecentActivity, ProjectTraceability, SensorData
+    User, Company, Project, ProjectPermission, Sdg, SdgMaster,
+    Farm, FarmCrop, Farmer, HarvestRecord, FinancialRecord,
+    ActivityLog, RecentActivity, ProjectTraceability, ProjectTraceabilityProfile, ProjectSdg,
 )
+from geoalchemy2.elements import WKTElement
 import bcrypt
 
 app = create_app()
@@ -35,8 +33,45 @@ SDG_CATALOG = [
     (17, "Partnerships for the Goals", "Memperkuat sarana pelaksanaan dan menghidupkan kembali kemitraan global untuk pembangunan berkelanjutan"),
 ]
 
+# GeoJSON 5 blok lahan Kadatuan disalin ke dalam repo (backend/seed_data/kadatuan_aoi/) supaya
+# seed.py tidak bergantung pada path host di luar repo (mis. saat dijalankan di dalam Docker
+# container via `docker exec agrivision_backend python3 seed.py`).
+GEOJSON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'seed_data', 'kadatuan_aoi')
+
+# Luas (Ha) dipakai literal sesuai data lapangan; boundary spasial dibaca dari file GeoJSON.
+KADATUAN_BLOCKS = [
+    {"file": "AOI_KADATUAN_1.geojson", "name": "Blok 1 - Kadatuan (Pak Erus)", "area_ha": 0.25, "pj": "Pak Erus", "is_main": False},
+    {"file": "AOI_KADATUAN_2.geojson", "name": "Blok 2 - Kadatuan (Pak Ido)", "area_ha": 0.78, "pj": "Pak Ido", "is_main": False},
+    {"file": "AOI_KADATUAN_3.geojson", "name": "Blok 3 - Kadatuan (Pak Pena)", "area_ha": 4.47, "pj": "Pak Pena", "is_main": True},
+    {"file": "AOI_KADATUAN_4.geojson", "name": "Blok 4 - Kadatuan (Pak Pena)", "area_ha": 0.50, "pj": "Pak Pena", "is_main": False},
+    {"file": "AOI_KADATUAN_5.geojson", "name": "Blok 5 - Kadatuan (Pak Pena)", "area_ha": 0.48, "pj": "Pak Pena", "is_main": False},
+]
+
+AGROFORESTRY_SYSTEM = "Agroforestri Terintegrasi (Kopi, Naungan Buah & Hortikultura)"
+CROP_VARIETY_LABEL = "Kopi Arabika, Jeruk Bali, Alpukat, Cabe, Terong"
+
+KADATUAN_CROP_ALLOCATION = {
+    "AOI_KADATUAN_1.geojson": [("Kopi Arabika", 0.15), ("Alpukat", 0.04), ("Jeruk Bali", 0.03), ("Cabe", 0.02), ("Terong", 0.01)],
+    "AOI_KADATUAN_2.geojson": [("Kopi Arabika", 0.47), ("Alpukat", 0.12), ("Jeruk Bali", 0.08), ("Cabe", 0.06), ("Terong", 0.05)],
+    "AOI_KADATUAN_3.geojson": [("Kopi Arabika", 2.68), ("Alpukat", 0.67), ("Jeruk Bali", 0.45), ("Cabe", 0.35), ("Terong", 0.32)],
+    "AOI_KADATUAN_4.geojson": [("Kopi Arabika", 0.30), ("Alpukat", 0.08), ("Jeruk Bali", 0.05), ("Cabe", 0.04), ("Terong", 0.03)],
+    "AOI_KADATUAN_5.geojson": [("Kopi Arabika", 0.29), ("Alpukat", 0.07), ("Jeruk Bali", 0.05), ("Cabe", 0.04), ("Terong", 0.03)],
+}
+
+# Rekap panen ceri kopi bulanan (Rekap_Data_Periodik_2025-2026.xlsx), total 7.153 kg.
+# Data agregat kebun (sumbernya tidak dipecah per blok) - dicatat di Blok 3 (Lahan Utama).
+KADATUAN_HARVEST_DATA = [
+    ("2025-10", 104), ("2025-11", 279), ("2025-12", 208),
+    ("2026-01", 970), ("2026-02", 1380), ("2026-03", 2046),
+    ("2026-04", 858), ("2026-05", 479), ("2026-06", 557), ("2026-07", 272),
+]
+PRICE_PER_KG_CHERRY = 12000  # estimasi pendapatan Rp/kg ceri
+OPERATIONAL_COST_RATIO = 0.45  # estimasi biaya operasional proporsional thd pendapatan
+
+
 def get_password_hash(password):
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
 
 def seed_sdgs():
     with app.app_context():
@@ -54,6 +89,7 @@ def seed_sdgs():
         db.session.commit()
         print(f"Berhasil menanam {len(SDG_CATALOG)} data SDG ke database.")
 
+
 def seed_super_admin():
     if User.query.filter_by(username="superadmin").first():
         print("Superadmin already seeded.")
@@ -61,211 +97,286 @@ def seed_super_admin():
     company = Company(name="Agrivision Master", description="Induk Sistem")
     db.session.add(company)
     db.session.commit()
-    
+
     project = Project(name="Default Project", description="Proyek Utama", company_id=company.id)
     db.session.add(project)
     db.session.commit()
-    
+
     perm = ProjectPermission(
-        project_id=project.id, 
-        module_gis=True, 
-        module_traceability=True, 
-        module_agronomy=True, 
-        module_board_reports=True, 
-        can_access_ndvi=True, 
-        can_access_soc=True, 
-        can_access_yield=True, 
-        can_access_biomass=True, 
+        project_id=project.id,
+        module_gis=True,
+        module_traceability=True,
+        module_agronomy=True,
+        module_board_reports=True,
+        can_access_ndvi=True,
+        can_access_soc=True,
+        can_access_yield=True,
+        can_access_biomass=True,
         can_access_soilnpk=True
     )
     db.session.add(perm)
     db.session.commit()
-    
+
     admin = User(
-        project_id=project.id, 
-        username="superadmin", 
-        password_hash=get_password_hash("password123"), 
-        full_name="Super Administrator", 
+        project_id=project.id,
+        username="superadmin",
+        password_hash=get_password_hash("password123"),
+        full_name="Super Administrator",
         role="super_admin"
     )
     db.session.add(admin)
     db.session.commit()
     print("Superadmin seeded.")
 
-def clear_comprehensive_data():
-    Company.query.filter(Company.name == "AgriCorp Indonesia").delete()
-    db.session.commit()
-    print("Cleared previous comprehensive data for AgriCorp Indonesia.")
 
-def seed_comprehensive_data():
-    clear_comprehensive_data()
+def clear_old_data():
+    # farm_crops ikut terhapus otomatis (FarmCrop.farm_id ondelete='CASCADE' di models.py)
+    old_company_names = ["AgriCorp Indonesia", "PT Kadatuan Koffie Nusantara"]
+    deleted = Company.query.filter(Company.name.in_(old_company_names)).delete(synchronize_session=False)
+    db.session.commit()
+    if deleted:
+        print(f"Menghapus {deleted} data company lama ({', '.join(old_company_names)}) beserta seluruh data terkait (cascade).")
+    else:
+        print("Tidak ada data company lama yang perlu dihapus.")
+
+
+def geojson_polygon_to_wkt(filepath):
+    with open(filepath, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    if data.get('type') == 'FeatureCollection':
+        feature = data['features'][0]
+    elif data.get('type') == 'Feature':
+        feature = data
+    else:
+        raise ValueError(f"{filepath}: tipe GeoJSON '{data.get('type')}' tidak didukung.")
+
+    geometry = feature['geometry']
+    if geometry['type'] != 'Polygon':
+        raise ValueError(f"{filepath}: hanya geometry Polygon yang didukung, dapat '{geometry['type']}'.")
+
+    ring_wkt_list = []
+    for ring in geometry['coordinates']:
+        points_wkt = ", ".join(f"{lon} {lat}" for lon, lat in ring)
+        ring_wkt_list.append(f"({points_wkt})")
+
+    return f"POLYGON({', '.join(ring_wkt_list)})"
+
+
+def seed_kadatuan_data():
+    clear_old_data()
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    
-    # 1. Company
+
+    # 1. Company & Project
     company = Company(
-        name="AgriCorp Indonesia",
-        description="Perusahaan Agrikultur Berkelanjutan",
-        address="Jl. Sudirman No. 1, Jakarta",
-        email="contact@agricorp.id",
-        phone="021-12345678",
+        name="PT Kadatuan Koffie Nusantara",
+        description="Perkebunan kopi arabika spesialti agroforestri di dataran tinggi Garut, Jawa Barat.",
+        address="Kadatuan, Garut, Jawa Barat",
         subscription_plan="Enterprise",
-        max_farms=100,
-        max_users=50,
-        branding_color="#1E40AF"
+        max_farms=20,
+        max_users=20,
+        branding_color="#116a3a",
     )
     db.session.add(company)
     db.session.commit()
-    
-    db.session.add(CompanySdgVerification(
-        company_id=company.id, 
-        assessed_by="SGS Indonesia", 
-        evidence_file_url="https://example.com/cert.pdf",
-        evidence_file_type="pdf", 
-        assessment_date=date(2024, 1, 15)
-    ))
-    db.session.commit()
 
-    # 2. Company SDGs
-    sdgs = Sdg.query.filter(Sdg.code.in_(["1", "2", "8", "12", "13", "15"])).all()
-    for i, sdg in enumerate(sdgs):
-        db.session.add(CompanySdg(
-            company_id=company.id, 
-            sdg_id=sdg.id, 
-            description=f"Komitmen perusahaan untuk {sdg.title}", 
-            display_order=i
-        ))
-    db.session.commit()
-
-    # 3. Project
     project = Project(
-        company_id=company.id, 
-        name="Kopi Mandailing Lestari", 
-        description="Proyek kopi berkelanjutan di daerah Mandailing Natal.",
-        commodity="Kopi Arabika", 
-        location="Mandailing Natal, Sumatera Utara"
+        company_id=company.id,
+        name="Perkebunan Kopi Arabika Kadatuan",
+        description="Perkebunan kopi arabika Typica & Lini S, agroforestri di bawah naungan pohon pinus, Kadatuan, Garut.",
+        commodity="Kopi Arabika Typica & Lini S",
+        location="Garut, Jawa Barat",
     )
     db.session.add(project)
     db.session.commit()
 
     db.session.add(ProjectPermission(
-        project_id=project.id, 
-        module_gis=True, 
-        module_traceability=True, 
-        module_agronomy=True,
-        module_board_reports=True, 
-        can_access_ndvi=True, 
-        can_access_soc=True, 
-        can_access_yield=True,
-        can_access_biomass=True, 
-        can_access_soilnpk=True
-    ))
-    db.session.add(ProjectTraceability(
-        project_id=project.id, 
-        hero_image_url="https://images.unsplash.com/photo-1497935586351-b67a49e012bf",
-        origin_story="Berasal dari dataran tinggi Mandailing Natal, ditanam oleh petani lokal.",
-        social_description="Memberdayakan 100+ petani lokal dengan upah yang adil.", 
-        economic_description="Meningkatkan pendapatan petani hingga 30% dari rata-rata.",
-        environmental_description="Metode agroforestri untuk menjaga kelestarian hutan.", 
-        is_published=True
-    ))
-    db.session.commit()
-
-    # 4. Users (Akun Manager & Investor Perusahaan)
-    manager = User(
-        project_id=project.id, 
-        username="manager_agri", 
-        password_hash=get_password_hash("password123"), 
-        full_name="Manager AgriCorp", 
-        role="manager"
-    )
-    investor = User(
-        project_id=project.id, 
-        username="investor_agri", 
-        password_hash=get_password_hash("password123"), 
-        full_name="Investor AgriCorp", 
-        role="board"
-    )
-    db.session.add_all([manager, investor])
-    db.session.commit()
-
-    # 5. Farmers (Daftar Petani Terdaftar Siap Ditugaskan)
-    farmers = [
-        Farmer(company_id=company.id, name="Budi Santoso", address="Desa A, Mandailing", phone="081234567890", gender="Laki-laki", birth_year=1980, join_year=2020),
-        Farmer(company_id=company.id, name="Siti Aminah", address="Desa B, Mandailing", phone="081234567891", gender="Perempuan", birth_year=1985, join_year=2021),
-        Farmer(company_id=company.id, name="Ucok Harahap", address="Desa C, Mandailing", phone="081234567892", gender="Laki-laki", birth_year=1975, join_year=2019)
-    ]
-    db.session.add_all(farmers)
-    db.session.commit()
-
-    # 6. Traceability Template (Master Template Tanpa Batch Lahan)
-    template = TraceTemplate(company_id=company.id, name="Kopi Wash Process", description="Standar proses cuci penuh.")
-    db.session.add(template)
-    db.session.commit()
-
-    steps = [
-        TraceTemplateStep(template_id=template.id, step_order=1, name="Panen Ceri", required_photo=True),
-        TraceTemplateStep(template_id=template.id, step_order=2, name="Pulping & Fermentasi", required_notes=True),
-        TraceTemplateStep(template_id=template.id, step_order=3, name="Pengeringan (Washing & Drying)", required_photo=True),
-        TraceTemplateStep(template_id=template.id, step_order=4, name="Roasting & Pengemasan", required_photo=True)
-    ]
-    db.session.add_all(steps)
-    db.session.commit()
-
-    # 7. Activity Logs & Recent Activity
-    logs = [
-        ActivityLog(user_id=manager.id, action='CREATE', entity_type='Company', details='Perusahaan AgriCorp Indonesia berhasil diinisialisasi', created_at=now - timedelta(days=10)),
-        ActivityLog(user_id=manager.id, action='CREATE', entity_type='Project', details='Proyek Kopi Mandailing Lestari dibuat', created_at=now - timedelta(days=9)),
-        ActivityLog(user_id=investor.id, action='LOGIN', entity_type='User', details='Investor mengakses dashboard sistem', created_at=now - timedelta(hours=2))
-    ]
-    db.session.add_all(logs)
-
-    recent = [
-        RecentActivity(title="Sertifikasi Organik", description="AgriCorp memperbarui sertifikasi kemitraan organik.", activity_date=date(2026, 8, 20), display_order=1),
-        RecentActivity(title="Pendaftaran Petani Mitra", description="3 Petani mitra lokal siap ditugaskan ke area perkebunan.", activity_date=date(2026, 8, 22), display_order=2)
-    ]
-    db.session.add_all(recent)
-    db.session.commit()
-
-    # 8. Seed Lahan Demo (~120 Ha) untuk GEE
-    from geoalchemy2.elements import WKTElement
-    coords = [
-        [101.4000, 0.5000],
-        [101.4100, 0.5000],
-        [101.4100, 0.4900],
-        [101.4000, 0.4900],
-        [101.4000, 0.5000]
-    ]
-    wkt_coords = ", ".join([f"{c[0]} {c[1]}" for c in coords])
-    wkt_geom = f"POLYGON(({wkt_coords}))"
-    
-    from sqlalchemy import text
-    calc_area = db.session.scalar(
-        text("SELECT ST_Area(ST_GeomFromText(:wkt, 4326)::geography) / 10000;"),
-        {"wkt": wkt_geom}
-    )
-    
-    new_farm = Farm(
         project_id=project.id,
-        name="Kebun Sawit Riau (Demo 120 Ha)",
-        location="Pekanbaru, Riau",
-        crop_variety="Kelapa Sawit",
-        total_area_ha=round(float(calc_area), 2) if calc_area else 123.0,
-        boundary=WKTElement(wkt_geom, srid=4326),
-        created_by=manager.id,
-        status='active'
-    )
-    db.session.add(new_farm)
+        module_gis=True,
+        module_traceability=True,
+        module_agronomy=True,
+        module_board_reports=True,
+        can_access_ndvi=True,
+        can_access_soc=True,
+        can_access_yield=True,
+        can_access_biomass=True,
+        can_access_soilnpk=True,
+    ))
     db.session.commit()
-    print(f"Seed lahan '{new_farm.name}' berhasil ditambahkan ke Project '{project.name}'.")
 
-    print("Seed data bersih berhasil digenerate! (Termasuk 1 Lahan Demo untuk GEE)")
+    # 2. Akun Pengguna
+    manager = User(
+        project_id=project.id,
+        username="manager_kadatuan",
+        password_hash=get_password_hash("password123"),
+        full_name="Manager Kebun Kadatuan",
+        role="manager",
+    )
+    board = User(
+        project_id=project.id,
+        username="board_kadatuan",
+        password_hash=get_password_hash("password123"),
+        full_name="Board Kadatuan Koffie",
+        role="board",
+    )
+    db.session.add_all([manager, board])
+    db.session.commit()
+
+    # 3. Petani Penanggung Jawab (PJ) per blok
+    # Catatan: birth_year/join_year tidak ada di sumber data - diisi estimasi wajar
+    # (Pak Pena paling senior karena bertanggung jawab atas 3 blok termasuk lahan utama).
+    farmer_defs = {
+        "Pak Erus": {"birth_year": 1979, "join_year": 2022},
+        "Pak Ido": {"birth_year": 1986, "join_year": 2022},
+        "Pak Pena": {"birth_year": 1972, "join_year": 2020},
+    }
+    farmers_by_name = {}
+    for name, meta in farmer_defs.items():
+        farmer = Farmer(
+            company_id=company.id,
+            name=name,
+            gender="Laki-laki",
+            birth_year=meta["birth_year"],
+            join_year=meta["join_year"],
+            address="Kadatuan, Garut, Jawa Barat",
+            farm_info="Petani penanggung jawab (PJ) blok kebun kopi Kadatuan",
+        )
+        db.session.add(farmer)
+        farmers_by_name[name] = farmer
+    db.session.commit()
+
+    # 4. Blok Lahan dari GeoJSON + penugasan petani via relasi farm_farmers
+    farms_by_block = {}
+    main_farm = None
+    for block in KADATUAN_BLOCKS:
+        geojson_path = os.path.join(GEOJSON_DIR, block["file"])
+        wkt_geom = geojson_polygon_to_wkt(geojson_path)
+
+        farm = Farm(
+            project_id=project.id,
+            name=block["name"],
+            location="Kadatuan, Garut, Jawa Barat",
+            crop_variety=CROP_VARIETY_LABEL,
+            total_area_ha=block["area_ha"],
+            altitude="1.100 - 1.300 mdpl",
+            agroforestry_system=AGROFORESTRY_SYSTEM,
+            boundary=WKTElement(wkt_geom, srid=4326),
+            created_by=manager.id,
+            status="active",
+        )
+        db.session.add(farm)
+        db.session.commit()
+
+        farm.farmers.append(farmers_by_name[block["pj"]])
+        for crop_type, area_ha in KADATUAN_CROP_ALLOCATION[block["file"]]:
+            db.session.add(FarmCrop(farm_id=farm.id, crop_type=crop_type, area_ha=area_ha))
+        db.session.commit()
+
+        farms_by_block[block["file"]] = farm
+        if block["is_main"]:
+            main_farm = farm
+
+    print(f"{len(farms_by_block)} blok lahan Kadatuan berhasil ditanam dari GeoJSON ({GEOJSON_DIR}).")
+
+    # 5. Rekap Panen & Finansial Bulanan (dicatat di Blok 3 - Lahan Utama, lihat catatan di atas)
+    for period, kg in KADATUAN_HARVEST_DATA:
+        revenue = kg * PRICE_PER_KG_CHERRY
+        cost = round(revenue * OPERATIONAL_COST_RATIO, 2)
+
+        db.session.add(HarvestRecord(
+            company_id=company.id,
+            farm_id=main_farm.id,
+            period=period,
+            yield_kg=kg,
+            area_harvested_ha=main_farm.total_area_ha,
+            notes="Panen ceri kopi arabika - direkap dari catatan periodik lapangan.",
+        ))
+        db.session.add(FinancialRecord(
+            company_id=company.id,
+            farm_id=main_farm.id,
+            period=period,
+            total_production_kg=kg,
+            operational_cost=cost,
+            estimated_revenue=revenue,
+            notes=f"Estimasi Rp {PRICE_PER_KG_CHERRY:,}/kg ceri; biaya operasional estimasi {int(OPERATIONAL_COST_RATIO * 100)}% dari pendapatan.".replace(',', '.'),
+        ))
+    db.session.commit()
+
+    total_kg = sum(kg for _, kg in KADATUAN_HARVEST_DATA)
+    print(f"{len(KADATUAN_HARVEST_DATA)} periode data panen & finansial (Okt 2025 - Jul 2026, total {total_kg:,} kg) berhasil ditanam.".replace(',', '.'))
+
+    # 6. Traceability Narrative
+    origin_story = (
+        "Kopi Arabika Kadatuan ditanam secara agroforestri di bawah naungan pohon pinus "
+        "dataran tinggi Jawa Barat."
+    )
+    profile = ProjectTraceabilityProfile(
+        project_id=project.id,
+        title="Kopi Arabika Kadatuan",
+        tagline="Ditanam di bawah naungan pinus, dataran tinggi Garut",
+        origin_story=origin_story,
+        description=origin_story,
+        social_narrative="Memberdayakan 3 petani penanggung jawab blok kebun (Pak Erus, Pak Ido, Pak Pena) di Kadatuan, Garut.",
+        economic_narrative=f"Estimasi pendapatan ceri Rp {PRICE_PER_KG_CHERRY:,}/kg, tercatat rutin bulanan sejak Oktober 2025.".replace(',', '.'),
+        environmental_narrative="Sistem agroforestri di bawah naungan pohon pinus menjaga tutupan lahan dan keragaman hayati kebun.",
+        status="published",
+    )
+    db.session.add(profile)
+    db.session.commit()
+
+    db.session.add(ProjectTraceability(
+        project_id=project.id,
+        origin_story=origin_story,
+        social_description="Memberdayakan 3 petani penanggung jawab blok kebun di Kadatuan, Garut.",
+        economic_description=f"Estimasi pendapatan ceri Rp {PRICE_PER_KG_CHERRY:,}/kg, tercatat rutin bulanan sejak Oktober 2025.".replace(',', '.'),
+        environmental_description="Agroforestri di bawah naungan pohon pinus menjaga tutupan lahan dan keragaman hayati.",
+        is_published=True,
+    ))
+    db.session.commit()
+
+    # 7. Activity Log & Recent Activity (ringan, untuk dashboard admin/publik)
+    db.session.add_all([
+        ActivityLog(user_id=manager.id, action='CREATE', entity_type='Company', details='Perusahaan PT Kadatuan Koffie Nusantara berhasil diinisialisasi', created_at=now - timedelta(days=5)),
+        ActivityLog(user_id=manager.id, action='CREATE', entity_type='Project', details='Proyek Perkebunan Kopi Arabika Kadatuan dibuat', created_at=now - timedelta(days=5)),
+        ActivityLog(user_id=manager.id, action='UPDATE_FARM', entity_type='Farm', details=f'{len(farms_by_block)} blok lahan kebun Kadatuan didaftarkan dari data GeoJSON', created_at=now - timedelta(days=4)),
+    ])
+    db.session.add(RecentActivity(
+        title="Kebun Kadatuan Bergabung dengan AgriVision",
+        description="Perkebunan Kopi Arabika Kadatuan (Garut) mulai memantau 5 blok lahan melalui platform AgriVision.",
+        activity_date=date(2025, 10, 1),
+        display_order=1,
+    ))
+    db.session.commit()
+
+    print("Seed data PT Kadatuan Koffie Nusantara berhasil digenerate!")
+    return project
+
+
+def link_project_sdgs(project, goal_numbers=(1, 2, 8, 12, 13, 15)):
+    profile = ProjectTraceabilityProfile.query.filter_by(project_id=project.id).first()
+    if not profile:
+        print("[SDG] Project traceability profile tidak ditemukan, lewati link SDG.")
+        return
+
+    masters = SdgMaster.query.filter(SdgMaster.goal_number.in_(goal_numbers)).all()
+    if not masters:
+        print("[SDG] SdgMaster belum tersedia (pastikan seed_sdg_contribution sudah dijalankan). Lewati link SDG.")
+        return
+
+    already_linked = {ps.sdg_id for ps in ProjectSdg.query.filter_by(project_traceability_id=profile.id).all()}
+    added = 0
+    for master in masters:
+        if master.id in already_linked:
+            continue
+        db.session.add(ProjectSdg(project_traceability_id=profile.id, sdg_id=master.id))
+        added += 1
+    db.session.commit()
+
+    linked_goals = ', '.join(str(m.goal_number) for m in sorted(masters, key=lambda m: m.goal_number))
+    print(f"[SDG] {added} SDG baru dihubungkan (goal: {linked_goals}) ke project '{project.name}'.")
+
 
 def upload_sdg_logos_to_minio():
-    """Upload 17 SDG logo ke MinIO dan update image_url di database.
-
-    Jalankan setelah seed_sdgs() dan seed_sdg_contribution().
-    Idempotent: skip goal yang sudah punya URL MinIO.
-    """
     use_minio = os.getenv('USE_MINIO', 'false').lower() == 'true'
     if not use_minio:
         print("[SDG Logos] USE_MINIO=false. Logo tetap menggunakan path lokal.")
@@ -347,9 +458,9 @@ if __name__ == "__main__":
         seed_super_admin()
 
         # ==========================================
-        # Seed data komprehensif (dev-v2)
+        # Seed data riil PT Kadatuan Koffie Nusantara
         # ==========================================
-        seed_comprehensive_data()
+        kadatuan_project = seed_kadatuan_data()
 
         # ==========================================
         # Arsitektur traceability BARU (plan revisi terbaru).
@@ -357,6 +468,9 @@ if __name__ == "__main__":
         # ==========================================
         from seed_sdg_contribution import run as seed_sdg_contribution
         seed_sdg_contribution()
+
+        # Hubungkan project Kadatuan ke SDG 1, 2, 8, 12, 13, 15 (butuh SdgMaster di atas).
+        link_project_sdgs(kadatuan_project)
 
         # ==========================================
         # Upload SDG logos ke MinIO (jika USE_MINIO=true).

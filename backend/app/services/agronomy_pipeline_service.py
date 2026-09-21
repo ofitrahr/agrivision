@@ -127,9 +127,6 @@ class AgronomyPipelineService:
                     source="GEE Sentinel-2 + Regresi Linear NPK Kadatuan"
                 ))
 
-            # Layer komposit 'soilnpk': indikator gabungan (rata-rata sederhana N/P/K per piksel)
-            # dipakai untuk ringkasan peta/statistik, BUKAN nilai fisik ternormalisasi satuan
-            # (N dalam %, P & K dalam mg/kg berbeda satuan).
             composite_npk = (n_val + p_val + k_val) / 3.0
             new_layers.append(GisLayer(
                 farm_id=farm.id,
