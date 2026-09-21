@@ -67,10 +67,12 @@
   --radius-xl:  32px;
   --radius-pill: 9999px;
 
-  /* Shadows (Anti-Slop: No thick blurred shadows) */
-  --shadow-soft:    none;
-  --shadow-card:    none;
-  --shadow-elevated:0 4px 12px rgba(5, 59, 38, 0.05);
+  /* Shadows — Purposeful, not decorative */
+  --shadow-soft:    0 1px 3px rgba(5, 59, 38, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-card:    0 2px 8px rgba(5, 59, 38, 0.06);
+  --shadow-elevated:0 4px 16px rgba(5, 59, 38, 0.08);
+  --shadow-hover:   0 8px 24px -4px rgba(17, 106, 58, 0.16), 0 2px 8px rgba(17, 106, 58, 0.08);
+  --shadow-gold:    0 8px 24px -4px rgba(253, 177, 52, 0.24), 0 2px 8px rgba(253, 177, 52, 0.10);
 
   /* Layout */
   --sidebar-width: 280px;
@@ -80,6 +82,7 @@
   --transition: 200ms ease;
   --transition-spring: 350ms cubic-bezier(0.16, 1, 0.3, 1);
   --transition-bounce: 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-smooth: 280ms cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Legacy Variables for Backward Compatibility */
   --text-main: var(--color-text-main);
@@ -112,8 +115,8 @@ body {
   font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.5;
-  color: var(--color-on-surface);
-  background-color: var(--color-surface);
+  color: #374151;
+  background-color: #ffffff;
   min-height: 100vh;
 }
 
@@ -136,7 +139,41 @@ img { max-width: 100%; display: block; }
 .app-layout {
   display: flex;
   min-height: 100vh;
-  background: #ffffff;
+  background: var(--color-surface, #f6faf7);
+}
+
+/* Organic background orbs — subtle floating animation */
+.app-layout::before {
+  content: '';
+  position: fixed;
+  top: -200px;
+  right: -200px;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(196, 221, 173, 0.45) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: bg-float 18s ease-in-out infinite alternate;
+}
+
+.app-layout::after {
+  content: '';
+  position: fixed;
+  bottom: -150px;
+  left: -150px;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(253, 177, 52, 0.18) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: bg-float 22s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes bg-float {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(20px, 15px) scale(1.06); }
 }
 
 /* ─── SIDEBAR ────────────────────────────────────── */
@@ -147,7 +184,7 @@ img { max-width: 100%; display: block; }
   height: 100vh;
   width: var(--sidebar-width);
   background: #ffffff;
-  border-right: none;
+  border-right: 1px solid rgba(229, 231, 235, 0.8);
   display: flex;
   flex-direction: column;
   padding: 20px 0 var(--space-md);
@@ -155,6 +192,24 @@ img { max-width: 100%; display: block; }
   overflow-y: auto;
   overflow-x: hidden;
   transition: transform var(--transition-spring), left var(--transition-spring);
+  /* Subtle glassmorphic quality */
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(0px); /* activate if page has bg */
+}
+
+/* Premium custom scrollbar for sidebar */
+.sidebar::-webkit-scrollbar {
+  width: 3px;
+}
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(17, 106, 58, 0.15);
+  border-radius: 3px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(17, 106, 58, 0.3);
 }
 .sidebar-brand {
   display: flex;
@@ -172,16 +227,16 @@ img { max-width: 100%; display: block; }
   height: 32px;
   border-radius: 8px;
   background: transparent;
-  border: 1px solid var(--color-border-muted);
-  color: var(--color-text-muted);
+  border: 1px solid #e5e7eb;
+  color: #374151;
   cursor: pointer;
-  transition: all var(--transition-bounce);
+  transition: all 0.2s ease-in-out;
   flex-shrink: 0;
 }
 .sidebar-collapse-btn:hover {
-  background: #eef6f1;
-  border-color: #b8d9c5;
-  color: #053b26;
+  background: rgba(17, 106, 58, 0.05);
+  border-color: #c8ddad;
+  color: #116a3a;
   transform: scale(1.05);
 }
 .sidebar-collapse-btn:active {
@@ -206,7 +261,7 @@ img { max-width: 100%; display: block; }
   line-height: 1;
 }
 .brand-agri {
-  color: #126a3a;
+  color: #116a3a;
 }
 .brand-vision {
   color: #fdb134;
@@ -249,40 +304,45 @@ img { max-width: 100%; display: block; }
   border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-text-muted);
-  transition: all var(--transition);
+  color: #374151;
+  background: transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   margin-bottom: 4px;
   white-space: nowrap;
+  border: 1px solid transparent;
 }
 .sidebar-nav-item:hover {
-  background: #f4f6f5;
-  color: var(--color-text-main);
+  background: rgba(17, 106, 58, 0.06);
+  color: #116a3a;
+  transform: translateX(2px);
 }
-.sidebar-nav-item.active {
-  background: #e6f4eb;
-  color: #053b26;
+.sidebar-nav-item.active,
+.sidebar-nav-item:active {
+  background: rgba(17, 106, 58, 0.09);
+  border-color: rgba(17, 106, 58, 0.12);
+  color: #116a3a;
   font-weight: 600;
 }
 .sidebar-nav-item.active::before {
   content: '';
   position: absolute;
-  left: 4px;
+  left: 0;
   top: 50%;
   transform: translateY(-50%);
-  height: 16px;
-  width: 4px;
-  background: #116a3a;
-  border-radius: 4px;
+  height: 20px;
+  width: 3px;
+  background: linear-gradient(180deg, #116a3a 0%, #1f5438 100%);
+  border-radius: 0 3px 3px 0;
 }
 
 .sidebar-promo-card {
-  background: #012d1d;
+  background: #116a3a;
   border-radius: 16px;
   padding: 16px;
   color: #ffffff;
   margin: 16px 12px 0 12px;
-  box-shadow: 0 8px 16px rgba(1, 45, 29, 0.15);
+  box-shadow: none;
 }
 
 .sidebar-footer {
@@ -291,8 +351,8 @@ img { max-width: 100%; display: block; }
   margin-top: auto;
 }
 .sidebar-footer-card {
-  background: #f7faf8;
-  border: 1px solid #e0ebe4;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 16px;
   padding: 12px 14px;
 }
@@ -306,25 +366,26 @@ img { max-width: 100%; display: block; }
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #053b26;
-  color: white;
+  background: rgba(17, 106, 58, 0.1);
+  color: #116a3a;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 14px;
   flex-shrink: 0;
+  border: 1px solid rgba(17, 106, 58, 0.2);
 }
 .sidebar-user-name {
   font-size: 13.5px;
   font-weight: 700;
-  color: #053b26;
+  color: #1f2937;
   line-height: 1.25;
 }
 .sidebar-user-role {
   font-size: 12px;
   font-weight: 400;
-  color: #5c7a6d;
+  color: #6b7280;
   margin-top: 2px;
 }
 .sidebar-logout {
@@ -337,6 +398,8 @@ img { max-width: 100%; display: block; }
   padding: 4px 0;
 }
 .sidebar-logout:hover { color: var(--color-error); }
+/* ─── SIDEBAR FOOTER BUTTONS ───────────────────────────────── */
+/* Profil → Hijau solid cukup tebal (Main Green) */
 .sidebar-footer-btn {
   display: inline-flex;
   align-items: center;
@@ -347,26 +410,36 @@ img { max-width: 100%; display: block; }
   border-radius: 8px;
   font-size: 12.5px;
   font-weight: 600;
-  color: #375345;
-  background: #ffffff;
-  border: 1px solid #dce6e0;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: var(--font-body);
+  color: #116a3a;
+  background: #e6f4eb;        /* hijau muda solid, cukup terlihat */
+  border: 1px solid #b7d9c3;
 }
 .sidebar-footer-btn .material-symbols-outlined {
   font-size: 16px;
   color: inherit;
 }
+/* Hover Profil → Hijau Tua (lebih gelap dari base) */
 .sidebar-footer-btn:hover {
-  color: #053b26;
-  border-color: #b8d9c5;
-  background: #eef6f1;
+  color: #ffffff;
+  background: #0d502c;        /* Forest Green gelap */
+  border-color: #0d502c;
+  transform: translateY(-2px);
 }
-.sidebar-footer-btn-danger:hover {
+/* Base Keluar → Merah muda solid, cukup terlihat */
+.sidebar-footer-btn-danger {
   color: #ba1a1a;
-  border-color: #fecaca;
-  background: #fdf3f3;
+  background: #fde8e8;
+  border-color: #f4a6a6;
+}
+/* Hover Keluar → Merah Tua gelap */
+.sidebar-footer-btn-danger:hover {
+  color: #ffffff;
+  background: #7a0909;        /* Merah tua gelap */
+  border-color: #7a0909;
+  transform: translateY(-2px);
 }
 
 
@@ -381,23 +454,23 @@ img { max-width: 100%; display: block; }
   box-sizing: border-box;
 }
 .topnav-toggle-btn {
-  background: var(--color-surface-white);
-  border: 1px solid var(--color-border-muted);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  color: var(--color-text-muted);
+  color: #374151;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 34px;
   height: 34px;
   cursor: pointer;
-  transition: all var(--transition-bounce);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease-in-out;
+  box-shadow: none;
 }
 .topnav-toggle-btn:hover {
-  background: #eef6f1;
-  border-color: #b8d9c5;
-  color: #053b26;
+  background: rgba(17, 106, 58, 0.05);
+  border-color: #c8ddad;
+  color: #116a3a;
   transform: scale(1.05);
 }
 .topnav-toggle-btn:active {
@@ -419,39 +492,50 @@ img { max-width: 100%; display: block; }
   gap: 16px;
   transition: opacity 250ms ease, transform var(--transition-spring), visibility 250ms ease;
 }
+/* ─── TOPNAV ICON BUTTONS (Pengaturan = Dark Grey) ──────── */
 .topnav-icon-btn {
-  color: var(--color-text-muted);
-  transition: color var(--transition), transform var(--transition);
+  /* Default: Dark Grey — untuk notifikasi, histori, pengaturan */
+  color: #374151;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #f4f6f5;
-  border: 1px solid var(--color-border-muted);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   cursor: pointer;
 }
 .topnav-icon-btn:hover {
-  color: var(--color-text-main);
-  border-color: #012d1d;
-  background: #eaefec;
+  /* Hover → Dark Grey gelap (#1f2937) dengan tint halus */
+  color: #1f2937;
+  border-color: #9ca3af;
+  background: #f3f4f6;
+  transform: translateY(-1px);
 }
 .topnav-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 2px solid var(--color-border-muted);
+  border: 2px solid #e5e7eb;
   object-fit: cover;
   cursor: pointer;
-  background: #f4f6f5;
+  background: rgba(17, 106, 58, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
-  color: var(--color-text-main);
+  color: #116a3a;
   overflow: hidden;
+  transition: border-color 0.2s ease-in-out;
+}
+/* Avatar → Main Green hover (navigasi ke profil) */
+.topnav-avatar:hover {
+  border-color: #116a3a;
+  background: rgba(17, 106, 58, 0.12);
+  transform: scale(1.05);
 }
 
 /* ─── MAIN CONTENT (FLOATING CARD CANVAS) ───────── */
@@ -460,11 +544,11 @@ img { max-width: 100%; display: block; }
   margin-top: 16px;
   margin-right: 16px;
   margin-bottom: 16px;
-  background: #f4f6f5;
-  border-radius: 24px;
+  background: #f8faf9;
+  border-radius: 20px;
   padding: 12px 28px 28px;
-  border: none;
-  box-shadow: none;
+  border: 1px solid rgba(229, 235, 228, 0.8);
+  box-shadow: 0 1px 4px rgba(5, 59, 38, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   min-height: calc(100vh - 32px);
   width: calc(100% - var(--sidebar-width) - 32px);
   transition: margin-left var(--transition-spring), width var(--transition-spring);
@@ -553,14 +637,14 @@ img { max-width: 100%; display: block; }
   font-family: var(--font-display);
   font-size: 24px;
   font-weight: 700;
-  color: var(--color-text-main);
+  color: #1f2937;
   line-height: 1.25;
   margin: 0 0 6px 0;
 }
 .page-subtitle,
 .page-description {
   font-size: 14px;
-  color: var(--color-text-muted);
+  color: #374151;
   margin: 0;
   line-height: 1.5;
 }
@@ -619,24 +703,44 @@ img { max-width: 100%; display: block; }
 }
 
 .stat-card {
-  background: var(--color-surface-white);
+  background: #ffffff;
   border-radius: var(--radius-md);
   padding: 22px;
-  border: 1px solid var(--color-border-muted);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  box-shadow: var(--shadow-soft);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   min-height: 136px;
-  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+  transition: border-color var(--transition-smooth),
+              box-shadow var(--transition-smooth),
+              transform var(--transition-smooth),
+              background var(--transition-smooth);
 }
 
+/* Stat card entry animation */
+.stat-card {
+  animation: card-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stat-card:nth-child(1) { animation-delay: 0.05s; }
+.stat-card:nth-child(2) { animation-delay: 0.10s; }
+.stat-card:nth-child(3) { animation-delay: 0.15s; }
+.stat-card:nth-child(4) { animation-delay: 0.20s; }
+
+/* Hover → refined lift with brand green border glow */
 .stat-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--color-border-gray);
-  box-shadow: 0 4px 12px rgba(5, 59, 38, 0.05);
+  transform: translateY(-4px);
+  border-color: rgba(17, 106, 58, 0.25);
+  background: #fbfdfb;
+  box-shadow: 0 8px 24px -4px rgba(17, 106, 58, 0.12),
+              0 2px 8px rgba(17, 106, 58, 0.06),
+              inset 0 0 0 1px rgba(17, 106, 58, 0.06);
 }
 
 .stat-card-clickable {
@@ -723,9 +827,12 @@ img { max-width: 100%; display: block; }
   opacity: 0.20;
 }
 
+/* Dark card hover → lebih gelap + angkat */
 .stat-card-dark:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 4px 12px rgba(5, 59, 38, 0.15);
+  background: #0b4528;
+  border-color: #0b4528;
+  box-shadow: 0 6px 18px rgba(5, 59, 38, 0.20);
+  transform: translateY(-3px);
 }
 
 .stat-card-dark .stat-label {
@@ -834,22 +941,33 @@ img { max-width: 100%; display: block; }
 /* ─── CARDS ──────────────────────────────────────── */
 .card {
   background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  border-radius: 14px;
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  box-shadow: var(--shadow-soft);
   overflow: hidden;
+  transition: border-color var(--transition-smooth),
+              box-shadow var(--transition-smooth),
+              transform var(--transition-smooth),
+              background var(--transition-smooth);
+}
+.card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(17, 106, 58, 0.22);
+  background: #fbfdfb;
+  box-shadow: 0 8px 24px -4px rgba(17, 106, 58, 0.11),
+              0 2px 8px rgba(17, 106, 58, 0.05);
 }
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #e5e7eb;
 }
 .card-title {
   font-size: 15px;
   font-weight: 700;
-  color: #0f172a;
+  color: #1f2937;
 }
 .card-body { padding: 20px; }
 
@@ -863,34 +981,34 @@ img { max-width: 100%; display: block; }
 .data-table thead th {
   font-size: 11px;
   font-weight: 700;
-  color: var(--color-text-muted);
+  color: #374151;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--color-border-muted);
+  border-bottom: 1px solid #e5e7eb;
   text-align: left;
   white-space: nowrap;
 }
 .data-table tbody tr {
-  border-bottom: 1px solid var(--color-surface-container-high);
-  transition: background var(--transition);
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.2s ease-in-out;
 }
 .data-table tbody tr:nth-child(odd) {
-  background: var(--color-table-stripe);
+  background: #fafafa;
 }
 .data-table tbody tr:hover {
-  background: rgba(234, 239, 236, 0.5);
+  background: rgba(200, 221, 173, 0.2);
 }
 .data-table tbody td {
   padding: 10px 16px;
-  color: var(--color-on-surface);
+  color: #374151;
   vertical-align: middle;
-  border-right: 1px solid var(--color-surface-container-high);
+  border-right: 1px solid #e5e7eb;
 }
 .data-table tbody td:last-child {
   border-right: none;
 }
-.data-table tbody td:first-child { font-weight: 500; color: var(--color-text-main); }
+.data-table tbody td:first-child { font-weight: 500; color: #1f2937; }
 
 /* ─── BADGES ─────────────────────────────────────── */
 .badge {
@@ -928,45 +1046,57 @@ img { max-width: 100%; display: block; }
   border-radius: var(--radius-pill);
   font-size: 14px;
   font-weight: 600;
-  transition: all var(--transition);
+  transition: all var(--transition-smooth);
   white-space: nowrap;
   cursor: pointer;
   border: none;
   font-family: var(--font-body);
+  letter-spacing: 0.01em;
 }
+/* Primary: Main Green */
 .btn-primary {
-  background: var(--color-main-gold);
-  color: #1a1a1a;
-  box-shadow: 0 2px 8px rgba(253, 177, 52, 0.25);
+  background: #116a3a;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(17, 106, 58, 0.25);
 }
 .btn-primary:hover {
-  background: var(--color-dark-amber);
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.25);
+  background: #0d502c;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(17, 106, 58, 0.28);
 }
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(17, 106, 58, 0.25);
+}
+/* Secondary: Main Gold */
 .btn-secondary {
-  background: var(--color-primary-container);
-  color: white;
-  box-shadow: 0 2px 8px rgba(5, 59, 38, 0.2);
+  background: #fdb134;
+  color: #1f2937;
+  box-shadow: 0 1px 3px rgba(253, 177, 52, 0.25);
 }
 .btn-secondary:hover {
-  background: var(--color-primary);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(5, 59, 38, 0.25);
+  background: #d97706;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-gold);
 }
+.btn-secondary:active {
+  transform: translateY(0);
+}
+/* Ghost */
 .btn-ghost {
-  background: var(--color-surface-white);
-  color: var(--color-text-main);
-  border: 1px solid var(--color-border-muted);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #e5e7eb;
 }
 .btn-ghost:hover {
-  background: #f9fafb;
-  border-color: #cbd5e1;
-  color: var(--color-primary-container);
+  background: rgba(17, 106, 58, 0.04);
+  border-color: #c8ddad;
+  color: #116a3a;
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+.btn-ghost:active {
+  transform: translateY(0);
 }
 .btn-sm { padding: 6px 16px; font-size: 13px; }
 .btn-icon { padding: 8px; border-radius: 50%; width: 36px; height: 36px; justify-content: center; }
@@ -975,24 +1105,25 @@ img { max-width: 100%; display: block; }
 .form-input {
   width: 100%;
   padding: 10px 16px;
-  background: var(--color-surface-white);
-  border: 1px solid var(--color-border-muted);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: var(--radius-sm);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   font-size: 14px;
-  color: var(--color-text-main);
+  color: #374151;
   outline: none;
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   font-family: var(--font-body);
 }
 .form-input:focus {
-  border-color: var(--color-primary-container);
-  box-shadow: 0 0 0 3px rgba(5, 59, 38, 0.08);
+  border-color: #116a3a;
+  box-shadow: 0 0 0 3px rgba(17, 106, 58, 0.12), 0 1px 2px rgba(0, 0, 0, 0.04);
+  background: #fafff9;
 }
 .form-label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-main);
+  color: #1f2937;
   margin-bottom: 6px;
   display: block;
 }
@@ -1006,16 +1137,24 @@ img { max-width: 100%; display: block; }
   border-radius: var(--radius-pill);
   font-size: 13px;
   font-weight: 600;
-  transition: all var(--transition);
+  transition: all 0.2s ease-in-out;
   cursor: pointer;
   border: none;
   background: none;
-  color: var(--color-text-muted);
+  color: #374151;
   font-family: var(--font-body);
 }
-.action-btn:hover { color: var(--color-text-main); background: var(--color-surface-container-low); }
+/* Action btn default hover → Dark Grey gelap */
+.action-btn:hover { color: #1f2937; background: #f3f4f6; }
+/* View btn → tetap emerald (informatif) */
 .action-btn.view:hover,
-.action-btn.view-btn:hover { color: var(--color-dark-emerald); }
+.action-btn.view-btn:hover { color: var(--color-dark-emerald); background: rgba(5, 96, 70, 0.05); }
+/* Edit inline btn → Dark Grey */
+.action-btn.edit:hover,
+.action-btn.edit-btn:hover { color: #374151; background: #f3f4f6; }
+/* Delete inline btn → Red */
+.action-btn.delete:hover,
+.action-btn.delete-btn:hover { color: #ba1a1a; background: rgba(186, 26, 26, 0.05); }
 
 /* ─── FARMER CARD & MODAL BUTTON HOVER STATES ──────── */
 .farmer-card-action-btn {
@@ -1034,53 +1173,64 @@ img { max-width: 100%; display: block; }
   font-family: inherit;
   width: 100%;
 }
+/* Edit → Dark Grey solid, hover jauh lebih gelap */
 .farmer-card-action-btn.edit-btn {
-  color: #012d1d;
+  color: #374151;
+  background: #f3f4f6;      /* abu solid, cukup tebal */
+  border: 1px solid #d1d5db;
 }
 .farmer-card-action-btn.edit-btn:hover {
-  background: #eaefec;
-  border-color: #012d1d;
+  background: #374151;      /* abu gelap solid */
+  border-color: #374151;
+  color: #ffffff;
 }
+/* Hapus → Merah muda solid, hover merah tua solid */
 .farmer-card-action-btn.delete-btn {
   color: #ba1a1a;
+  background: #fde8e8;      /* merah muda solid */
+  border: 1px solid #f4a6a6;
 }
 .farmer-card-action-btn.delete-btn:hover {
-  background: #ffdad6;
-  border-color: #ba1a1a;
+  background: #7a0909;      /* merah tua gelap solid */
+  border-color: #7a0909;
+  color: #ffffff;
 }
 
 .modal-btn-cancel {
   padding: 10px 20px;
   background: #ffffff;
-  border: 1px solid #E0EBE4;
+  border: 1px solid #e5e7eb;
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
-  color: #012d1d;
+  color: #374151;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.2s ease-in-out;
   font-family: inherit;
 }
 .modal-btn-cancel:hover {
-  background: #eaefec;
-  border-color: #012d1d;
+  background: rgba(17, 106, 58, 0.05);
+  border-color: #c8ddad;
+  color: #116a3a;
 }
 
 .modal-btn-primary {
   padding: 10px 20px;
-  background: #012d1d;
-  border: 1px solid #012d1d;
+  background: #116a3a;
+  border: 1px solid #116a3a;
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 600;
   color: #ffffff;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.2s ease-in-out;
   font-family: inherit;
 }
+/* Modal primary hover → Forest Green gelap */
 .modal-btn-primary:hover {
-  background: #116a3a;
-  border-color: #116a3a;
+  background: #0d502c;
+  border-color: #0d502c;
+  transform: translateY(-2px);
 }
 
 .modal-btn-danger {
@@ -1095,9 +1245,11 @@ img { max-width: 100%; display: block; }
   transition: all var(--transition);
   font-family: inherit;
 }
+/* Danger hover → lebih gelap, tegas */
 .modal-btn-danger:hover {
-  background: #900c0c;
-  border-color: #900c0c;
+  background: #7a0909;
+  border-color: #7a0909;
+  transform: translateY(-2px);
 }
 
 .modal-close-btn {
@@ -1105,17 +1257,17 @@ img { max-width: 100%; display: block; }
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  color: #6C757D;
+  color: #374151;
   padding: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition);
+  transition: all 0.2s ease-in-out;
 }
 .modal-close-btn:hover {
-  background: #eaefec;
-  border-color: #E0EBE4;
-  color: #012d1d;
+  background: rgba(17, 106, 58, 0.05);
+  border-color: #e5e7eb;
+  color: #116a3a;
 }
 
 .avatar-change-btn {
@@ -1136,9 +1288,9 @@ img { max-width: 100%; display: block; }
   font-family: inherit;
 }
 .avatar-change-btn:hover {
-  background: #eaefec;
-  border-color: #5C7A6D;
-  color: #012d1d;
+  background: rgba(17, 106, 58, 0.05);
+  border-color: #c8ddad;
+  color: #116a3a;
 }
 .action-btn.edit:hover,
 .action-btn.edit-btn:hover { color: var(--color-dark-amber); }
@@ -1154,19 +1306,17 @@ img { max-width: 100%; display: block; }
   border-radius: var(--radius-pill);
   font-size: 14px;
   font-weight: 600;
-  transition: all var(--transition);
+  transition: all 0.2s ease-in-out;
   white-space: nowrap;
   cursor: pointer;
   border: none;
   font-family: var(--font-body);
-  background: var(--color-primary-container);
-  color: white;
-  box-shadow: 0 2px 8px rgba(5, 59, 38, 0.2);
+  background: #116a3a;
+  color: #ffffff;
 }
 .primary-btn:hover {
-  background: var(--color-primary);
+  background: #1f5438;
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(5, 59, 38, 0.25);
 }
 .primary-btn:disabled {
   opacity: 0.5;
@@ -1182,17 +1332,18 @@ img { max-width: 100%; display: block; }
   border-radius: var(--radius-pill);
   font-size: 14px;
   font-weight: 600;
-  transition: all var(--transition);
+  transition: all 0.2s ease-in-out;
   white-space: nowrap;
   cursor: pointer;
   font-family: var(--font-body);
   background: transparent;
-  color: var(--color-primary-container);
-  border: 1.5px solid var(--color-border-muted);
+  color: #116a3a;
+  border: 1.5px solid #e5e7eb;
 }
 .secondary-btn:hover {
-  background: var(--color-surface-container-low);
-  border-color: var(--color-primary-container);
+  background: rgba(17, 106, 58, 0.05);
+  border-color: #c8ddad;
+  color: #1f5438;
 }
 
 /* ─── CLOSE BUTTON ───────────────────────────────── */
@@ -1212,8 +1363,8 @@ img { max-width: 100%; display: block; }
   font-family: var(--font-body);
 }
 .close-btn:hover {
-  background: var(--color-surface-container);
-  color: var(--color-text-main);
+  background: rgba(17, 106, 58, 0.05);
+  color: #116a3a;
 }
 
 /* ─── MODAL ──────────────────────────────────────── */
@@ -1261,7 +1412,7 @@ img { max-width: 100%; display: block; }
   display: block;
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-main);
+  color: #1f2937;
   margin-bottom: 6px;
 }
 .form-group input,
@@ -1269,20 +1420,22 @@ img { max-width: 100%; display: block; }
 .form-group textarea {
   width: 100%;
   padding: 10px 16px;
-  background: var(--color-surface-container-low);
-  border: 1px solid var(--color-border-muted);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: var(--radius-sm);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   font-size: 14px;
-  color: var(--color-text-main);
+  color: #374151;
   outline: none;
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, background 0.2s ease-in-out;
   font-family: var(--font-body);
 }
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-  border-color: var(--color-primary-container);
-  box-shadow: 0 0 0 3px rgba(5, 59, 38, 0.08);
+  border-color: #116a3a;
+  box-shadow: 0 0 0 3px rgba(17, 106, 58, 0.12);
+  background: #fafff9;
 }
 .form-actions {
   display: flex;
@@ -1291,7 +1444,7 @@ img { max-width: 100%; display: block; }
   gap: 12px;
   margin-top: var(--space-md);
   padding-top: 16px;
-  border-top: 1px solid var(--color-border-muted);
+  border-top: 1px solid #e5e7eb;
 }
 
 /* ─── ADDITIONAL BADGES ──────────────────────────── */
@@ -1339,13 +1492,19 @@ img { max-width: 100%; display: block; }
 .w-full { width: 100%; }
 
 .skeleton-text {
-  background-color: var(--color-surface-container);
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-container) 25%,
+    #edf2ee 50%,
+    var(--color-surface-container) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
 }
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .5; }
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1402,8 +1561,8 @@ img { max-width: 100%; display: block; }
 }
 
 .agro-chip-active {
-  background: #c8e6c9;
-  color: #2e7d32;
+  background: rgba(17, 106, 58, 0.15);
+  color: var(--color-main-green);
 }
 
 .agro-chip-disabled {
@@ -1429,8 +1588,9 @@ img { max-width: 100%; display: block; }
   display: grid;
   grid-template-columns: 140px 1fr;
   padding: 10px 16px;
-  border-bottom: 1px solid #eef3f2;
+  border-bottom: 1px solid var(--color-border-muted);
   font-size: 13px;
+  transition: border-color 0.28s ease;
 }
 
 .agro-farm-row:last-child {
@@ -1440,11 +1600,13 @@ img { max-width: 100%; display: block; }
 .agro-farm-label {
   font-weight: 700;
   color: var(--color-text-main);
+  transition: color 0.28s ease;
 }
 
 .agro-farm-value {
   font-weight: 500;
-  color: var(--color-dark-gray);
+  color: var(--color-text-muted);
+  transition: color 0.28s ease;
 }
 
 .agro-btn-detail {
@@ -1454,19 +1616,19 @@ img { max-width: 100%; display: block; }
   gap: 8px;
   width: 100%;
   padding: 12px 20px;
-  background: var(--color-primary);
-  color: var(--color-pure-white);
+  background: #116a3a;
+  color: #ffffff;
   border: none;
   border-radius: 12px;
   font-size: 14px;
   font-weight: 700;
   font-family: var(--font-body);
   cursor: pointer;
-  transition: background var(--transition), opacity var(--transition);
+  transition: background 0.2s ease-in-out, opacity 0.2s ease-in-out;
 }
 
 .agro-btn-detail:hover {
-  background: var(--color-primary-container);
+  background: #1f5438;
 }
 
 .agro-btn-detail:disabled {
@@ -1514,21 +1676,21 @@ img { max-width: 100%; display: block; }
 
 .agro-project-item {
   padding: 12px 16px;
-  border: 1px solid var(--color-border-muted);
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
-  background: #f8fcfb;
+  background: #ffffff;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.2s ease-in-out;
 }
 
 .agro-project-item:hover {
-  border-color: var(--color-main-green);
-  background: #f0f9f4;
+  border-color: #c8ddad;
+  background: rgba(200, 221, 173, 0.15);
 }
 
 .agro-project-item.active {
-  border-color: var(--color-main-green);
-  background: #e6f4eb;
+  border-color: #116a3a;
+  background: rgba(200, 221, 173, 0.25);
 }
 
 .agro-project-header {
@@ -1743,21 +1905,22 @@ img { max-width: 100%; display: block; }
   gap: 8px;
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid var(--color-border-muted);
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: var(--color-surface-white);
+  background: #ffffff;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-text-main);
+  color: #374151;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.2s ease-in-out;
   font-family: var(--font-body);
   margin-bottom: 6px;
 }
 
 .agro-btn-export:hover {
-  border-color: var(--color-main-green);
-  background: #f0f9f4;
+  border-color: #c8ddad;
+  background: rgba(17, 106, 58, 0.05);
+  color: #116a3a;
 }
 
 .agro-export-label {
@@ -2260,6 +2423,510 @@ img { max-width: 100%; display: block; }
   margin-bottom: 16px;
 }
 
+/* ═══════════════════════════════════════════════════════
+   PREMIUM INTERACTION LAYER — AgriVision Design System
+   Brand Hex Codes (strict):
+     Base Green:         #116a3a
+     Dark Green (Hover): #0d502c
+     Dark Gold (Hover):  #d97706
+     Forest Green:       #1f5438
+   Philosophy: Lift + Glow, not full color takeover
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Shared premium transition tokens ────────────────── */
+:root {
+  --hover-transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  --hover-transition-fast: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-hover-green: 0 8px 24px -4px rgba(17, 106, 58, 0.18), 0 2px 8px rgba(17, 106, 58, 0.08);
+  --shadow-hover-gold:  0 8px 24px -4px rgba(253, 177, 52, 0.24), 0 2px 8px rgba(253, 177, 52, 0.10);
+  --shadow-hover-dark:  0 12px 28px -6px rgba(5, 59, 38, 0.28), 0 4px 12px rgba(5, 59, 38, 0.12);
+}
+
+/* ── PRIMARY BUTTONS ─────────────────────────────────── */
+.btn-primary,
+.primary-btn,
+.modal-btn-primary,
+.agro-btn-detail {
+  transition: var(--hover-transition);
+}
+.btn-primary:hover,
+.primary-btn:hover,
+.modal-btn-primary:hover,
+.agro-btn-detail:hover:not(:disabled) {
+  background: #0d502c;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover-green);
+  color: #ffffff;
+}
+.btn-primary:active,
+.primary-btn:active,
+.modal-btn-primary:active,
+.agro-btn-detail:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ── SECONDARY / GOLD BUTTONS ────────────────────────── */
+.btn-secondary {
+  transition: var(--hover-transition);
+}
+.btn-secondary:hover {
+  background: #d97706;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover-gold);
+}
+.btn-secondary:active {
+  transform: translateY(0);
+}
+
+/* ── GHOST / OUTLINE BUTTONS ─────────────────────────── */
+.btn-ghost,
+.secondary-btn,
+.modal-btn-cancel,
+.agro-btn-export {
+  transition: var(--hover-transition);
+}
+.btn-ghost:hover,
+.secondary-btn:hover,
+.modal-btn-cancel:hover,
+.agro-btn-export:hover {
+  background: rgba(17, 106, 58, 0.04);
+  border-color: #c8ddad;
+  transform: translateY(-1px);
+  color: #116a3a;
+}
+.btn-ghost:active,
+.secondary-btn:active,
+.modal-btn-cancel:active,
+.agro-btn-export:active {
+  transform: translateY(0);
+}
+
+/* ── STAT CARDS & GENERAL CARDS — Polished Solid Fill Hover ── */
+.stat-card,
+.agro-kpi-card,
+.card,
+.agro-card,
+.agro-project-item {
+  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Green Fill Hover for Default Cards */
+.stat-card:not(.stat-card-dark):hover,
+.agro-kpi-card:hover,
+.card:hover,
+.agro-card:hover {
+  transform: translateY(-4px);
+  border-color: #0d502c !important;
+  background: #116a3a !important;
+  box-shadow: var(--shadow-hover-green) !important;
+}
+
+/* Dark stat card — stays darker green */
+.stat-card-dark:hover {
+  background: #0b4528 !important;
+  border-color: #0b4528 !important;
+  box-shadow: var(--shadow-hover-dark) !important;
+  transform: translateY(-4px);
+}
+
+/* Smooth transition for all text inside cards */
+.stat-card *, .card *, .agro-card *, .agro-kpi-card *, .agro-project-item * {
+  transition: color 0.28s ease, background 0.28s ease, border-color 0.28s ease;
+}
+
+/* Default colors for StatCard inner elements (moved from inline styles) */
+.stat-unit-inline, .stat-unit-label, .stat-subtext {
+  color: var(--color-text-muted);
+}
+.stat-card-dark .stat-unit-inline, .stat-card-dark .stat-unit-label {
+  color: rgba(255, 255, 255, 0.85);
+}
+.stat-card-dark .stat-subtext {
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+/* Force readable white text on Green Hover (only specific text elements) */
+.stat-card:not(.stat-card-dark):not(.card-accent):hover h1, 
+.stat-card:not(.stat-card-dark):not(.card-accent):hover h2, 
+.stat-card:not(.stat-card-dark):not(.card-accent):hover h3, 
+.stat-card:not(.stat-card-dark):not(.card-accent):hover h4, 
+.stat-card:not(.stat-card-dark):not(.card-accent):hover p, 
+.stat-card:not(.stat-card-dark):not(.card-accent):hover label,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .stat-label,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .stat-value,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .stat-value span,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .stat-unit-inline,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .stat-unit-label,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .stat-subtext,
+.card:not(.card-accent):hover h1, .card:not(.card-accent):hover h2, .card:not(.card-accent):hover h3, .card:not(.card-accent):hover h4, .card:not(.card-accent):hover p, .card:not(.card-accent):hover label,
+.agro-card:not(.card-accent):hover h1, .agro-card:not(.card-accent):hover p, .agro-card:not(.card-accent):hover label,
+.agro-kpi-card:not(.card-accent):hover h1, .agro-kpi-card:not(.card-accent):hover p, .agro-kpi-card:not(.card-accent):hover label,
+.agro-project-item:not(.card-accent):hover h1, .agro-project-item:not(.card-accent):hover p, .agro-project-item:not(.card-accent):hover label {
+  color: #ffffff !important;
+}
+
+/* Fix Inputs inside Green Hover */
+.stat-card:not(.stat-card-dark):not(.card-accent):hover input, 
+.stat-card:not(.stat-card-dark):not(.card-accent):hover select, 
+.stat-card:not(.stat-card-dark):not(.card-accent):hover textarea,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover div[style*="padding"],
+.card:not(.card-accent):hover input, 
+.card:not(.card-accent):hover select, 
+.card:not(.card-accent):hover textarea,
+.card:not(.card-accent):hover div[style*="padding"],
+.agro-card:not(.card-accent):hover input, 
+.agro-card:not(.card-accent):hover select, 
+.agro-card:not(.card-accent):hover textarea,
+.agro-card:not(.card-accent):hover div[style*="padding"],
+.agro-kpi-card:not(.card-accent):hover input, 
+.agro-kpi-card:not(.card-accent):hover select, 
+.agro-kpi-card:not(.card-accent):hover textarea {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+.stat-card:hover input::placeholder, .card:hover input::placeholder, .agro-card:hover input::placeholder, .agro-kpi-card:hover input::placeholder {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Fix agro-farm-* elements inside Green Hover */
+.agro-card:not(.card-accent):hover .agro-farm-label,
+.agro-card:not(.card-accent):hover .agro-farm-value,
+.agro-card:not(.card-accent):hover .agro-farm-summary,
+.agro-card:not(.card-accent):hover .agro-projects-title,
+.agro-card:not(.card-accent):hover .agro-project-name,
+.agro-card:not(.card-accent):hover .agro-card-title,
+.agro-card:not(.card-accent):hover .agro-card-subtitle,
+.agro-card:not(.card-accent):hover span {
+  color: #ffffff !important;
+}
+.agro-card:not(.card-accent):hover .agro-farm-row {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+.agro-card:not(.card-accent):hover .agro-farm-table {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+.agro-card:not(.card-accent):hover .agro-btn-detail {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+.agro-card:not(.card-accent):hover .agro-btn-detail:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Fix Tables inside Green Hover */
+.card:not(.card-accent):hover table,
+.card:not(.card-accent):hover th,
+.card:not(.card-accent):hover td,
+.card:not(.card-accent):hover tr,
+.agro-card:not(.card-accent):hover table,
+.agro-card:not(.card-accent):hover th,
+.agro-card:not(.card-accent):hover td,
+.agro-card:not(.card-accent):hover tr,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover table,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover th,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover td,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover tr {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background: transparent !important;
+}
+
+/* Subtle translucent badges/chips on Green Hover */
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .stat-badge,
+.card:not(.card-accent):hover .stat-badge,
+.agro-card:not(.card-accent):hover .stat-badge,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .agro-chip,
+.card:not(.card-accent):hover .agro-chip,
+.agro-card:not(.card-accent):hover .agro-chip,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover span[style*="border-radius"],
+.stat-card:not(.stat-card-dark):not(.card-accent):hover div[style*="border-radius"],
+.card:not(.card-accent):hover span[style*="border-radius"],
+.card:not(.card-accent):hover div[style*="border-radius"],
+.agro-card:not(.card-accent):hover span[style*="border-radius"],
+.agro-card:not(.card-accent):hover div[style*="border-radius"] {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+/* Silhouette on Green hover — elegant subtle white */
+.stat-card:hover .stat-card-silhouette {
+  color: rgba(255, 255, 255, 0.18) !important;
+  opacity: 1;
+  transform: rotate(0deg) scale(1.06);
+}
+
+/* Farm card hover buttons on Green */
+.card:not(.card-accent):hover .btn-ghost,
+.card:not(.card-accent):hover .farmer-card-action-btn,
+.card:not(.card-accent):hover .action-btn,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .btn-ghost,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .farmer-card-action-btn,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .action-btn,
+.agro-card:not(.card-accent):hover .btn-ghost,
+.agro-card:not(.card-accent):hover .farmer-card-action-btn,
+.agro-card:not(.card-accent):hover .action-btn {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+}
+.card:not(.card-accent):hover .btn-ghost:hover,
+.card:not(.card-accent):hover .farmer-card-action-btn:hover,
+.card:not(.card-accent):hover .action-btn:hover,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .btn-ghost:hover,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .farmer-card-action-btn:hover,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .action-btn:hover,
+.agro-card:not(.card-accent):hover .btn-ghost:hover,
+.agro-card:not(.card-accent):hover .farmer-card-action-btn:hover,
+.agro-card:not(.card-accent):hover .action-btn:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+.card:not(.card-accent):hover .btn-primary,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover .btn-primary,
+.agro-card:not(.card-accent):hover .btn-primary {
+  background: #ffffff !important;
+  color: #116a3a !important;
+}
+
+/* Project item specific green hover */
+.agro-project-item:hover {
+  transform: translateX(4px);
+  border-color: #0d502c !important;
+  background: #116a3a !important;
+  box-shadow: var(--shadow-hover-green) !important;
+}
+
+/* ── ACCENT VARIANT (Gold Card) ──────────────────────── */
+.card-accent:hover,
+.stat-card.card-accent:not(.stat-card-dark):hover,
+.agro-card.card-accent:hover {
+  background: #fdb134 !important;
+  border-color: #eab308 !important;
+  box-shadow: var(--shadow-hover-gold) !important;
+}
+
+/* Force readable DARK text on Gold Hover for contrast */
+.card-accent:hover h1, .card-accent:hover h2, .card-accent:hover h3, .card-accent:hover h4, .card-accent:hover p, .card-accent:hover label,
+.stat-card.card-accent:not(.stat-card-dark):hover h1, .stat-card.card-accent:not(.stat-card-dark):hover p,
+.agro-card.card-accent:hover h1, .agro-card.card-accent:hover p {
+  color: #053b26 !important; /* Premium dark green on gold */
+}
+
+/* Fix Inputs inside Gold Hover */
+.stat-card.card-accent:not(.stat-card-dark):hover input, 
+.stat-card.card-accent:not(.stat-card-dark):hover select, 
+.stat-card.card-accent:not(.stat-card-dark):hover textarea,
+.stat-card.card-accent:not(.stat-card-dark):hover div[style*="padding"],
+.card-accent:hover input, 
+.card-accent:hover select, 
+.card-accent:hover textarea,
+.card-accent:hover div[style*="padding"],
+.agro-card.card-accent:hover input, 
+.agro-card.card-accent:hover select, 
+.agro-card.card-accent:hover textarea,
+.agro-card.card-accent:hover div[style*="padding"] {
+  background: rgba(5, 59, 38, 0.08) !important;
+  color: #053b26 !important;
+  border-color: rgba(5, 59, 38, 0.15) !important;
+}
+
+/* Fix Tables inside Gold Hover */
+.card-accent:hover table,
+.card-accent:hover th,
+.card-accent:hover td,
+.card-accent:hover tr,
+.agro-card.card-accent:hover table,
+.agro-card.card-accent:hover th,
+.agro-card.card-accent:hover td,
+.agro-card.card-accent:hover tr {
+  color: #053b26 !important;
+  border-color: rgba(5, 59, 38, 0.15) !important;
+  background: transparent !important;
+}
+
+/* Silhouette on Gold hover */
+.card-accent:hover .stat-card-silhouette,
+.stat-card.card-accent:not(.stat-card-dark):hover .stat-card-silhouette,
+.agro-card.card-accent:hover .stat-card-silhouette {
+  color: rgba(5, 59, 38, 0.12) !important;
+}
+
+/* Translucent badges/buttons on Gold Hover */
+.card-accent:hover .stat-badge,
+.card-accent:hover .agro-chip,
+.card-accent:hover span[style*="border-radius"],
+.card-accent:hover div[style*="border-radius"],
+.stat-card.card-accent:not(.stat-card-dark):hover .stat-badge,
+.stat-card.card-accent:not(.stat-card-dark):hover .agro-chip,
+.stat-card.card-accent:not(.stat-card-dark):hover span[style*="border-radius"],
+.stat-card.card-accent:not(.stat-card-dark):hover div[style*="border-radius"],
+.agro-card.card-accent:hover .stat-badge,
+.agro-card.card-accent:hover .agro-chip,
+.agro-card.card-accent:hover span[style*="border-radius"],
+.agro-card.card-accent:hover div[style*="border-radius"],
+.card-accent:hover .btn-ghost,
+.card-accent:hover .farmer-card-action-btn,
+.card-accent:hover .action-btn {
+  background: rgba(5, 59, 38, 0.08) !important;
+  color: #053b26 !important;
+  border-color: transparent !important;
+}
+.card-accent:hover .btn-ghost:hover,
+.card-accent:hover .farmer-card-action-btn:hover,
+.card-accent:hover .action-btn:hover {
+  background: rgba(5, 59, 38, 0.15) !important;
+}
+
+/* Sparkline SVGs */
+/* Green hover */
+.stat-card:not(.stat-card-dark):not(.card-accent):hover svg path[fill="none"] {
+  stroke: #ffffff !important;
+}
+.stat-card:not(.stat-card-dark):not(.card-accent):hover svg path:not([fill="none"]) {
+  fill: rgba(255, 255, 255, 0.2) !important;
+}
+.stat-card:not(.stat-card-dark):not(.card-accent):hover svg circle {
+  stroke: #ffffff !important;
+  fill: #116a3a !important;
+}
+
+/* Gold hover */
+.stat-card.card-accent:not(.stat-card-dark):hover svg path[fill="none"] {
+  stroke: #053b26 !important;
+}
+.stat-card.card-accent:not(.stat-card-dark):hover svg path:not([fill="none"]) {
+  fill: rgba(5, 59, 38, 0.15) !important;
+}
+.stat-card.card-accent:not(.stat-card-dark):hover svg circle {
+  stroke: #053b26 !important;
+  fill: #fdb134 !important;
+}
+
+/* Dark hover */
+.stat-card-dark:hover svg path[fill="none"] {
+  stroke: #ffffff !important;
+}
+.stat-card-dark:hover svg path:not([fill="none"]) {
+  fill: rgba(255, 255, 255, 0.18) !important;
+}
+.stat-card-dark:hover svg circle {
+  stroke: #ffffff !important;
+  fill: #0b4528 !important;
+}
+
+/* ── SIDEBAR NAV ITEMS ────────────────────────────────── */
+.sidebar-nav-item {
+  transition: var(--hover-transition);
+}
+.sidebar-nav-item:hover {
+  transform: translateX(3px);
+  background: rgba(17, 106, 58, 0.06);
+  color: #116a3a;
+}
+
+/* ── TOPNAV TOGGLE / COLLAPSE ─────────────────────────── */
+.topnav-toggle-btn,
+.sidebar-collapse-btn {
+  transition: var(--hover-transition);
+}
+.topnav-toggle-btn:hover,
+.sidebar-collapse-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+}
+
+/* ── TABLE ROW HOVER ──────────────────────────────────── */
+.data-table tbody tr {
+  transition: background 0.18s ease;
+}
+.data-table tbody tr:hover {
+  background: #f5fbf7;
+}
+
+/* ── ACTION BUTTONS (inline table) ───────────────────── */
+.action-btn,
+.farmer-card-action-btn {
+  transition: var(--hover-transition-fast);
+}
+.action-btn:hover,
+.farmer-card-action-btn.edit-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(17, 106, 58, 0.05);
+  color: #116a3a;
+}
+.farmer-card-action-btn.delete-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(186, 26, 26, 0.06);
+  color: #ba1a1a;
+  border-color: rgba(186, 26, 26, 0.18);
+}
+
+/* ── SIDEBAR PROMO CARD ───────────────────────────────── */
+.sidebar-promo-card {
+  transition: var(--hover-transition);
+}
+.sidebar-promo-card:hover {
+  background: #0d502c;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(5, 59, 38, 0.25);
+}
+
+/* ── AGRO LAYER PILLS ─────────────────────────────────── */
+.agro-layer-pill {
+  transition: var(--hover-transition);
+}
+.agro-layer-pill:hover {
+  transform: translateY(-1px);
+  background: #f0f4f1;
+}
+.agro-period-pill {
+  transition: var(--hover-transition-fast);
+}
+.agro-period-pill:hover {
+  transform: translateY(-1px);
+  background: rgba(17, 106, 58, 0.04);
+}
+
+/* ── GLOBAL FOCUS RING — Premium green ring ───────────── */
+:focus-visible {
+  outline: 2px solid #116a3a;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── GLOBAL SCROLLBAR — Subtle, branded ──────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(17, 106, 58, 0.18);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(17, 106, 58, 0.32);
+}
+
+/* ── PAGE SECTION ENTRY ANIMATION ───────────────────── */
+@keyframes section-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-header {
+  animation: section-fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+section[aria-label] {
+  animation: section-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.05s backwards;
+}
+
 /* ─── RESPONSIVE ─────────────────────────────────────── */
 @media (max-width: 1100px) {
   .agro-selector-grid {
@@ -2276,5 +2943,16 @@ img { max-width: 100%; display: block; }
   }
   .agro-map-section {
     min-height: 400px;
+  }
+}
+
+/* ─── REDUCED MOTION RESPECT ─────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

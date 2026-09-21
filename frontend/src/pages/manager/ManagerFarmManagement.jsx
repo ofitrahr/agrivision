@@ -216,7 +216,7 @@ const ManagerFarmManagement = () => {
   // LIST VIEW (Daftar Lahan Perusahaan)
   if (viewMode === 'list') {
     return (
-      <div>
+      <div className="hover-enabled">
         <div style={{ marginBottom: '24px' }}>
           <h1 className="page-title">Daftar Lahan Project</h1>
           <p className="page-subtitle">

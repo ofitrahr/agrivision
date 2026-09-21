@@ -68,6 +68,7 @@ const StatCard = ({
   chartFill,
   onClick,
   style,
+  className = '',
 }) => {
   const isDark = variant === 'dark';
   const isFormattedNumber = typeof value === 'string' && /^[\sRpIDR\d.,+-]+$/.test(value) && /\d/.test(value);
@@ -76,7 +77,7 @@ const StatCard = ({
 
   return (
     <div 
-      className={`stat-card ${isDark ? 'stat-card-dark' : ''} ${chartData ? 'stat-card-with-chart' : ''} ${onClick ? 'stat-card-clickable' : ''}`}
+      className={`stat-card ${isDark ? 'stat-card-dark' : ''} ${chartData ? 'stat-card-with-chart' : ''} ${onClick ? 'stat-card-clickable' : ''} ${className}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -97,17 +98,14 @@ const StatCard = ({
             <div className={`stat-value ${isTextValue ? 'stat-value-text' : ''}`}>
               <span>{value ?? 0}</span>
               {inlineUnit && (
-                <span className="stat-unit-inline" style={{ color: isDark ? 'rgba(255, 255, 255, 0.85)' : 'var(--color-text-muted)' }}>
+                <span className="stat-unit-inline">
                   {inlineUnit}
                 </span>
               )}
             </div>
 
             {unit && (
-              <div 
-                className="stat-unit-label"
-                style={{ color: isDark ? 'rgba(255, 255, 255, 0.85)' : 'var(--color-text-muted)' }}
-              >
+              <div className="stat-unit-label">
                 {unit}
               </div>
             )}
@@ -121,7 +119,7 @@ const StatCard = ({
             )}
 
             {subtext && !badgeText && (
-              <div className="stat-subtext" style={{ color: isDark ? '#ffffff' : 'var(--color-text-muted)', opacity: isDark ? 0.9 : 1 }}>
+              <div className="stat-subtext">
                 {subtext}
               </div>
             )}

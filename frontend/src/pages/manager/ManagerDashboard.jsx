@@ -136,6 +136,14 @@ const ManagerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 11) return 'Selamat Pagi';
+    if (hour < 15) return 'Selamat Siang';
+    if (hour < 18) return 'Selamat Sore';
+    return 'Selamat Malam';
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -178,10 +186,13 @@ const ManagerDashboard = () => {
   const totalCarbonTon = stats?.total_carbon_ton > 0 ? stats.total_carbon_ton : null;
 
   return (
-    <div>
+    <div className="hover-enabled">
       <header className="page-header" style={{ marginBottom: 'var(--space-md)' }}>
         <div>
           <h1 className="page-title">Dashboard Manajer</h1>
+          <p className="page-subtitle" style={{ color: 'var(--color-main-green)', fontWeight: 600, marginBottom: '4px' }}>
+            {getGreeting()}, Manajer!
+          </p>
           <p className="page-subtitle">Ringkasan operasional dan evaluasi kegiatan lahan kelolaan.</p>
         </div>
         <button
@@ -218,6 +229,7 @@ const ManagerDashboard = () => {
                 value={formatCurrency(totalRevenue) ?? '-'}
                 icon={Coins}
                 silhouetteColor="var(--color-dark-amber)"
+                className="card-accent"
               />
 
               {/* Kartu 3: Lahan & Petani — data dari Farm.count + Farmer.count */}
@@ -244,9 +256,11 @@ const ManagerDashboard = () => {
         </div>
       </section>
 
+      <hr style={{ border: 'none', borderTop: '1px solid var(--color-border-muted)', margin: '0 0 var(--space-lg) 0' }} />
+
       {/* DAFTAR LAHAN PROJECT */}
       <section aria-label="Daftar Lahan Project">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div>
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-main)', margin: '0 0 2px 0' }}>
               Daftar Lahan Project
