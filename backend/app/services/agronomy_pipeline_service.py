@@ -148,15 +148,15 @@ class AgronomyPipelineService:
                     source="GEE Sentinel-2 + Regresi Linear NPK Kadatuan"
                 ))
 
-            composite_npk = (n_val + p_val + k_val) / 3.0
+            composite_npk = NPKService.composite_index(npk_val)
             new_layers.append(GisLayer(
                 farm_id=farm.id,
                 coordinate=f"SRID=4326;POINT({p['lon']} {p['lat']})",
                 parameter_type='soilnpk',
                 period=period,
                 numerical_value=round(composite_npk, 3),
-                unit="kg NPK/Ha",
-                is_anomaly=(composite_npk < 100.0),
+                unit=NPKService.COMPOSITE_UNIT,
+                is_anomaly=(composite_npk < NPKService.COMPOSITE_ANOMALY_THRESH),
                 source="GEE Sentinel-2 + Regresi Linear NPK Kadatuan (komposit)"
             ))
 

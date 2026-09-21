@@ -247,8 +247,9 @@ class GISService:
             elif value > 130: return '#8b5cf6'
             return '#93c5fd'
         elif layer_type == 'soilnpk':
-            if value > 140: return '#065f46'
-            elif value > 100: return '#0d9488'
+            # Indeks komposit 0-100 (NPKService.composite_index)
+            if value > 66: return '#065f46'
+            elif value > 33: return '#0d9488'
             return '#99f6e4'
         return '#6b7280'
 
@@ -277,7 +278,7 @@ class GISService:
             'soc': [('#8b5a2b', 'Tinggi (>50)'), ('#cd853f', 'Sedang (30-50)'), ('#deb887', 'Rendah (<30)')],
             'biomass': [('#228b22', 'Tinggi (>150)'), ('#32cd32', 'Sedang (80-150)'), ('#90ee90', 'Rendah (<80)')],
             'yield': [('#15803d', 'Tinggi (>0.25 Ton/Ha)'), ('#84cc16', 'Optimal (0.15-0.25)'), ('#eab308', 'Cukup (0.08-0.15)'), ('#ef4444', 'Rendah (<0.08)')],
-            'soilnpk': [('#065f46', 'Optimal (>140)'), ('#0d9488', 'Cukup (100-140)'), ('#99f6e4', 'Defisit (<100)')],
+            'soilnpk': [('#065f46', 'Optimal (>66)'), ('#0d9488', 'Cukup (33-66)'), ('#99f6e4', 'Defisit (<33)')],
             'nitrogen': [('#14532d', 'Tinggi (>0.75%)'), ('#22c55e', 'Sedang (0.55-0.75%)'), ('#eab308', 'Rendah (<0.55%)')],
             'phosphorus': [('#991b1b', 'Tinggi (>150 mg/kg)'), ('#ea580c', 'Sedang (50-150 mg/kg)'), ('#fed7aa', 'Rendah (<50 mg/kg)')],
             'potassium': [('#4c1d95', 'Tinggi (>150 mg/kg)'), ('#8b5cf6', 'Sedang (130-150 mg/kg)'), ('#93c5fd', 'Rendah (<130 mg/kg)')],
@@ -327,7 +328,7 @@ class GISService:
                     'nitrogen': '%',
                     'phosphorus': 'mg/kg',
                     'potassium': 'mg/kg',
-                    'soilnpk': 'kg NPK/Ha'
+                    'soilnpk': 'index'
                 }
                 unit_label = unit_map.get(layer_type, '')
 
@@ -427,9 +428,9 @@ class GISService:
                         color = GISService._get_color_for_value(value, layer_type)
                         popup_html = f"<b>Estimasi Produksi (Yield):</b> {value} Ton/Ha"
                     elif layer_type == 'soilnpk':
-                        value = round(random.uniform(60.0, 280.0), 1)
+                        value = round(random.uniform(20.0, 90.0), 1)
                         color = GISService._get_color_for_value(value, layer_type)
-                        popup_html = f"<b>Nutrisi Tanah (NPK):</b> {value} kg NPK/Ha"
+                        popup_html = f"<b>Nutrisi Tanah (NPK):</b> {value} index"
                     elif layer_type == 'nitrogen':
                         value = round(random.uniform(10.0, 50.0), 1)
                         color = GISService._get_color_for_value(value, layer_type)

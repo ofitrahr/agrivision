@@ -22,6 +22,29 @@ class NPKService:
         'potassium': 20.0,
     }
 
+    # Rentang keluaran riil model NPK Kadatuan, dipakai menormalkan komposit.
+    NUTRIENT_RANGE = {
+        'nitrogen': (0.45, 0.86),
+        'phosphorus': (7.0, 370.0),
+        'potassium': (115.0, 165.0),
+    }
+    COMPOSITE_UNIT = 'index'
+    COMPOSITE_ANOMALY_THRESH = 33.0
+
+    @classmethod
+    def composite_index(cls, values):
+        """Indeks 0-100: tiap hara diskalakan ke rentangnya sendiri lalu dirata-rata setara.
+
+        Menjumlahkan % dengan mg/kg secara langsung tidak valid dimensional dan
+        membuat kalium mendominasi hanya karena angkanya lebih besar.
+        """
+        scores = []
+        for nutrient, (lo, hi) in cls.NUTRIENT_RANGE.items():
+            val = values.get(nutrient)
+            val = lo if val is None else float(val)
+            scores.append(min(1.0, max(0.0, (val - lo) / (hi - lo))))
+        return round(sum(scores) / len(scores) * 100.0, 2)
+
     _instance = None
 
     def __new__(cls, *args, **kwargs):
