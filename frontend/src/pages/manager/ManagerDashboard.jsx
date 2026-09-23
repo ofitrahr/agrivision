@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, TreePine, Coins, Users, Maximize2 } from 'lucide-react';
 import StatCard from '../../shared/components/UI/StatCard';
 import Card from '../../shared/components/UI/Card';
+import { formatAreaValue, getStoredSettings } from '../../shared/utils/settingsHelper';
 
 const StatCardSkeleton = () => (
   <div className="stat-card" aria-busy="true" aria-label="Memuat data">
@@ -75,7 +76,36 @@ const FarmCardSkeleton = () => (
   </div>
 );
 
-const FarmCard = ({ farm, onManage, onAgronomy }) => {
+// 'YYYY-MM' -> 'Agu 2026'
+const formatPeriod = (period) => {
+  const [year, month] = (period || '').split('-').map(Number);
+  if (!year || !month) return period || '';
+  return new Date(year, month - 1).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+};
+
+// Status kesehatan dari NDVI periode terakhir vs ambang batas di Settings
+const FarmHealthStatus = ({ ndvi, threshold }) => {
+  if (!ndvi) {
+    return <span className="badge badge-neutral">Belum ada data observasi</span>;
+  }
+  const isStressed = ndvi.mean < threshold;
+  const meanText = ndvi.mean.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+      <span
+        className={`badge ${isStressed ? 'badge-expired' : 'badge-success'}`}
+        title={`Ambang batas NDVI: ${Number(threshold).toFixed(2)}`}
+      >
+        {isStressed ? 'Indikasi Stres' : 'Sehat'} · NDVI {meanText}
+      </span>
+      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+        Observasi {formatPeriod(ndvi.period)}
+      </span>
+    </div>
+  );
+};
+
+const FarmCard = ({ farm, ndviThreshold, onManage, onAgronomy }) => {
   const cropVariety = farm.crop_variety || farm.crops?.[0]?.variety || farm.crops?.[0]?.crop_type;
   const farmersText = farm.farmers?.length > 0 ? farm.farmers.join(', ') : null;
 
@@ -85,9 +115,12 @@ const FarmCard = ({ farm, onManage, onAgronomy }) => {
       <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div>
           <h3 className="card-title" style={{ marginBottom: '8px', fontSize: '16px', fontWeight: 700 }}>{farm.name}</h3>
+          <div style={{ marginBottom: '10px' }}>
+            <FarmHealthStatus ndvi={farm.ndvi_latest} threshold={ndviThreshold} />
+          </div>
           <div className="agro-chip-group" style={{ marginBottom: 0 }}>
-            {farm.total_area_ha && (
-              <span className="agro-chip">{farm.total_area_ha} Ha</span>
+            {farm.total_area_ha > 0 && (
+              <span className="agro-chip">{formatAreaValue(farm.total_area_ha)}</span>
             )}
             {cropVariety && (
               <span className="agro-chip agro-chip-active">{cropVariety}</span>
@@ -134,7 +167,15 @@ const ManagerDashboard = () => {
   const [stats, setStats] = useState(null);
   const [farms, setFarms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ndviThreshold, setNdviThreshold] = useState(() => getStoredSettings().ndviThreshold);
   const navigate = useNavigate();
+
+  // Ikuti perubahan ambang batas NDVI dari Settings
+  useEffect(() => {
+    const handleUpdate = () => setNdviThreshold(getStoredSettings().ndviThreshold);
+    window.addEventListener('settingsUpdated', handleUpdate);
+    return () => window.removeEventListener('settingsUpdated', handleUpdate);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -279,6 +320,7 @@ const ManagerDashboard = () => {
               <FarmCard
                 key={farm.id}
                 farm={farm}
+                ndviThreshold={ndviThreshold}
                 onManage={handleManageFarm}
                 onAgronomy={handleAgronomy}
               />

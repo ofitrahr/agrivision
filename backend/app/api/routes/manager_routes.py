@@ -365,8 +365,30 @@ def delete_farmer(current_user, farmer_id):
 @token_required
 @role_required('manager')
 def manager_farms(current_user):
+    from app.db.models import ProjectPermission, GisLayer
+    from sqlalchemy import func, and_
+
     project_id = current_user.project_id
     farms = Farm.query.filter_by(project_id=project_id).all()
+    perms = ProjectPermission.query.filter_by(project_id=project_id).first()
+
+    # Rata-rata NDVI periode terakhir per lahan (dua query untuk semua lahan)
+    ndvi_latest = {}
+    if farms and perms and perms.module_agronomy and perms.can_access_ndvi:
+        farm_ids = [f.id for f in farms]
+        ndvi_filter = and_(
+            GisLayer.farm_id.in_(farm_ids),
+            GisLayer.parameter_type == 'ndvi',
+            GisLayer.numerical_value.isnot(None),
+        )
+        latest = db.session.query(GisLayer.farm_id, func.max(GisLayer.period).label('period'))\
+            .filter(ndvi_filter).group_by(GisLayer.farm_id).subquery()
+        rows = db.session.query(GisLayer.farm_id, latest.c.period, func.avg(GisLayer.numerical_value))\
+            .join(latest, and_(GisLayer.farm_id == latest.c.farm_id, GisLayer.period == latest.c.period))\
+            .filter(ndvi_filter)\
+            .group_by(GisLayer.farm_id, latest.c.period).all()
+        ndvi_latest = {fid: {'mean': round(float(avg), 4), 'period': period} for fid, period, avg in rows}
+
     data = []
     for f in farms:
         from app.db.models import FarmCrop
@@ -389,10 +411,9 @@ def manager_farms(current_user):
             'total_area_ha': float(f.total_area_ha) if f.total_area_ha else 0,
             'altitude': f.altitude if f.altitude else None,
             'established_year': f.created_at.strftime('%Y') if f.created_at else None,
-            'agroforestry_system': getattr(f, 'agroforestry_system', None)
+            'agroforestry_system': getattr(f, 'agroforestry_system', None),
+            'ndvi_latest': ndvi_latest.get(f.id)
         })
-    from app.db.models import ProjectPermission
-    perms = ProjectPermission.query.filter_by(project_id=project_id).first()
     perms_data = {
         'can_access_ndvi': perms.can_access_ndvi if perms else True,
         'can_access_soc': perms.can_access_soc if perms else True,

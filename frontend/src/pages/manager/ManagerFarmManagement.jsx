@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Settings, Leaf, MapPin, Plus, X, Save, Users, Calendar, Mountain, TreePine, Activity, AlertCircle, Trash2, CheckCircle2, Circle } from 'lucide-react';
 import InputNumber from '../../shared/components/UI/InputNumber';
 import AlertModal from '../../shared/components/UI/AlertModal';
+import { formatAreaValue } from '../../shared/utils/settingsHelper';
 
 
 const FarmMapThumbnail = ({ farmId }) => {
@@ -226,13 +227,24 @@ const ManagerFarmManagement = () => {
 
   // LIST VIEW (Daftar Lahan Perusahaan)
   if (viewMode === 'list') {
+    // Sistem agroforestri yang sama di semua lahan cukup ditampilkan sekali di header
+    const sharedSystem = farmList.length > 0 && farmList.every(f => f.agroforestry_system === farmList[0].agroforestry_system)
+      ? farmList[0].agroforestry_system
+      : null;
+
     return (
       <div>
         <div style={{ marginBottom: '24px' }}>
-          <h1 className="page-title">Daftar Lahan Project</h1>
+          <h1 className="page-title">Daftar Lahan Proyek</h1>
           <p className="page-subtitle">
             Kelola data lahan, ringkasan spesifikasi, penugasan petani, dan komoditas tanaman.
           </p>
+          {sharedSystem && (
+            <span className="agro-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '10px' }}>
+              <Leaf size={12} />
+              Sistem: {sharedSystem}
+            </span>
+          )}
         </div>
 
         {errorMsg && (
@@ -246,13 +258,17 @@ const ManagerFarmManagement = () => {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
             {farmList.map((f) => {
-              const tanamanText = f.crops && f.crops.length > 0
-                ? f.crops.map(c => typeof c === 'object' && c.crop_type ? `${c.crop_type}${c.area_ha && parseFloat(c.area_ha) > 0 ? ` (${parseFloat(c.area_ha)} Ha)` : ''}` : c).join(', ')
+              // Tampilkan 3 tanaman terluas, sisanya diringkas
+              const sortedCrops = [...(f.crops || [])]
+                .filter(c => c && c.crop_type)
+                .sort((a, b) => (parseFloat(b.area_ha) || 0) - (parseFloat(a.area_ha) || 0));
+              const topCrops = sortedCrops.slice(0, 3)
+                .map(c => parseFloat(c.area_ha) > 0 ? `${c.crop_type} (${formatAreaValue(c.area_ha)})` : c.crop_type);
+              const moreCrops = sortedCrops.length - topCrops.length;
+              const tanamanText = topCrops.length > 0
+                ? `${topCrops.join(', ')}${moreCrops > 0 ? `, +${moreCrops} lainnya` : ''}`
                 : (f.crop_variety || '-');
               const farmersText = f.farmers && f.farmers.length > 0 ? f.farmers.join(', ') : '-';
-              const firstCropTitle = f.crops && f.crops.length > 0
-                ? (typeof f.crops[0] === 'object' ? `${f.crops[0].crop_type}${f.crops.length > 1 ? ` (+${f.crops.length - 1})` : ''}` : f.crops[0])
-                : f.crop_variety;
 
               return (
                 <div key={f.id} className="agro-card" style={{ display: 'flex', flexDirection: 'column', padding: '20px' }}>
@@ -263,19 +279,9 @@ const ManagerFarmManagement = () => {
                   </h3>
 
                   <div className="agro-chip-group" style={{ marginBottom: '16px' }}>
-                    <span className="agro-chip">{f.total_area_ha} Ha</span>
+                    <span className="agro-chip">{formatAreaValue(f.total_area_ha)}</span>
 
-                    {firstCropTitle && (
-                      <span
-                        className="agro-chip agro-chip-active"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        <Leaf size={12} />
-                        {firstCropTitle}
-                      </span>
-                    )}
-
-                    {f.agroforestry_system && (
+                    {f.agroforestry_system && !sharedSystem && (
                       <span
                         className="agro-chip"
                         style={{
