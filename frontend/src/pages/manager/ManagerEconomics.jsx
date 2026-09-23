@@ -3,6 +3,7 @@ import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
 import InputNumber from '../../shared/components/UI/InputNumber';
 import { PieChart, Pie, Cell, Tooltip } from 'recharts';
+import AlertModal from '../../shared/components/UI/AlertModal';
 
 const MONTH_NAMES_ID = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -165,6 +166,9 @@ const ManagerEconomics = () => {
   const navigate = useNavigate();
   const [farms, setFarms] = useState([]);
   const [selectedFarm, setSelectedFarm] = useState('');
+  const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
+  const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
+  const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'records'
 
   // Operational records states
@@ -276,7 +280,7 @@ const ManagerEconomics = () => {
 
   const handleFinanceSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedFarm) return alert('Pilih lahan terlebih dahulu.');
+    if (!selectedFarm) return showAlert('warning', 'Pilih lahan terlebih dahulu.');
 
     setSavingFinance(true);
     try {
@@ -289,7 +293,7 @@ const ManagerEconomics = () => {
       };
       const response = await api.post(`/manager/farms/${selectedFarm}/financials`, payload);
       if (response.data.success) {
-        alert('Data keuangan berhasil disimpan!');
+        showAlert('success', 'Data keuangan berhasil disimpan!');
         setPeriod(getCurrentPeriodId());
         setProduction('');
         setCost('');
@@ -298,7 +302,7 @@ const ManagerEconomics = () => {
         fetchFinanceRecords(selectedFarm);
       }
     } catch (error) {
-      alert('Gagal menyimpan data keuangan.');
+      showAlert('error', 'Gagal menyimpan data keuangan.');
     } finally {
       setSavingFinance(false);
     }
@@ -306,7 +310,7 @@ const ManagerEconomics = () => {
 
   const handleHarvestSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedFarm) return alert('Pilih lahan terlebih dahulu.');
+    if (!selectedFarm) return showAlert('warning', 'Pilih lahan terlebih dahulu.');
 
     setSavingHarvest(true);
     try {
@@ -317,14 +321,14 @@ const ManagerEconomics = () => {
       };
       const response = await api.post(`/manager/farms/${selectedFarm}/harvests`, payload);
       if (response.data.success) {
-        alert('Data panen berhasil disimpan!');
+        showAlert('success', 'Data panen berhasil disimpan!');
         setAnalyticsPeriod(getCurrentPeriodId());
         setAnalyticsYield('');
         setAnalyticsNotes('');
         fetchAnalyticsData(selectedFarm);
       }
     } catch (error) {
-      alert('Gagal menyimpan data panen.');
+      showAlert('error', 'Gagal menyimpan data panen.');
     } finally {
       setSavingHarvest(false);
     }
@@ -380,7 +384,7 @@ const ManagerEconomics = () => {
       }
     } catch (error) {
       const msg = error.response?.data?.message || 'Gagal membuat laporan.';
-      alert(`Gagal membuat laporan: ${msg}`);
+      showAlert('error', `Gagal membuat laporan: ${msg}`);
       console.error('Error generate report:', error);
     } finally {
       setGenerating(false);
@@ -390,7 +394,7 @@ const ManagerEconomics = () => {
   const handleDownload = (report) => {
     const token = localStorage.getItem('token');
 
-    fetch(`${api.defaults.baseURL || 'http://localhost:5000/api'}/manager/reports/${report.id}/download`, {
+    fetch(`${api.defaults.baseURL || '/api'}/manager/reports/${report.id}/download`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -413,7 +417,7 @@ const ManagerEconomics = () => {
     })
     .catch(err => {
       console.error(err);
-      alert('Terjadi kesalahan saat mengunduh dokumen.');
+      showAlert('error', 'Terjadi kesalahan saat mengunduh dokumen.');
     });
   };
 
@@ -1529,6 +1533,13 @@ const ManagerEconomics = () => {
           </div>
         </div>
       )}
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        type={alertState.type}
+        message={alertState.message}
+      />
     </div>
   );
 };

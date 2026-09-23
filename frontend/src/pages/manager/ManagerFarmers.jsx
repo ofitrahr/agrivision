@@ -6,6 +6,7 @@ import {
   X, Camera, AlertTriangle, UserCheck
 } from 'lucide-react';
 import InputNumber from '../../shared/components/UI/InputNumber';
+import AlertModal from '../../shared/components/UI/AlertModal';
 
 
 const ManagerFarmers = () => {
@@ -14,6 +15,9 @@ const ManagerFarmers = () => {
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [editId, setEditId] = useState(null);
+    const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
+    const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
+    const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
     const fileInputRef = useRef(null);
     
     // Modal states
@@ -123,7 +127,7 @@ const ManagerFarmers = () => {
                 fetchFarmers();
             }
         } catch (error) {
-            alert(error.response?.data?.message || 'Gagal menyimpan data pekerja');
+            showAlert('error', error.response?.data?.message || 'Gagal menyimpan data pekerja');
         } finally {
             setSaving(false);
         }
@@ -139,7 +143,7 @@ const ManagerFarmers = () => {
                 handleCloseDeleteModal();
             }
         } catch (error) {
-            alert('Gagal menghapus pekerja');
+            showAlert('error', 'Gagal menghapus pekerja');
         } finally {
             setDeleting(false);
         }
@@ -518,6 +522,13 @@ const ManagerFarmers = () => {
                     </div>
                 </div>
             )}
+
+            <AlertModal
+                isOpen={alertState.isOpen}
+                onClose={closeAlert}
+                type={alertState.type}
+                message={alertState.message}
+            />
         </div>
     );
 };

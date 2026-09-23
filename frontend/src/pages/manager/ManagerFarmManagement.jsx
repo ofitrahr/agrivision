@@ -3,6 +3,7 @@ import api from '../../shared/api/axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Settings, Leaf, MapPin, Plus, X, Save, Users, Calendar, Mountain, TreePine, Activity, AlertCircle, Trash2, CheckCircle2, Circle } from 'lucide-react';
 import InputNumber from '../../shared/components/UI/InputNumber';
+import AlertModal from '../../shared/components/UI/AlertModal';
 
 
 const FarmMapThumbnail = ({ farmId }) => {
@@ -64,6 +65,9 @@ const ManagerFarmManagement = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
+
+  const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
 
   const initFarms = useCallback(async () => {
     setLoading(true);
@@ -144,6 +148,12 @@ const ManagerFarmManagement = () => {
     initFarms();
   };
 
+  const closeAlert = () => {
+    // Setelah sukses simpan, kembali ke daftar lahan
+    if (alertState.type === 'success') handleBackToList();
+    setAlertState(prev => ({ ...prev, isOpen: false }));
+  };
+
   const handleAddNewCropRow = () => {
     setCrops([...crops, { crop_type: '', area_ha: '' }]);
   };
@@ -176,11 +186,11 @@ const ManagerFarmManagement = () => {
 
   const handleSave = async () => {
     if (!farmName.trim()) {
-      alert('Nama lahan tidak boleh kosong.');
+      showAlert('warning', 'Nama lahan tidak boleh kosong.');
       return;
     }
     if (isOverAllocated) {
-      alert(`Total alokasi luasan komoditas (${totalAllocatedCropArea.toFixed(2)} Ha) melebihi total luas lahan (${parsedTotalFarmArea.toFixed(2)} Ha). Harap sesuaikan luas komoditas.`);
+      showAlert('warning', `Total alokasi luasan komoditas (${totalAllocatedCropArea.toFixed(2)} Ha) melebihi total luas lahan (${parsedTotalFarmArea.toFixed(2)} Ha). Harap sesuaikan luas komoditas.`);
       return;
     }
 
@@ -204,13 +214,11 @@ const ManagerFarmManagement = () => {
         crops: payloadCrops
       });
       if (res.data.success) {
-        alert('Berhasil menyimpan semua perubahan lahan!');
-        handleBackToList();
+        showAlert('success', 'Berhasil menyimpan semua perubahan lahan!');
       }
     } catch (err) {
       console.error('Gagal menyimpan perubahan:', err);
-      const msg = err.response?.data?.message || 'Gagal menyimpan perubahan data lahan.';
-      alert(msg);
+      showAlert('error', err.response?.data?.message || 'Gagal menyimpan perubahan data lahan.');
     } finally {
       setSaving(false);
     }
@@ -659,6 +667,13 @@ const ManagerFarmManagement = () => {
           </button>
         </div>
       )}
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        type={alertState.type}
+        message={alertState.message}
+      />
     </div>
   );
 };

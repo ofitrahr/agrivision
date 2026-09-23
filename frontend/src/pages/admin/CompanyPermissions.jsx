@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useParams, useNavigate } from 'react-router-dom';
+import AlertModal from '../../shared/components/UI/AlertModal';
 
 const CompanyPermissions = () => {
     const { projectId } = useParams();
@@ -8,10 +9,13 @@ const CompanyPermissions = () => {
     const [permissions, setPermissions] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-
-    useEffect(() => {
-        fetchPermissions();
-    }, [projectId]);
+    const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
+    const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
+    const closeAlert = () => {
+        // Setelah sukses simpan, kembali ke daftar klien
+        if (alertState.type === 'success') navigate('/admin/companies');
+        setAlertState(prev => ({ ...prev, isOpen: false }));
+    };
 
     const fetchPermissions = async () => {
         try {
@@ -20,11 +24,15 @@ const CompanyPermissions = () => {
                 setPermissions(response.data.data);
             }
         } catch (error) {
-            alert('Gagal mengambil data perizinan modul');
+            showAlert('error', 'Gagal mengambil data perizinan modul');
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchPermissions();
+    }, [projectId]);
 
     const handleToggle = (field) => {
         setPermissions(prev => ({ ...prev, [field]: !prev[field] }));
@@ -35,17 +43,31 @@ const CompanyPermissions = () => {
         try {
             const response = await api.put(`/admin/projects/${projectId}/permissions`, permissions);
             if (response.data.success) {
-                alert('Konfigurasi modul berhasil disimpan!');
-                navigate('/admin/companies'); // atau bisa navigate ke previous page (-1)
+                showAlert('success', 'Konfigurasi modul berhasil disimpan!');
             }
         } catch (error) {
-            alert('Gagal menyimpan konfigurasi');
+            showAlert('error', 'Gagal menyimpan konfigurasi');
         } finally {
             setSaving(false);
         }
     };
 
-    if (loading || !permissions) return <div style={{ padding: '30px' }}>Memuat konfigurasi...</div>;
+    const alertModal = (
+        <AlertModal
+            isOpen={alertState.isOpen}
+            onClose={closeAlert}
+            type={alertState.type}
+            message={alertState.message}
+        />
+    );
+
+    // Gagal fetch membuat permissions null, jadi modal juga dirender di sini
+    if (loading || !permissions) return (
+        <div style={{ padding: '30px' }}>
+            Memuat konfigurasi...
+            {alertModal}
+        </div>
+    );
 
     const renderToggle = (label, field) => (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', background: 'white', borderRadius: '8px', marginBottom: '10px', border: '1px solid #e5e7eb' }}>
@@ -92,6 +114,8 @@ const CompanyPermissions = () => {
                     {saving ? 'Menyimpan...' : 'Simpan Konfigurasi'}
                 </button>
             </div>
+
+            {alertModal}
         </div>
     );
 };

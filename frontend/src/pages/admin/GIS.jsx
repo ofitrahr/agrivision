@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Map, Leaf, Maximize, Calendar, Sprout, Upload, FileCode, CheckCircle2, AlertCircle, ArrowLeft, UploadCloud, Loader2, Sparkles, X, CheckCircle, Satellite } from 'lucide-react';
 import InputNumber from '../../shared/components/UI/InputNumber';
 import AdminGISUploader from './AdminGISUploader';
+import AlertModal from '../../shared/components/UI/AlertModal';
 
 const MONTH_NAMES_ID = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -59,6 +60,9 @@ const GIS = () => {
     // State for grid view
     const [farms, setFarms] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
+    const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
+    const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
     const navigate = useNavigate();
 
     // State for creating farm (GeoJSON view)
@@ -101,7 +105,7 @@ const GIS = () => {
                 setAnalysisResult(res.data);
             }
         } catch (err) {
-            alert("Gagal menjalankan analisis satelit: " + (err.response?.data?.message || err.message));
+            showAlert('error', "Gagal menjalankan analisis satelit: " + (err.response?.data?.message || err.message));
         } finally {
             clearInterval(timer);
             setAnalyzingFarm(null);
@@ -110,7 +114,7 @@ const GIS = () => {
 
     const handleRunAllObservations = async () => {
         if (farms.length === 0) {
-            alert('Tidak ada lahan untuk dianalisis.');
+            showAlert('warning', 'Tidak ada lahan untuk dianalisis.');
             return;
         }
 
@@ -303,7 +307,7 @@ const GIS = () => {
             
             await api.post('/admin/farms', payload);
             
-            alert('Lahan berhasil disimpan & ditugaskan!');
+            showAlert('success', 'Lahan berhasil disimpan & ditugaskan!');
             setIsModalOpen(false);
             setFormData({ name: '', project_id: '', crop_variety: '', total_area_ha: '' });
             setSelectedCompanyId('');
@@ -312,13 +316,23 @@ const GIS = () => {
             setIsCreatingFarm(false);
             fetchFarms();
         } catch (error) {
-            alert(error.response?.data?.message || "Terjadi kesalahan saat menyimpan!");
+            showAlert('error', error.response?.data?.message || "Terjadi kesalahan saat menyimpan!");
         }
     };
 
     const totalFarms = farms.length;
     const totalArea = farms.reduce((sum, f) => sum + (f.total_area_ha || 0), 0);
     const totalCrops = farms.reduce((sum, f) => sum + (f.total_crops || 0), 0);
+
+    // Dipakai di tampilan buat lahan dan grid
+    const alertModal = (
+        <AlertModal
+            isOpen={alertState.isOpen}
+            onClose={closeAlert}
+            type={alertState.type}
+            message={alertState.message}
+        />
+    );
 
     if (isCreatingFarm) {
         return (
@@ -489,6 +503,7 @@ const GIS = () => {
                         </div>
                     </div>
                 )}
+                {alertModal}
             </div>
         );
     }
@@ -994,6 +1009,8 @@ const GIS = () => {
                     </div>
                 </div>
             )}
+
+            {alertModal}
         </div>
     );
 };

@@ -1,13 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
 import Card from '../../shared/components/UI/Card';
+import AlertModal from '../../shared/components/UI/AlertModal';
 
 const ManagerProfile = () => {
     const [profile, setProfile] = useState({ name: '', description: '', address: '', logo_url: '' });
     const [logoFile, setLogoFile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
+    const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
+    const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -42,13 +46,13 @@ const ManagerProfile = () => {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            alert(response.data.message);
+            showAlert('success', response.data.message);
             if (response.data.logo_url) {
                 setProfile(prev => ({ ...prev, logo_url: response.data.logo_url }));
                 setLogoFile(null);
             }
         } catch (error) {
-            alert(error.response?.data?.message || 'Gagal menyimpan profil');
+            showAlert('error', error.response?.data?.message || 'Gagal menyimpan profil');
         } finally {
             setSaving(false);
         }
@@ -60,7 +64,7 @@ const ManagerProfile = () => {
         </div>
     );
 
-    const baseURL = "http://localhost:8000";
+    const baseURL = api.defaults.baseURL ? api.defaults.baseURL.replace(/\/api\/?$/, '') : window.location.origin;
     const formatUrl = (url) => {
         if (!url) return '';
         if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -159,6 +163,13 @@ const ManagerProfile = () => {
                     </div>
                 </form>
             </Card>
+
+            <AlertModal
+                isOpen={alertState.isOpen}
+                onClose={closeAlert}
+                type={alertState.type}
+                message={alertState.message}
+            />
         </div>
     );
 };

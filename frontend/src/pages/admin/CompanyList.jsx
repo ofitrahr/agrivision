@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
 import InputNumber from '../../shared/components/UI/InputNumber';
+import AlertModal from '../../shared/components/UI/AlertModal';
 
 const CompanyList = () => {
     const [companies, setCompanies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
+    const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
+    const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
     const [modalMode, setModalMode] = useState('add'); // 'add' atau 'edit'
     
     const initialForm = {
@@ -17,10 +21,6 @@ const CompanyList = () => {
     const [selectedId, setSelectedId] = useState(null);
 
     const navigate = useNavigate();
-
-    useEffect(() => {
-        fetchCompanies();
-    }, []);
 
     const fetchCompanies = async () => {
         setLoading(true);
@@ -35,6 +35,10 @@ const CompanyList = () => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchCompanies();
+    }, []);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -75,7 +79,7 @@ const CompanyList = () => {
             setIsModalOpen(false);
             fetchCompanies(); // Refresh data
         } catch (error) {
-            alert(error.response?.data?.message || "Terjadi kesalahan!");
+            showAlert('error', error.response?.data?.message || "Terjadi kesalahan!");
         }
     };
 
@@ -207,6 +211,13 @@ const CompanyList = () => {
                     </div>
                 </div>
             )}
+
+            <AlertModal
+                isOpen={alertState.isOpen}
+                onClose={closeAlert}
+                type={alertState.type}
+                message={alertState.message}
+            />
         </div>
     );
 };

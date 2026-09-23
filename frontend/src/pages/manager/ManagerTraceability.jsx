@@ -3,13 +3,17 @@ import api from '../../shared/api/axios';
 import NarrativeTextarea from '../../shared/components/traceability/NarrativeTextarea';
 import {
   ChevronRight, QrCode, Camera, BadgeCheck, Eye,
-  Lock, MapPin, Lightbulb, Globe, Clock
+  Lock, MapPin, Lightbulb, Globe
 } from 'lucide-react';
 import Button from '../../shared/components/UI/Button';
+import AlertModal from '../../shared/components/UI/AlertModal';
 
 const ManagerTraceability = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
+  const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
+  const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
   const [formData, setFormData] = useState({
     hero_image_url: '',
     origin_story: '',
@@ -18,7 +22,6 @@ const ManagerTraceability = () => {
     environmental_narrative: ''
   });
   const [status, setStatus] = useState('draft');
-  const [lastPublished, setLastPublished] = useState(null);
   const [publishLoading, setPublishLoading] = useState(false);
   const [originStoryCount, setOriginStoryCount] = useState(0);
   const [qrData, setQrData] = useState(null);
@@ -44,7 +47,6 @@ const ManagerTraceability = () => {
     const fetchProfile = async () => {
       try {
         const res = await api.get('/manager/traceability/profile');
-        console.log('Profile response:', res.data); // DEBUG
         if (res.data.success) {
           const d = res.data.data;
           setFormData(d);
@@ -53,12 +55,10 @@ const ManagerTraceability = () => {
           // Fix #3: Load status dari API agar tombol publish/unpublish akurat saat reload
           if (d.status) {
             setStatus(d.status);
-            console.log('Status from API:', d.status); // DEBUG
           } else {
             setStatus('draft');
           }
           // Extract project_id dari response jika ada
-          console.log('Project ID from response:', d.project_id); // DEBUG
           if (d.project_id) {
             setProjectId(d.project_id);
           }
@@ -172,9 +172,6 @@ const ManagerTraceability = () => {
       setStatus(newStatus);
       setFormData(updatedData);
       setSavedFormData(updatedData);
-      if (newStatus === 'published') {
-        setLastPublished(new Date().toISOString());
-      }
     } catch (error) {
       console.error('Gagal mengubah status', error);
     } finally {
@@ -184,7 +181,7 @@ const ManagerTraceability = () => {
 
   const handleGenerateQR = async () => {
     if (!projectId) {
-      alert('Project ID tidak ditemukan. Silakan refresh halaman.');
+      showAlert('error', 'Project ID tidak ditemukan. Silakan refresh halaman.');
       return;
     }
 
@@ -198,11 +195,11 @@ const ManagerTraceability = () => {
         setShowQrModal(true);
       } else {
         console.error('Gagal generate QR:', res.data.message);
-        alert('Gagal generate QR code: ' + res.data.message);
+        showAlert('error', 'Gagal generate QR code: ' + res.data.message);
       }
     } catch (error) {
       console.error('Error generate QR:', error);
-      alert('Gagal generate QR code. Silakan coba lagi.');
+      showAlert('error', 'Gagal generate QR code. Silakan coba lagi.');
     } finally {
       setQrLoading(false);
     }
@@ -223,7 +220,7 @@ const ManagerTraceability = () => {
     if (!qrData || !qrData.qr_link) return;
 
     navigator.clipboard.writeText(qrData.qr_link);
-    alert('Link copied to clipboard!');
+    showAlert('success', 'Link copied to clipboard!');
   };
 
   const handlePreview = async () => {
@@ -234,11 +231,11 @@ const ManagerTraceability = () => {
         setPreviewData(res.data.data);
         setShowPreviewModal(true);
       } else {
-        alert('Gagal load preview: ' + res.data.message);
+        showAlert('error', 'Gagal load preview: ' + res.data.message);
       }
     } catch (error) {
       console.error('Error loading preview:', error);
-      alert('Gagal load preview');
+      showAlert('error', 'Gagal load preview');
     } finally {
       setPreviewLoading(false);
     }
@@ -967,6 +964,12 @@ const ManagerTraceability = () => {
         </div>
       )}
 
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        type={alertState.type}
+        message={alertState.message}
+      />
     </div>
   );
 };

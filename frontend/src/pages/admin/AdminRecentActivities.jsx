@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
+import AlertModal from '../../shared/components/UI/AlertModal';
 
 const AdminRecentActivities = () => {
     const [activities, setActivities] = useState([]);
@@ -8,6 +9,9 @@ const AdminRecentActivities = () => {
     const [modalMode, setModalMode] = useState('add');
     const [selectedId, setSelectedId] = useState(null);
     const [confirmDialog, setConfirmDialog] = useState(null);
+    const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
+    const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
+    const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
 
     const initialForm = {
         title: '',
@@ -17,10 +21,6 @@ const AdminRecentActivities = () => {
         preview_url: ''
     };
     const [formData, setFormData] = useState(initialForm);
-
-    useEffect(() => {
-        fetchActivities();
-    }, []);
 
     const fetchActivities = async () => {
         setLoading(true);
@@ -36,6 +36,10 @@ const AdminRecentActivities = () => {
         }
     };
 
+    useEffect(() => {
+        fetchActivities();
+    }, []);
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         if (name === 'description' && value.length > 200) return;
@@ -46,7 +50,7 @@ const AdminRecentActivities = () => {
         const file = e.target.files[0];
         if (!file) return;
         if (file.size > 2 * 1024 * 1024) {
-            alert('Ukuran file tidak boleh lebih dari 2MB');
+            showAlert('warning', 'Ukuran file tidak boleh lebih dari 2MB');
             return;
         }
         setFormData({
@@ -96,7 +100,7 @@ const AdminRecentActivities = () => {
             setIsModalOpen(false);
             fetchActivities();
         } catch (error) {
-            alert(error.response?.data?.message || 'Terjadi kesalahan');
+            showAlert('error', error.response?.data?.message || 'Terjadi kesalahan');
         }
     };
 
@@ -106,7 +110,7 @@ const AdminRecentActivities = () => {
             setConfirmDialog(null);
             fetchActivities();
         } catch (error) {
-            alert('Gagal menghapus aktivitas');
+            showAlert('error', 'Gagal menghapus aktivitas');
         }
     };
 
@@ -124,7 +128,7 @@ const AdminRecentActivities = () => {
                 order: newActivities.map(a => a.id)
             });
         } catch (error) {
-            alert('Gagal mengubah urutan');
+            showAlert('error', 'Gagal mengubah urutan');
             fetchActivities();
         }
     };
@@ -320,6 +324,13 @@ const AdminRecentActivities = () => {
                     </div>
                 </div>
             )}
+
+            <AlertModal
+                isOpen={alertState.isOpen}
+                onClose={closeAlert}
+                type={alertState.type}
+                message={alertState.message}
+            />
         </div>
     );
 };

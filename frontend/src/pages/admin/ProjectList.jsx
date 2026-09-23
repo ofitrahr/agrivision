@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../shared/api/axios';
+import AlertModal from '../../shared/components/UI/AlertModal';
 
 const initialFormData = {
     name: '',
@@ -16,12 +17,11 @@ const ProjectList = () => {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
+    const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
+    const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
 
     const [formData, setFormData] = useState(initialFormData);
-
-    useEffect(() => {
-        fetchProjects();
-    }, [companyId]);
 
     const fetchProjects = async () => {
         setLoading(true);
@@ -37,6 +37,10 @@ const ProjectList = () => {
         }
     };
 
+    useEffect(() => {
+        fetchProjects();
+    }, [companyId]);
+
     const handleInputChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -49,7 +53,7 @@ const ProjectList = () => {
             setFormData(initialFormData);
             fetchProjects();
         } catch (error) {
-            alert(error.response?.data?.message || 'Terjadi kesalahan!');
+            showAlert('error', error.response?.data?.message || 'Terjadi kesalahan!');
         }
     };
 
@@ -146,6 +150,13 @@ const ProjectList = () => {
                     </div>
                 </div>
             )}
+
+            <AlertModal
+                isOpen={alertState.isOpen}
+                onClose={closeAlert}
+                type={alertState.type}
+                message={alertState.message}
+            />
         </div>
     );
 };
