@@ -964,44 +964,65 @@ def manager_farm_harvests(current_user, farm_id):
 @role_required('manager')
 def get_manager_activities(current_user):
     try:
-        from app.db.models import ActivityLog, User, Project
+        from sqlalchemy import or_
+        from app.db.models import ActivityLog, User
         from app.services.activity_service import format_time_ago
 
-        company_id = current_user.project.company_id if current_user.project else None
-        if company_id:
-            company_users = User.query.join(Project).filter(Project.company_id == company_id).all()
-            user_ids = [u.id for u in company_users]
-        else:
-            user_ids = [current_user.id]
+        project_id = current_user.project_id
+        if not project_id:
+            return jsonify({'success': True, 'data': []}), 200
 
-        limit_val = request.args.get('limit', default=50, type=int)
-        logs = ActivityLog.query.filter(ActivityLog.user_id.in_(user_ids))\
+        farm_ids = [f.id for f in Farm.query.with_entities(Farm.id).filter_by(project_id=project_id).all()]
+        project_user_ids = [u.id for u in User.query.with_entities(User.id).filter_by(project_id=project_id).all()]
+
+        conditions = [ActivityLog.entity_id == project_id]
+        if farm_ids:
+            conditions.append(ActivityLog.entity_id.in_(farm_ids))
+        if project_user_ids:
+            conditions.append(ActivityLog.user_id.in_(project_user_ids))
+
+        limit_val = min(max(request.args.get('limit', default=50, type=int), 1), 100)
+        logs = ActivityLog.query.filter(or_(*conditions))\
                                 .order_by(ActivityLog.created_at.desc())\
                                 .limit(limit_val).all()
 
+        # Ambil semua pelaku sekaligus, hindari N+1 query
+        actor_ids = {log.user_id for log in logs if log.user_id}
+        actors = {u.id: u for u in User.query.filter(User.id.in_(actor_ids)).all()} if actor_ids else {}
+
         data = []
         for log in logs:
-            user = User.query.get(log.user_id) if log.user_id else None
-            user_name = (user.full_name or user.username) if user else 'Sistem'
+            actor = actors.get(log.user_id)
+            if not actor:
+                actor_name = 'Sistem'
+            elif actor.role == 'super_admin':
+                actor_name = 'Super Admin'
+            else:
+                actor_name = actor.full_name or actor.username
 
-            icon = 'info'
             act = log.action.upper()
-            if 'FARMER' in act or 'USER' in act or 'CREATE' in act:
-                icon = 'group_add'
-            elif 'MAP' in act or 'FARM' in act or 'GIS' in act:
+            if act == 'RUN_SATELLITE_OBSERVATION':
+                icon = 'satellite_alt'
+            elif act in ('UPDATE_FARM', 'CREATE_FARM'):
+                icon = 'edit_location'
+            elif act in ('UPDATE_PROJECT_PERMISSIONS', 'UPDATE_PERMISSION'):
+                icon = 'shield'
+            elif 'GIS' in act or 'MAP' in act:
                 icon = 'map'
-            elif 'FINANCIAL' in act or 'PAYMENT' in act:
-                icon = 'payments'
+            elif 'FARMER' in act or 'USER' in act:
+                icon = 'group_add'
             elif 'HARVEST' in act or 'CROP' in act:
                 icon = 'description'
             elif 'LOGIN' in act:
                 icon = 'login'
+            else:
+                icon = 'info'
 
             data.append({
                 'id': str(log.id),
                 'icon': icon,
                 'text': log.details or f"{log.action} {log.entity_type}",
-                'subtext': f"Oleh {user_name} • {format_time_ago(log.created_at)}",
+                'subtext': f"Oleh {actor_name} • {format_time_ago(log.created_at)}",
                 'created_at': log.created_at.isoformat()
             })
 
@@ -1542,8 +1563,7 @@ def download_report(current_user, report_id):
     logo_base64 = None
     possible_paths = [
         os.path.join(current_app.root_path, 'static', 'images', 'logo_name.png'),
-        '/home/thomas/agrivision magang/agrivision/backend/app/static/images/logo_name.png',
-        '/home/thomas/agrivision magang/agrivision/frontend/public/assets/images/logo_name.png'
+        os.path.abspath(os.path.join(current_app.root_path, '..', '..', 'frontend', 'public', 'assets', 'images', 'logo_name.png'))
     ]
     for p in possible_paths:
         if os.path.exists(p):

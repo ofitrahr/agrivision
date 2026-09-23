@@ -150,6 +150,7 @@ def manage_project_permissions(current_user, project_id):
                 user_id=current_user.id,
                 action='UPDATE_PERMISSION',
                 entity_type='ProjectPermission',
+                entity_id=perms.project_id,
                 details="Pengaturan izin modul & paket berlangganan diperbarui"
             )
 
@@ -748,7 +749,7 @@ def upload_gis_data(current_user):
             ymax = db.session.scalar(ST_YMax(f.boundary))
             if None in (xmin, xmax, ymin, ymax): return None
             return (float(ymin), float(ymax), float(xmin), float(xmax))
-        except:
+        except Exception:
             return None
 
     bbox = parse_boundary_bbox(farm)
@@ -818,6 +819,7 @@ def upload_gis_data(current_user):
             user_id=current_user.id,
             action='UPLOAD_GIS_DATA',
             entity_type='GisLayer',
+            entity_id=farm.id,
             details=f"Mengimpor {len(layers_to_add)} data layer ke Lahan ID {farm_id} untuk periode {period}"
         )
 
