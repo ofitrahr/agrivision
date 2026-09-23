@@ -68,6 +68,7 @@ class User(db.Model):
     role = db.Column(db.String(20), nullable=False, default='manager')
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     last_login_at = db.Column(db.DateTime)
+    preferences = db.Column(db.JSON, nullable=False, default=dict, server_default='{}')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 

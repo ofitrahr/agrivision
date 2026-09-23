@@ -80,3 +80,73 @@ def update_password(current_user):
     db.session.commit()
     
     return jsonify({"success": True, "message": "Password berhasil diperbarui"}), 200
+
+# Default & tipe yang diizinkan; harus selaras dengan DEFAULT_SETTINGS di settingsHelper.js
+DEFAULT_PREFERENCES = {
+    'areaUnit': 'ha',
+    'timezone': 'WIB',
+    'ndviThreshold': 0.35,
+    'language': 'id',
+    'dateFormat': 'DD/MM/YYYY',
+    'carbonUnit': 'Ton C',
+    'currency': 'IDR (Rp)',
+    'notifInApp': True,
+    'notifAnomaly': True,
+    'notifReports': True,
+    'notifSystem': True,
+    'auditLogRetention': '90d',
+    'includeLocationMetadata': True,
+}
+
+PREFERENCE_CHOICES = {
+    'areaUnit': {'ha', 'm2'},
+    'timezone': {'WIB', 'WITA', 'WIT'},
+    'language': {'id', 'en'},
+    'dateFormat': {'DD/MM/YYYY', 'YYYY-MM-DD', 'DD MMM YYYY'},
+    'carbonUnit': {'Ton C', 'Kg C'},
+    'currency': {'IDR (Rp)', 'USD ($)'},
+    'auditLogRetention': {'30d', '90d', '1y'},
+}
+
+
+def _merged_preferences(user):
+    stored = user.preferences if isinstance(user.preferences, dict) else {}
+    return {**DEFAULT_PREFERENCES, **{k: v for k, v in stored.items() if k in DEFAULT_PREFERENCES}}
+
+
+def _validate_preference(key, value):
+    default = DEFAULT_PREFERENCES[key]
+    if key in PREFERENCE_CHOICES:
+        return value in PREFERENCE_CHOICES[key]
+    if isinstance(default, bool):
+        return isinstance(value, bool)
+    if key == 'ndviThreshold':
+        return isinstance(value, (int, float)) and not isinstance(value, bool) and 0 <= value <= 1
+    return False
+
+
+@auth_bp.route('/settings', methods=['GET', 'PUT'])
+@token_required
+def settings(current_user):
+    if request.method == 'GET':
+        return jsonify({"success": True, "data": _merged_preferences(current_user)}), 200
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"success": False, "message": "Data tidak valid"}), 400
+
+    # Key tak dikenal diabaikan, nilai tak valid ditolak
+    updates = {k: v for k, v in data.items() if k in DEFAULT_PREFERENCES}
+    invalid = [k for k, v in updates.items() if not _validate_preference(k, v)]
+    if invalid:
+        return jsonify({"success": False, "message": f"Nilai tidak valid: {', '.join(invalid)}"}), 400
+
+    # Assign dict baru agar SQLAlchemy mendeteksi perubahan kolom JSON
+    current_user.preferences = {**_merged_preferences(current_user), **updates}
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "message": "Preferensi berhasil disimpan",
+        "data": _merged_preferences(current_user)
+    }), 200

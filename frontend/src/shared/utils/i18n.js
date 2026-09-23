@@ -1,29 +1,273 @@
 import i18n from 'i18next';
-import {initReactI18next, Translation} from 'react-i18next';
+import { initReactI18next } from 'react-i18next';
+import { getStoredSettings } from './settingsHelper';
 
 const resources = {
-  en: {
-    translation: {
-      "welcome": "Welcome to Agrivision",
-      "login": "Login"
-    }
-  },
   id: {
     translation: {
-      "welcome": "Selamat datang di Agrivision",
-      "login": "Masuk"
-    }
-  }
+      welcome: 'Selamat datang di Agrivision',
+      login: 'Masuk',
+      common: {
+        profile: 'Profil',
+        logout: 'Keluar',
+        cancel: 'Batal',
+        close: 'Tutup',
+        user: 'Pengguna',
+      },
+      role: {
+        super_admin: 'Super Admin',
+        manager: 'Manager',
+        board: 'Board',
+      },
+      section: {
+        mainMenu: 'Menu Utama',
+        fieldOps: 'Operasional Lapangan',
+        monitoring: 'Monitoring & Analitik',
+      },
+      nav: {
+        platformOverview: 'Platform Overview',
+        clients: 'Daftar Klien',
+        gis: 'GIS & Pemetaan',
+        traceability: 'Traceability',
+        activities: 'Aktivitas',
+        dashboard: 'Dashboard',
+        farmManagement: 'Manajemen Lahan',
+        farmers: 'Data Petani',
+        agronomy: 'Index Observasi',
+        economics: 'Ekonomi & Laporan',
+        execDashboard: 'Dashboard Eksekutif',
+      },
+      logoutConfirm: {
+        title: 'Konfirmasi Keluar',
+        message: 'Apakah Anda yakin ingin keluar dari sesi ini?',
+        yes: 'Ya, Keluar',
+      },
+      header: {
+        openSidebar: 'Buka Sidebar',
+        closeSidebar: 'Tutup Sidebar',
+        notifications: 'Notifikasi',
+        history: 'Histori Aktivitas',
+        settings: 'Pengaturan Platform & Preferensi',
+        viewProfile: 'Lihat Profil Akun',
+      },
+      notif: {
+        recent: '{{count}} Terbaru',
+        loading: 'Memuat notifikasi...',
+        empty: 'Belum ada notifikasi baru',
+        error: 'Gagal memuat notifikasi',
+      },
+      settings: {
+        title: 'Pengaturan',
+        subtitle: 'Atur preferensi aplikasi dan notifikasi kamu.',
+        preferences: 'Preferensi',
+        save: 'Simpan Preferensi',
+        saving: 'Menyimpan...',
+        savedSuccess: 'Preferensi berhasil disimpan dan diterapkan.',
+        savedLocalOnly: 'Preferensi disimpan di perangkat ini, tetapi gagal disinkronkan ke server.',
+        tabs: {
+          notifications: 'Notifikasi',
+          units: 'Satuan & Bahasa',
+          display: 'Data & Tampilan',
+          privacy: 'Privasi & Data',
+        },
+        units: {
+          title: 'Satuan & Bahasa',
+          desc: 'Sesuaikan satuan dan bahasa tampilan aplikasi.',
+          language: 'Bahasa',
+          languageDesc: 'Pilih bahasa antarmuka aplikasi',
+          areaUnit: 'Satuan Area',
+          areaUnitDesc: 'Satuan luas lahan yang ditampilkan',
+          carbonUnit: 'Satuan Karbon',
+          carbonUnitDesc: 'Satuan untuk data stok karbon',
+          dateFormat: 'Format Tanggal',
+          dateFormatDesc: 'Format tampilan tanggal di seluruh aplikasi',
+          currency: 'Mata Uang',
+          currencyDesc: 'Satuan mata uang untuk estimasi nilai klaim',
+          ndviThreshold: 'Ambang Batas Peringatan NDVI',
+          ndviThresholdDesc: 'Nilai kesehatan tanaman di bawah angka ini akan ditandai sebagai indikasi stres vegetasi pada modul agronomi.',
+        },
+        display: {
+          title: 'Data & Tampilan',
+          desc: 'Pengaturan zona waktu dan opsi tampilan data operasional.',
+          timezone: 'Zona Waktu Lahan',
+          timezoneDesc: 'Zona waktu operasional pengelola lahan',
+        },
+        notifications: {
+          title: 'Notifikasi',
+          desc: 'Pilih jenis pemberitahuan yang ingin kamu terima.',
+          inApp: 'Notifikasi Lonceng In-App',
+          inAppDesc: 'Tampilkan tombol lonceng dan aktivitas terbaru di header',
+          anomaly: 'Peringatan Anomali Vegetasi Satelit',
+          anomalyDesc: 'Pemberitahuan saat observasi satelit mendeteksi anomali pada lahan',
+          reports: 'Pemberitahuan Laporan Siap Download',
+          reportsDesc: 'Pemberitahuan saat laporan yang di-generate siap diunduh',
+          system: 'Pembaruan Sistem & Hak Akses',
+          systemDesc: 'Pemberitahuan perubahan modul, izin proyek, dan pembaruan platform',
+        },
+        privacy: {
+          title: 'Privasi & Data',
+          desc: 'Kelola retensi data dan metadata pada ekspor laporan.',
+          retention: 'Retensi Audit Log',
+          retentionDesc: 'Lama riwayat aktivitas akun disimpan',
+          days30: '30 hari',
+          days90: '90 hari',
+          year1: '1 tahun',
+          locationMeta: 'Sertakan Metadata Lokasi pada Ekspor Laporan Traceability',
+          locationMetaDesc: 'Koordinat dan batas lahan ikut dicantumkan di file ekspor',
+          securityTitle: 'Keamanan & Isolasi Data',
+          jwt: 'Sesi login memakai token JWT yang ditandatangani server (HS256) dan dikirim lewat header Authorization. Token yang diubah atau kedaluwarsa otomatis ditolak.',
+          tenant: 'Data klien dipisahkan per perusahaan dan proyek: akun manager dan board hanya dapat mengakses data milik proyeknya sendiri.',
+        },
+      },
+      ndvi: {
+        stressWarning: 'Indikasi Stres Vegetasi',
+        stressDesc: 'Rata-rata NDVI {{mean}} di bawah ambang batas {{threshold}}',
+        healthy: 'Vegetasi Sehat',
+        healthyDesc: 'Rata-rata NDVI {{mean}} di atas ambang batas {{threshold}}',
+      },
+    },
+  },
+  en: {
+    translation: {
+      welcome: 'Welcome to Agrivision',
+      login: 'Login',
+      common: {
+        profile: 'Profile',
+        logout: 'Log out',
+        cancel: 'Cancel',
+        close: 'Close',
+        user: 'User',
+      },
+      role: {
+        super_admin: 'Super Admin',
+        manager: 'Manager',
+        board: 'Board',
+      },
+      section: {
+        mainMenu: 'Main Menu',
+        fieldOps: 'Field Operations',
+        monitoring: 'Monitoring & Analytics',
+      },
+      nav: {
+        platformOverview: 'Platform Overview',
+        clients: 'Clients',
+        gis: 'GIS & Mapping',
+        traceability: 'Traceability',
+        activities: 'Activities',
+        dashboard: 'Dashboard',
+        farmManagement: 'Farm Management',
+        farmers: 'Farmers',
+        agronomy: 'Observation Index',
+        economics: 'Economics & Reports',
+        execDashboard: 'Executive Dashboard',
+      },
+      logoutConfirm: {
+        title: 'Confirm Log Out',
+        message: 'Are you sure you want to end this session?',
+        yes: 'Yes, Log Out',
+      },
+      header: {
+        openSidebar: 'Open Sidebar',
+        closeSidebar: 'Close Sidebar',
+        notifications: 'Notifications',
+        history: 'Activity History',
+        settings: 'Platform Settings & Preferences',
+        viewProfile: 'View Account Profile',
+      },
+      notif: {
+        recent: '{{count}} Recent',
+        loading: 'Loading notifications...',
+        empty: 'No new notifications',
+        error: 'Failed to load notifications',
+      },
+      settings: {
+        title: 'Settings',
+        subtitle: 'Manage your app and notification preferences.',
+        preferences: 'Preferences',
+        save: 'Save Preferences',
+        saving: 'Saving...',
+        savedSuccess: 'Preferences saved and applied.',
+        savedLocalOnly: 'Preferences saved on this device, but failed to sync to the server.',
+        tabs: {
+          notifications: 'Notifications',
+          units: 'Units & Language',
+          display: 'Data & Display',
+          privacy: 'Privacy & Data',
+        },
+        units: {
+          title: 'Units & Language',
+          desc: 'Adjust the units and display language of the app.',
+          language: 'Language',
+          languageDesc: 'Choose the interface language',
+          areaUnit: 'Area Unit',
+          areaUnitDesc: 'Unit used to display farm area',
+          carbonUnit: 'Carbon Unit',
+          carbonUnitDesc: 'Unit for carbon stock data',
+          dateFormat: 'Date Format',
+          dateFormatDesc: 'Date display format across the app',
+          currency: 'Currency',
+          currencyDesc: 'Currency for estimated claim value',
+          ndviThreshold: 'NDVI Warning Threshold',
+          ndviThresholdDesc: 'Crop health values below this number are flagged as vegetation stress in the agronomy module.',
+        },
+        display: {
+          title: 'Data & Display',
+          desc: 'Time zone and operational data display options.',
+          timezone: 'Farm Time Zone',
+          timezoneDesc: 'Operational time zone of the farm manager',
+        },
+        notifications: {
+          title: 'Notifications',
+          desc: 'Choose which notifications you want to receive.',
+          inApp: 'In-App Bell Notifications',
+          inAppDesc: 'Show the bell button and recent activity in the header',
+          anomaly: 'Satellite Vegetation Anomaly Alerts',
+          anomalyDesc: 'Notify when satellite observation detects an anomaly on a farm',
+          reports: 'Report Ready for Download',
+          reportsDesc: 'Notify when a generated report is ready to download',
+          system: 'System & Access Updates',
+          systemDesc: 'Notify about module, project permission, and platform changes',
+        },
+        privacy: {
+          title: 'Privacy & Data',
+          desc: 'Manage data retention and metadata in report exports.',
+          retention: 'Audit Log Retention',
+          retentionDesc: 'How long account activity history is kept',
+          days30: '30 days',
+          days90: '90 days',
+          year1: '1 year',
+          locationMeta: 'Include Location Metadata in Traceability Report Exports',
+          locationMetaDesc: 'Farm coordinates and boundaries are included in exported files',
+          securityTitle: 'Security & Data Isolation',
+          jwt: 'Login sessions use a server-signed JWT (HS256) sent via the Authorization header. Tampered or expired tokens are rejected automatically.',
+          tenant: 'Client data is separated per company and project: manager and board accounts can only access data belonging to their own project.',
+        },
+      },
+      ndvi: {
+        stressWarning: 'Vegetation Stress Indicated',
+        stressDesc: 'Mean NDVI {{mean}} is below the {{threshold}} threshold',
+        healthy: 'Healthy Vegetation',
+        healthyDesc: 'Mean NDVI {{mean}} is above the {{threshold}} threshold',
+      },
+    },
+  },
 };
+
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'id', 
-    fallbackLng: 'en',
+    lng: getStoredSettings().language,
+    fallbackLng: 'id',
     interpolation: {
-      escapeValue: false 
-    }
+      escapeValue: false,
+    },
   });
-  
+
+// Terapkan bahasa setiap kali preferensi berubah (simpan manual atau sinkron dari server)
+window.addEventListener('settingsUpdated', () => {
+  const { language } = getStoredSettings();
+  if (language !== i18n.language) i18n.changeLanguage(language);
+});
+
 export default i18n;
