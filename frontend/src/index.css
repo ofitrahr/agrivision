@@ -2561,10 +2561,12 @@ img { max-width: 100%; display: block; }
 .stat-card:not(.stat-card-dark):not(.card-accent):hover .stat-unit-inline,
 .stat-card:not(.stat-card-dark):not(.card-accent):hover .stat-unit-label,
 .stat-card:not(.stat-card-dark):not(.card-accent):hover .stat-subtext,
-.card:not(.card-accent):hover h1, .card:not(.card-accent):hover h2, .card:not(.card-accent):hover h3, .card:not(.card-accent):hover h4, .card:not(.card-accent):hover p, .card:not(.card-accent):hover label,
-.agro-card:not(.card-accent):hover h1, .agro-card:not(.card-accent):hover p, .agro-card:not(.card-accent):hover label,
-.agro-kpi-card:not(.card-accent):hover h1, .agro-kpi-card:not(.card-accent):hover p, .agro-kpi-card:not(.card-accent):hover label,
-.agro-project-item:not(.card-accent):hover h1, .agro-project-item:not(.card-accent):hover p, .agro-project-item:not(.card-accent):hover label {
+.stat-card:not(.stat-card-dark):not(.card-accent):hover span,
+.stat-card:not(.stat-card-dark):not(.card-accent):hover div,
+.card:not(.card-accent):hover h1, .card:not(.card-accent):hover h2, .card:not(.card-accent):hover h3, .card:not(.card-accent):hover h4, .card:not(.card-accent):hover p, .card:not(.card-accent):hover label, .card:not(.card-accent):hover span, .card:not(.card-accent):hover div,
+.agro-card:not(.card-accent):hover h1, .agro-card:not(.card-accent):hover h2, .agro-card:not(.card-accent):hover h3, .agro-card:not(.card-accent):hover p, .agro-card:not(.card-accent):hover label, .agro-card:not(.card-accent):hover span, .agro-card:not(.card-accent):hover div,
+.agro-kpi-card:not(.card-accent):hover h1, .agro-kpi-card:not(.card-accent):hover h2, .agro-kpi-card:not(.card-accent):hover h3, .agro-kpi-card:not(.card-accent):hover p, .agro-kpi-card:not(.card-accent):hover label, .agro-kpi-card:not(.card-accent):hover span, .agro-kpi-card:not(.card-accent):hover div,
+.agro-project-item:not(.card-accent):hover h1, .agro-project-item:not(.card-accent):hover h2, .agro-project-item:not(.card-accent):hover h3, .agro-project-item:not(.card-accent):hover p, .agro-project-item:not(.card-accent):hover label, .agro-project-item:not(.card-accent):hover span, .agro-project-item:not(.card-accent):hover div {
   color: #ffffff !important;
 }
 
