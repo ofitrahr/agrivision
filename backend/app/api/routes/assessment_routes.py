@@ -1,4 +1,4 @@
-﻿import uuid
+import uuid
 
 from app.core.security import roles_required, token_required
 from app.db.database import db

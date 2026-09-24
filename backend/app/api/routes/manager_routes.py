@@ -19,7 +19,7 @@ def get_manager_stats(current_user):
     project = current_user.project
     company_id = project.company_id if project else None
 
-    from app.db.models import FinancialRecord, EsgMetric, Farm as FarmModel
+    from app.db.models import FinancialRecord, Farm as FarmModel
     from sqlalchemy import func
 
     farms = FarmModel.query.filter_by(project_id=project_id).all()
@@ -65,11 +65,7 @@ def get_manager_stats(current_user):
     ).group_by(FinancialRecord.period).order_by(FinancialRecord.period).all()
     revenue_trend = [float(r.revenue or 0) for r in revenue_trend_rows]
 
-    # Serapan karbon (carbon_footprint) dari EsgMetric
-    carbon_total = db.session.query(
-        func.sum(EsgMetric.carbon_footprint)
-    ).filter(EsgMetric.farm_id.in_(farm_ids_list)).scalar()
-    total_carbon_ton = float(carbon_total or 0)
+    carbon_stock = _biomass_carbon_stock(project_id, farms)
 
     return jsonify({
         'success': True,
@@ -81,9 +77,53 @@ def get_manager_stats(current_user):
             'total_production_ton': round(total_production_ton, 2),
             'total_revenue': total_revenue,
             'revenue_trend': revenue_trend,
-            'total_carbon_ton': round(total_carbon_ton, 2),
+            'carbon_stock': carbon_stock,
         }
     }), 200
+
+
+def _biomass_carbon_stock(project_id, farms):
+    """Stok karbon biomassa (bukan serapan) dari layer AGB periode terakhir tiap lahan.
+
+    Karbon = (AGB + BGB) x fraksi karbon, BGB = rasio x AGB; CO2e = karbon x 44/12.
+    Mengembalikan None jika proyek tidak punya akses biomassa atau belum ada data.
+    """
+    from app.db.models import ProjectPermission, GisLayer
+    from app.services.biomass_service import BiomassService
+    from sqlalchemy import func, and_
+
+    perms = ProjectPermission.query.filter_by(project_id=project_id).first()
+    if not farms or not perms or not perms.module_agronomy or not perms.can_access_biomass:
+        return None
+
+    area_by_farm = {f.id: float(f.total_area_ha or 0) for f in farms}
+    biomass_filter = and_(
+        GisLayer.farm_id.in_(list(area_by_farm)),
+        GisLayer.parameter_type == 'biomass',
+        GisLayer.numerical_value.isnot(None),
+    )
+    latest = db.session.query(GisLayer.farm_id, func.max(GisLayer.period).label('period'))\
+        .filter(biomass_filter).group_by(GisLayer.farm_id).subquery()
+    rows = db.session.query(GisLayer.farm_id, latest.c.period, func.avg(GisLayer.numerical_value))\
+        .join(latest, and_(GisLayer.farm_id == latest.c.farm_id, GisLayer.period == latest.c.period))\
+        .filter(biomass_filter)\
+        .group_by(GisLayer.farm_id, latest.c.period).all()
+    if not rows:
+        return None
+
+    factors = BiomassService.carbon_factors()
+    # Rerata AGB (Mg/ha) x luas lahan (ha) = AGB total (ton)
+    agb_ton = sum(float(avg) * area_by_farm[fid] for fid, _, avg in rows)
+    carbon_ton = agb_ton * (1 + factors['rasio_bgb']) * factors['fraksi_karbon']
+
+    return {
+        'co2e_ton': round(carbon_ton * factors['co2_per_c'], 1),
+        'carbon_ton': round(carbon_ton, 1),
+        'agb_ton': round(agb_ton, 1),
+        'period': max(period for _, period, _ in rows),
+        'farms_with_data': len(rows),
+        'total_farms': len(farms),
+    }
 
 @manager_bp.route('/profile', methods=['GET', 'PUT'])
 @token_required
