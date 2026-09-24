@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, TreePine, Coins, Users, Maximize2 } from 'lucide-react';
 import StatCard from '../../shared/components/UI/StatCard';
 import Card from '../../shared/components/UI/Card';
-import { formatAreaValue, getStoredSettings } from '../../shared/utils/settingsHelper';
+import { formatAreaValue, getAreaDisplay, getStoredSettings } from '../../shared/utils/settingsHelper';
 
 const StatCardSkeleton = () => (
   <div className="stat-card" aria-busy="true" aria-label="Memuat data">
@@ -106,7 +106,13 @@ const FarmHealthStatus = ({ ndvi, threshold }) => {
 };
 
 const FarmCard = ({ farm, ndviThreshold, onManage, onAgronomy }) => {
-  const cropVariety = farm.crop_variety || farm.crops?.[0]?.variety || farm.crops?.[0]?.crop_type;
+  // Komoditas terluas + jumlah sisanya
+  const cropNames = farm.crops?.length > 0
+    ? [...farm.crops].sort((a, b) => (b.area_ha || 0) - (a.area_ha || 0)).map(c => c.crop_type).filter(Boolean)
+    : (farm.crop_variety || '').split(',').map(c => c.trim()).filter(Boolean);
+  const cropVariety = cropNames.length > 0
+    ? `${cropNames[0]}${cropNames.length > 1 ? ` +${cropNames.length - 1}` : ''}`
+    : null;
   const farmersText = farm.farmers?.length > 0 ? farm.farmers.join(', ') : null;
 
   return (
@@ -123,7 +129,7 @@ const FarmCard = ({ farm, ndviThreshold, onManage, onAgronomy }) => {
               <span className="agro-chip">{formatAreaValue(farm.total_area_ha)}</span>
             )}
             {cropVariety && (
-              <span className="agro-chip agro-chip-active">{cropVariety}</span>
+              <span className="agro-chip agro-chip-active" title={cropNames.join(', ')}>{cropVariety}</span>
             )}
           </div>
         </div>
@@ -158,9 +164,15 @@ const FarmCard = ({ farm, ndviThreshold, onManage, onAgronomy }) => {
   );
 };
 
-const formatCurrency = (value) => {
-  if (!value && value !== 0) return null;
-  return Number(value).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// 85836000 -> { value: '85,8', unit: 'juta' }
+const formatCompactIdr = (value) => {
+  const num = Number(value);
+  const scales = [[1e12, 'triliun'], [1e9, 'miliar'], [1e6, 'juta']];
+  const [divisor, unit] = scales.find(([d]) => Math.abs(num) >= d) ?? [1, ''];
+  return {
+    value: (num / divisor).toLocaleString('id-ID', { maximumFractionDigits: divisor > 1 ? 1 : 0 }),
+    unit,
+  };
 };
 
 const ManagerDashboard = () => {
@@ -217,6 +229,8 @@ const ManagerDashboard = () => {
   const primaryCommodity = stats?.primary_commodity ?? null;
   const totalRevenue = stats?.total_revenue > 0 ? stats.total_revenue : null;
   const totalCarbonTon = stats?.total_carbon_ton > 0 ? stats.total_carbon_ton : null;
+  const revenueDisplay = totalRevenue !== null ? formatCompactIdr(totalRevenue) : null;
+  const areaDisplay = totalAreaHa !== null ? getAreaDisplay(totalAreaHa) : null;
 
   return (
     <div>
@@ -228,10 +242,10 @@ const ManagerDashboard = () => {
         <button
           className="btn btn-ghost"
           onClick={() => navigate('/manager/profile')}
-          aria-label="Pengaturan profil"
+          aria-label="Profil perusahaan"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>settings</span>
-          Pengaturan
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>apartment</span>
+          Profil Perusahaan
         </button>
       </header>
 
@@ -242,21 +256,22 @@ const ManagerDashboard = () => {
             Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
           ) : (
             <>
-              {/* Kartu 1: Serapan Karbon — data dari EsgMetric.carbon_footprint (hanya tampil jika data tersedia) */}
-              {totalCarbonTon !== null && (
-                <StatCard
-                  title="SERAPAN KARBON"
-                  headerUnit="(TON CO2e)"
-                  value={totalCarbonTon}
-                  badgeText="Biomassa Lahan Aktif"
-                  icon={TreePine}
-                />
-              )}
+              {/* Kartu 1: Serapan Karbon — data dari EsgMetric.carbon_footprint; tetap tampil agar grid tidak bolong */}
+              <StatCard
+                title="SERAPAN KARBON"
+                headerUnit="(TON CO2e)"
+                value={totalCarbonTon !== null ? totalCarbonTon.toLocaleString('id-ID') : '-'}
+                badgeText={totalCarbonTon !== null ? 'Biomassa Lahan Aktif' : 'Belum ada data'}
+                badgeType={totalCarbonTon !== null ? 'success' : 'neutral'}
+                icon={TreePine}
+              />
 
               {/* Kartu 2: Nilai Ekonomi — data dari FinancialRecord.estimated_revenue */}
               <StatCard
                 title="ESTIMASI NILAI EKONOMI (IDR)"
-                value={formatCurrency(totalRevenue) ?? '-'}
+                value={revenueDisplay ? revenueDisplay.value : '-'}
+                inlineUnit={revenueDisplay?.unit || undefined}
+                subtext={totalRevenue !== null ? `Rp ${totalRevenue.toLocaleString('id-ID')}` : 'Belum ada data keuangan'}
                 icon={Coins}
                 silhouetteColor="var(--color-dark-amber)"
               />
@@ -274,8 +289,8 @@ const ManagerDashboard = () => {
               {/* Kartu 4: Luas Lahan & Komoditas — data dari Farm.total_area_ha + Farm.crop_variety */}
               <StatCard
                 title="TOTAL LUAS LAHAN"
-                headerUnit="(HA)"
-                value={totalAreaHa !== null ? totalAreaHa : '-'}
+                headerUnit={`(${areaDisplay ? areaDisplay.unit.toUpperCase() : 'HA'})`}
+                value={areaDisplay ? areaDisplay.value : '-'}
                 badgeText={primaryCommodity ? `Komoditas: ${primaryCommodity}` : null}
                 badgeType="success"
                 icon={Maximize2}
@@ -285,12 +300,12 @@ const ManagerDashboard = () => {
         </div>
       </section>
 
-      {/* DAFTAR LAHAN PROJECT */}
-      <section aria-label="Daftar Lahan Project">
+      {/* DAFTAR LAHAN PROYEK */}
+      <section aria-label="Daftar Lahan Proyek">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-main)', margin: '0 0 2px 0' }}>
-              Daftar Lahan Project
+              Daftar Lahan Proyek
             </h2>
             <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
               {farms.length > 0 ? `${farms.length} lahan dalam pengelolaan` : 'Belum ada lahan terdaftar'}

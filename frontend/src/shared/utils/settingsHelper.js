@@ -57,13 +57,16 @@ export const syncSettingsFromServer = async () => {
     return getStoredSettings();
 };
 
-export const formatAreaValue = (areaHa) => {
+// Angka & satuan terpisah, untuk tampilan yang menaruh satuan di tempat lain
+export const getAreaDisplay = (areaHa) => {
     const num = parseFloat(areaHa) || 0;
-    const settings = getStoredSettings();
-
-    if (settings.areaUnit === 'm2') {
-        const m2Val = num * 10000;
-        return `${m2Val.toLocaleString('id-ID')} m²`;
+    if (getStoredSettings().areaUnit === 'm2') {
+        return { value: (num * 10000).toLocaleString('id-ID'), unit: 'm²' };
     }
-    return `${num.toLocaleString('id-ID')} Ha`;
+    return { value: num.toLocaleString('id-ID'), unit: 'Ha' };
+};
+
+export const formatAreaValue = (areaHa) => {
+    const { value, unit } = getAreaDisplay(areaHa);
+    return `${value} ${unit}`;
 };
