@@ -207,10 +207,11 @@ class GEEService:
         return clean_topo, clean_bands
 
     @classmethod
-    def get_farm_pixel_samples_from_gee(cls, polygon_coords, scale=10, max_cloud=20, start_date=None, end_date=None):
+    def get_farm_pixel_samples_from_gee(cls, geometry, scale=10, max_cloud=20, start_date=None, end_date=None):
         import math
         cls.initialize()
-        aoi = ee.Geometry.Polygon(polygon_coords)
+        # GeoJSON Polygon maupun MultiPolygon; semua bagian MultiPolygon ikut disampel.
+        aoi = ee.Geometry(geometry)
 
         area_m2 = aoi.area().getInfo()
         if area_m2 < 15000:

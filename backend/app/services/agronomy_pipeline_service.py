@@ -34,12 +34,7 @@ class AgronomyPipelineService:
 
         geojson_data = json.loads(geojson_str)
         geom_type = geojson_data.get('type')
-
-        if geom_type == 'Polygon':
-            coords = geojson_data['coordinates'][0]
-        elif geom_type == 'MultiPolygon':
-            coords = geojson_data['coordinates'][0][0]
-        else:
+        if geom_type not in ('Polygon', 'MultiPolygon'):
             raise ValueError(f"Tipe geometri '{geom_type}' tidak didukung untuk ekstraksi citra satelit.")
 
         # Rentang tanggal 1 bulan penuh untuk periode ini
@@ -52,7 +47,7 @@ class AgronomyPipelineService:
             f"periode {period} ({start_date} s/d {end_date_inclusive})..."
         )
         pixel_samples, scene_info = GEEService.get_farm_pixel_samples_from_gee(
-            coords, scale=10, start_date=start_date, end_date=end_date_exclusive
+            geojson_data, scale=10, start_date=start_date, end_date=end_date_exclusive
         )
         if not pixel_samples:
             raise ValueError(
