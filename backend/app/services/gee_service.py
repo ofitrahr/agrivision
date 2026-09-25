@@ -214,7 +214,8 @@ class GEEService:
         aoi = ee.Geometry(geometry)
 
         area_m2 = aoi.area().getInfo()
-        if area_m2 < 15000:
+        is_small_farm = area_m2 < 15000
+        if is_small_farm:
             scale = max(3, math.floor(math.sqrt(area_m2 / 80)))
             logger.info(f"Lahan sempit ({area_m2/10000:.2f} Ha). Menggunakan micro-scale: {scale}m.")
         # Lahan besar tetap scale native 10m - numPixels di bawah yang membatasi jumlah titik.
@@ -264,12 +265,16 @@ class GEEService:
         topo_image = elevation.addBands([slope, aspect, twi])
         combined = s2_selected.addBands(topo_image)
 
-        buf_dist = max(10, int(scale * 1.5))
-        buffered_aoi = aoi.buffer(buf_dist)
+        # Buffer hanya untuk lahan sempit agar tetap dapat piksel. Di lahan besar buffer ikut
+        # menyampel jalan di sekitar batas dan menyusutkan lubang (kolam/jalan di dalam lahan).
+        if is_small_farm:
+            sample_region = aoi.buffer(max(10, int(scale * 1.5)))
+        else:
+            sample_region = aoi
 
         MAX_SAMPLE_PIXELS = 4000
         samples_fc = combined.sample(
-            region=buffered_aoi, scale=scale, geometries=True,
+            region=sample_region, scale=scale, geometries=True,
             numPixels=MAX_SAMPLE_PIXELS, seed=42, dropNulls=True
         )
         feats = samples_fc.getInfo().get('features', [])
