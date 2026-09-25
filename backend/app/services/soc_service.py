@@ -11,14 +11,8 @@ class SOCService:
     BULK_DENSITY_G_CM3 = 1.05
     SAMPLING_DEPTH_CM = 20
     OC_GKG_TO_PERCENT = 0.1
-
-    # Koreksi bias lokal terhadap 7 sampel lab Kadatuan (Data-Lab.csv).
-    # Bukan kalibrasi regresi: berkas lab tidak punya koordinat, sehingga sampel
-    # tidak bisa dipasangkan dengan prediksi di titik yang sama. Gain murni
-    # (tanpa offset) agar pola relatif antar piksel dan antar lahan tetap utuh.
-    # Referensi model: rerata 8.322 titik (5 blok Kadatuan x 6 periode, Jan-Jun 2026).
     LAB_OC_MEAN_PERCENT = 3.0957
-    MODEL_REFERENCE_OC_PERCENT = 8.2398
+    MODEL_REFERENCE_OC_PERCENT = 7.4622
     CALIBRATION_ENABLED = os.getenv('SOC_CALIBRATION', 'true').lower() == 'true'
     CALIBRATION_GAIN = float(
         os.getenv('SOC_CALIBRATION_GAIN', LAB_OC_MEAN_PERCENT / MODEL_REFERENCE_OC_PERCENT)

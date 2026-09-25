@@ -1,3 +1,7 @@
+import logging
+import os
+import sys
+
 from flask import Flask
 from flask_cors import CORS
 
@@ -5,7 +9,20 @@ from app.core.config import Config
 from app.db.database import db
 
 
+def _setup_logging():
+    """Tanpa ini root logger tetap WARNING dan seluruh logger.info dibuang diam-diam."""
+    level = getattr(logging, os.getenv('LOG_LEVEL', 'INFO').upper(), logging.INFO)
+    root = logging.getLogger()
+    root.setLevel(level)
+    if not root.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)-7s %(name)s: %(message)s'))
+        root.addHandler(handler)
+    logging.getLogger('werkzeug').setLevel(logging.WARNING)
+
+
 def create_app():
+    _setup_logging()
     app = Flask(__name__)
 
     CORS(app)

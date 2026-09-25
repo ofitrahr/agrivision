@@ -1,26 +1,14 @@
 #!/usr/bin/env python
-"""Impor layer biomassa (AGB) Kadatuan ke gis_layers.
-
-Dataset ini hasil prediksi yang sudah jadi untuk satu jendela citra, bukan model
-yang bisa dijalankan per periode - jadi diimpor lewat skrip, bukan lewat pipeline
-observasi satelit.
-
-  python scripts/import_biomass.py                      # semua periode yang sudah ada di gis_layers
-  python scripts/import_biomass.py --periods 2026-06
-  python scripts/import_biomass.py --only-aoa           # hanya sel di dalam area of applicability
-  python scripts/import_biomass.py --dry-run
-"""
-
 import argparse
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app import create_app  # noqa: E402
-from app.db.database import db  # noqa: E402
-from app.db.models import Farm, GisLayer  # noqa: E402
-from app.services.biomass_service import BiomassService  # noqa: E402
+from app import create_app
+from app.db.database import db
+from app.db.models import Farm, GisLayer
+from app.services.biomass_service import BiomassService
 
 PARAMETER_TYPE = 'biomass'
 

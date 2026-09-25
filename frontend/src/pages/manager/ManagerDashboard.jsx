@@ -228,7 +228,8 @@ const ManagerDashboard = () => {
   const totalAreaHa = stats?.total_area_ha ?? null;
   const primaryCommodity = stats?.primary_commodity ?? null;
   const totalRevenue = stats?.total_revenue > 0 ? stats.total_revenue : null;
-  const totalCarbonTon = stats?.total_carbon_ton > 0 ? stats.total_carbon_ton : null;
+  const carbonStock = stats?.carbon_stock ?? null;
+  const carbonUnit = getStoredSettings().carbonUnit;
   const revenueDisplay = totalRevenue !== null ? formatCompactIdr(totalRevenue) : null;
   const areaDisplay = totalAreaHa !== null ? getAreaDisplay(totalAreaHa) : null;
 
@@ -256,13 +257,18 @@ const ManagerDashboard = () => {
             Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
           ) : (
             <>
-              {/* Kartu 1: Serapan Karbon — data dari EsgMetric.carbon_footprint; tetap tampil agar grid tidak bolong */}
+              {/* Kartu 1: Stok Karbon Biomassa — dari layer AGB (bukan serapan: butuh ≥2 periode survei) */}
               <StatCard
-                title="SERAPAN KARBON"
+                title="STOK KARBON BIOMASSA"
                 headerUnit="(TON CO2e)"
-                value={totalCarbonTon !== null ? totalCarbonTon.toLocaleString('id-ID') : '-'}
-                badgeText={totalCarbonTon !== null ? 'Biomassa Lahan Aktif' : 'Belum ada data'}
-                badgeType={totalCarbonTon !== null ? 'success' : 'neutral'}
+                value={carbonStock ? carbonStock.co2e_ton.toLocaleString('id-ID', { maximumFractionDigits: 1 }) : '-'}
+                unit={carbonStock
+                  ? `setara ${carbonUnit === 'Kg C'
+                      ? `${(carbonStock.carbon_ton * 1000).toLocaleString('id-ID', { maximumFractionDigits: 0 })} kg C`
+                      : `${carbonStock.carbon_ton.toLocaleString('id-ID', { maximumFractionDigits: 1 })} ton C`}`
+                  : null}
+                badgeText={carbonStock ? null : 'Belum ada data biomassa'}
+                badgeType="neutral"
                 icon={TreePine}
               />
 

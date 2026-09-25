@@ -8,18 +8,22 @@ logger = logging.getLogger(__name__)
 
 
 class BiomassService:
-    """Pembaca dataset AGB Kadatuan grid 10 m.
-
-    Berbeda dari SOC/NPK: berkas ini bukan model yang bisa di-inference, melainkan
-    hasil prediksi yang sudah dihitung untuk 786 sel pada satu jendela citra.
-    Tidak ada panggilan GEE - nilainya dibaca apa adanya.
-    """
-
     DATASET_FILE = 'agb_kadatuan_10m.h5'
     UNIT = 'Ton/Ha'
     ANOMALY_THRESH_MG_HA = 10.0
 
+    DEFAULT_CARBON_FACTORS = {'rasio_bgb': 0.26, 'fraksi_karbon': 0.47, 'co2_per_c': 44 / 12}
+
     _instance = None
+
+    @classmethod
+    def carbon_factors(cls):
+        """Faktor konversi AGB -> karbon dari metadata dataset (BGB = rasio x AGB)."""
+        try:
+            meta = cls().meta
+        except FileNotFoundError:
+            return dict(cls.DEFAULT_CARBON_FACTORS)
+        return {k: float(meta.get(k, v)) for k, v in cls.DEFAULT_CARBON_FACTORS.items()}
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -91,8 +95,6 @@ class BiomassService:
 
     def cells_for_plot(self, plot_id):
         mask = self.cells['plot_id'] == plot_id
-        # float()/bool() wajib: numpy.float64 punya repr 'np.float64(x)' yang bocor
-        # ke dalam SQL saat di-insert lewat psycopg2.
         return [
             {
                 'lat': float(self.cells['lat'][i]),
@@ -110,7 +112,6 @@ class BiomassService:
         ]
 
     def match_plots_to_farms(self, farms, area_tolerance_ha=0.05):
-        """Pasangkan plot ke lahan lewat (penanggung jawab, luas). Gagal keras bila ambigu."""
         mapping = {}
         used = set()
 

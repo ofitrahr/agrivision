@@ -2,6 +2,7 @@ import os
 import json
 from datetime import date, datetime, timedelta, timezone
 from app import create_app
+from app.core.harvest_data import monthly_harvest
 from app.db.database import db
 from app.db.models import (
     User, Company, Project, ProjectPermission, Sdg, SdgMaster,
@@ -33,38 +34,37 @@ SDG_CATALOG = [
     (17, "Partnerships for the Goals", "Memperkuat sarana pelaksanaan dan menghidupkan kembali kemitraan global untuk pembangunan berkelanjutan"),
 ]
 
-# GeoJSON 5 blok lahan Kadatuan disalin ke dalam repo (backend/seed_data/kadatuan_aoi/) supaya
-# seed.py tidak bergantung pada path host di luar repo (mis. saat dijalankan di dalam Docker
-# container via `docker exec agrivision_backend python3 seed.py`).
-GEOJSON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'seed_data', 'kadatuan_aoi')
+SEED_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'seed_data')
 
-# Luas (Ha) dipakai literal sesuai data lapangan; boundary spasial dibaca dari file GeoJSON.
+# Satu FeatureCollection berisi kelima parsel. Blok dicocokkan lewat (PJ, Luas) pada
+# properties, bukan lewat urutan feature, agar aman kalau urutannya berubah.
+KADATUAN_GEOJSON = os.path.join(SEED_DATA_DIR, 'AOI_KADATUAN_js.geojson')
+HARVEST_XLSX = os.path.join(SEED_DATA_DIR, 'Rekap_Data_Periodik_2025-2026.xlsx')
+
 KADATUAN_BLOCKS = [
-    {"file": "AOI_KADATUAN_1.geojson", "name": "Blok 1 - Kadatuan (Pak Erus)", "area_ha": 0.25, "pj": "Pak Erus", "is_main": False},
-    {"file": "AOI_KADATUAN_2.geojson", "name": "Blok 2 - Kadatuan (Pak Ido)", "area_ha": 0.78, "pj": "Pak Ido", "is_main": False},
-    {"file": "AOI_KADATUAN_3.geojson", "name": "Blok 3 - Kadatuan (Pak Pena)", "area_ha": 4.47, "pj": "Pak Pena", "is_main": True},
-    {"file": "AOI_KADATUAN_4.geojson", "name": "Blok 4 - Kadatuan (Pak Pena)", "area_ha": 0.50, "pj": "Pak Pena", "is_main": False},
-    {"file": "AOI_KADATUAN_5.geojson", "name": "Blok 5 - Kadatuan (Pak Pena)", "area_ha": 0.48, "pj": "Pak Pena", "is_main": False},
+    {"key": "blok1", "name": "Blok 1 - Kadatuan (Pak Erus)", "area_ha": 0.25, "pj": "Pak Erus", "geo_luas": 0.245, "is_main": False},
+    {"key": "blok2", "name": "Blok 2 - Kadatuan (Pak Ido)", "area_ha": 0.78, "pj": "Pak Ido", "geo_luas": 0.778, "is_main": False},
+    {"key": "blok3", "name": "Blok 3 - Kadatuan (Pak Pena)", "area_ha": 4.47, "pj": "Pak Pena", "geo_luas": 4.474, "is_main": True},
+    {"key": "blok4", "name": "Blok 4 - Kadatuan (Pak Pena)", "area_ha": 0.50, "pj": "Pak Pena", "geo_luas": 0.503, "is_main": False},
+    {"key": "blok5", "name": "Blok 5 - Kadatuan (Pak Pena)", "area_ha": 0.48, "pj": "Pak Pena", "geo_luas": 0.485, "is_main": False},
 ]
 
 AGROFORESTRY_SYSTEM = "Agroforestri Terintegrasi (Kopi, Naungan Buah & Hortikultura)"
 CROP_VARIETY_LABEL = "Kopi Arabika, Jeruk Bali, Alpukat, Cabe, Terong"
 
 KADATUAN_CROP_ALLOCATION = {
-    "AOI_KADATUAN_1.geojson": [("Kopi Arabika", 0.15), ("Alpukat", 0.04), ("Jeruk Bali", 0.03), ("Cabe", 0.02), ("Terong", 0.01)],
-    "AOI_KADATUAN_2.geojson": [("Kopi Arabika", 0.47), ("Alpukat", 0.12), ("Jeruk Bali", 0.08), ("Cabe", 0.06), ("Terong", 0.05)],
-    "AOI_KADATUAN_3.geojson": [("Kopi Arabika", 2.68), ("Alpukat", 0.67), ("Jeruk Bali", 0.45), ("Cabe", 0.35), ("Terong", 0.32)],
-    "AOI_KADATUAN_4.geojson": [("Kopi Arabika", 0.30), ("Alpukat", 0.08), ("Jeruk Bali", 0.05), ("Cabe", 0.04), ("Terong", 0.03)],
-    "AOI_KADATUAN_5.geojson": [("Kopi Arabika", 0.29), ("Alpukat", 0.07), ("Jeruk Bali", 0.05), ("Cabe", 0.04), ("Terong", 0.03)],
+    "blok1": [("Kopi Arabika", 0.15), ("Alpukat", 0.04), ("Jeruk Bali", 0.03), ("Cabe", 0.02), ("Terong", 0.01)],
+    "blok2": [("Kopi Arabika", 0.47), ("Alpukat", 0.12), ("Jeruk Bali", 0.08), ("Cabe", 0.06), ("Terong", 0.05)],
+    "blok3": [("Kopi Arabika", 2.68), ("Alpukat", 0.67), ("Jeruk Bali", 0.45), ("Cabe", 0.35), ("Terong", 0.32)],
+    "blok4": [("Kopi Arabika", 0.30), ("Alpukat", 0.08), ("Jeruk Bali", 0.05), ("Cabe", 0.04), ("Terong", 0.03)],
+    "blok5": [("Kopi Arabika", 0.29), ("Alpukat", 0.07), ("Jeruk Bali", 0.05), ("Cabe", 0.04), ("Terong", 0.03)],
 }
 
 # Rekap panen ceri kopi bulanan (Rekap_Data_Periodik_2025-2026.xlsx), total 7.153 kg.
 # Data agregat kebun (sumbernya tidak dipecah per blok) - dicatat di Blok 3 (Lahan Utama).
-KADATUAN_HARVEST_DATA = [
-    ("2025-10", 104), ("2025-11", 279), ("2025-12", 208),
-    ("2026-01", 970), ("2026-02", 1380), ("2026-03", 2046),
-    ("2026-04", 858), ("2026-05", 479), ("2026-06", 557), ("2026-07", 272),
-]
+# Dibaca dari Rekap_Data_Periodik_2025-2026.xlsx, bukan di-hardcode, supaya Excel
+# tetap jadi satu-satunya sumber kebenaran angka panen.
+KADATUAN_HARVEST_DATA = monthly_harvest(HARVEST_XLSX)
 PRICE_PER_KG_CHERRY = 12000  # estimasi pendapatan Rp/kg ceri
 OPERATIONAL_COST_RATIO = 0.45  # estimasi biaya operasional proporsional thd pendapatan
 
@@ -140,20 +140,9 @@ def clear_old_data():
         print("Tidak ada data company lama yang perlu dihapus.")
 
 
-def geojson_polygon_to_wkt(filepath):
-    with open(filepath, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-
-    if data.get('type') == 'FeatureCollection':
-        feature = data['features'][0]
-    elif data.get('type') == 'Feature':
-        feature = data
-    else:
-        raise ValueError(f"{filepath}: tipe GeoJSON '{data.get('type')}' tidak didukung.")
-
-    geometry = feature['geometry']
-    if geometry['type'] != 'Polygon':
-        raise ValueError(f"{filepath}: hanya geometry Polygon yang didukung, dapat '{geometry['type']}'.")
+def geometry_to_wkt(geometry, label=''):
+    if geometry.get('type') != 'Polygon':
+        raise ValueError(f"{label}: hanya geometry Polygon yang didukung, dapat '{geometry.get('type')}'.")
 
     ring_wkt_list = []
     for ring in geometry['coordinates']:
@@ -161,6 +150,40 @@ def geojson_polygon_to_wkt(filepath):
         ring_wkt_list.append(f"({points_wkt})")
 
     return f"POLYGON({', '.join(ring_wkt_list)})"
+
+
+def load_kadatuan_boundaries(filepath=KADATUAN_GEOJSON, tolerance=0.01):
+    """Baca satu FeatureCollection, pasangkan tiap feature ke blok lewat (PJ, Luas)."""
+    with open(filepath, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    if data.get('type') != 'FeatureCollection':
+        raise ValueError(f"{filepath}: diharapkan FeatureCollection, dapat '{data.get('type')}'.")
+
+    features = data.get('features', [])
+    if len(features) != len(KADATUAN_BLOCKS):
+        raise ValueError(
+            f"{filepath}: berisi {len(features)} feature, diharapkan {len(KADATUAN_BLOCKS)}."
+        )
+
+    boundaries, used = {}, set()
+    for block in KADATUAN_BLOCKS:
+        matches = [
+            i for i, ft in enumerate(features)
+            if i not in used
+            and str(ft.get('properties', {}).get('PJ', '')).strip().lower() == block['pj'].lower()
+            and abs(float(ft.get('properties', {}).get('Luas', -1)) - block['geo_luas']) <= tolerance
+        ]
+        if len(matches) != 1:
+            raise ValueError(
+                f"{block['name']}: ditemukan {len(matches)} feature cocok untuk "
+                f"PJ='{block['pj']}' Luas={block['geo_luas']}. Periksa properties GeoJSON."
+            )
+        idx = matches[0]
+        used.add(idx)
+        boundaries[block['key']] = geometry_to_wkt(features[idx]['geometry'], block['name'])
+
+    return boundaries
 
 
 def seed_kadatuan_data():
@@ -246,11 +269,11 @@ def seed_kadatuan_data():
     db.session.commit()
 
     # 4. Blok Lahan dari GeoJSON + penugasan petani via relasi farm_farmers
+    boundaries = load_kadatuan_boundaries()
     farms_by_block = {}
     main_farm = None
     for block in KADATUAN_BLOCKS:
-        geojson_path = os.path.join(GEOJSON_DIR, block["file"])
-        wkt_geom = geojson_polygon_to_wkt(geojson_path)
+        wkt_geom = boundaries[block["key"]]
 
         farm = Farm(
             project_id=project.id,
@@ -268,15 +291,15 @@ def seed_kadatuan_data():
         db.session.commit()
 
         farm.farmers.append(farmers_by_name[block["pj"]])
-        for crop_type, area_ha in KADATUAN_CROP_ALLOCATION[block["file"]]:
+        for crop_type, area_ha in KADATUAN_CROP_ALLOCATION[block["key"]]:
             db.session.add(FarmCrop(farm_id=farm.id, crop_type=crop_type, area_ha=area_ha))
         db.session.commit()
 
-        farms_by_block[block["file"]] = farm
+        farms_by_block[block["key"]] = farm
         if block["is_main"]:
             main_farm = farm
 
-    print(f"{len(farms_by_block)} blok lahan Kadatuan berhasil ditanam dari GeoJSON ({GEOJSON_DIR}).")
+    print(f"{len(farms_by_block)} blok lahan Kadatuan berhasil ditanam dari {os.path.basename(KADATUAN_GEOJSON)}.")
 
     # 5. Rekap Panen & Finansial Bulanan (dicatat di Blok 3 - Lahan Utama, lihat catatan di atas)
     for period, kg in KADATUAN_HARVEST_DATA:

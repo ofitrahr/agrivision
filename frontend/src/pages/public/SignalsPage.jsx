@@ -9,7 +9,7 @@ const SignalsPage = () => {
   const heroRef = useScrollReveal();
   const signalsRef = useScrollReveal();
   const techRef = useScrollReveal();
-  const ctaRef = useScrollReveal();
+ 
 
   const signals = [
     {

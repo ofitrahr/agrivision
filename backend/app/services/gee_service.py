@@ -48,12 +48,12 @@ class GEEService:
             logger.info(f"Koneksi Google Earth Engine berhasil diinisialisasi (Project: {project_id})")
             return True
         except Exception as e:
-            logger.error(f"Gagal inisialisasi GEE: {str(e, encoding='utf-8')}")
+            logger.error(f"Gagal inisialisasi GEE: {e}")
             raise
 
     DEFAULT_12_BANDS = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B11', 'B12']
 
-    ERA5_COLLECTION = 'ECMWF/ERA5_LAND/MONTHLY_AGGR'
+    ERA5_COLLECTION = 'ECMWF/ERA5_LAND/DAILY_AGGR'
     ERA5_BAND_ALIASES = {
         'surface_net_solar_radiation': ('surface_net_solar_radiation_sum', 'surface_net_solar_radiation'),
         'temperature_2m': ('temperature_2m',),
@@ -63,7 +63,6 @@ class GEEService:
 
     @classmethod
     def get_era5_features(cls, aoi, start_date=None, end_date=None):
-        """Rerata iklim ERA5-Land untuk AOI. Selalu mengembalikan 5 fitur lengkap."""
         features = dict(ERA5_DEFAULTS)
         try:
             coll = ee.ImageCollection(cls.ERA5_COLLECTION).filterBounds(aoi)
@@ -78,22 +77,30 @@ class GEEService:
                     logger.warning("ERA5 tidak tersedia sama sekali. Memakai nilai historis Pangalengan.")
                     return features
 
-            stats = coll.mean().reduceRegion(
-                reducer=ee.Reducer.mean(), geometry=aoi, scale=11132, maxPixels=1e9
+            wanted = ee.List([a for aliases in cls.ERA5_BAND_ALIASES.values() for a in aliases])
+            bands = coll.first().bandNames().filter(ee.Filter.inList('item', wanted))
+
+            stats = coll.select(bands).mean().reduceRegion(
+                reducer=ee.Reducer.first(), geometry=aoi.centroid(), scale=11132, maxPixels=1e9
             ).getInfo() or {}
 
+            missing = []
             for feat, aliases in cls.ERA5_BAND_ALIASES.items():
-                for alias in aliases:
-                    val = stats.get(alias)
-                    if val is not None:
-                        features[feat] = float(val)
-                        break
+                val = next((stats[a] for a in aliases if stats.get(a) is not None), None)
+                if val is None:
+                    missing.append(feat)
+                else:
+                    features[feat] = float(val)
 
             features['temperature_2m_c'] = features['temperature_2m'] - 273.15
+
+            if missing:
+                logger.warning(f"ERA5: band {', '.join(missing)} kosong, memakai nilai historis.")
             logger.info(
-                f"ERA5: suhu {features['temperature_2m_c']:.2f} C, "
-                f"presipitasi {features['total_precipitation']:.4f}, "
-                f"kelembapan tanah {features['volumetric_soil_water_layer_1']:.3f}"
+                f"ERA5 ({cls.ERA5_COLLECTION.split('/')[-1]}): suhu {features['temperature_2m_c']:.2f} C, "
+                f"presipitasi {features['total_precipitation']:.5f}, "
+                f"kelembapan tanah {features['volumetric_soil_water_layer_1']:.3f}, "
+                f"radiasi {features['surface_net_solar_radiation']:.3e}"
             )
         except Exception as e:
             logger.warning(f"Gagal mengambil ERA5 ({e}). Memakai nilai historis Pangalengan.")

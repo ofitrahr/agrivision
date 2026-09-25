@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../shared/api/axios';
 
@@ -27,11 +27,6 @@ const CompanyUsers = () => {
     const [formData, setFormData] = useState(initialFormData);
     const [editFormData, setEditFormData] = useState({});
 
-    useEffect(() => {
-        fetchUsers();
-        fetchProjects();
-    }, [companyId]);
-
     const fetchUsers = async () => {
         setLoading(true);
         try {
@@ -56,6 +51,11 @@ const CompanyUsers = () => {
             console.error('Gagal mengambil daftar project', error);
         }
     };
+
+    useEffect(() => {
+        fetchUsers();
+        fetchProjects();
+    }, [companyId]);
 
     const handleInputChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });

@@ -34,11 +34,6 @@ class NPKService:
 
     @classmethod
     def composite_index(cls, values):
-        """Indeks 0-100: tiap hara diskalakan ke rentangnya sendiri lalu dirata-rata setara.
-
-        Menjumlahkan % dengan mg/kg secara langsung tidak valid dimensional dan
-        membuat kalium mendominasi hanya karena angkanya lebih besar.
-        """
         scores = []
         for nutrient, (lo, hi) in cls.NUTRIENT_RANGE.items():
             val = values.get(nutrient)
@@ -90,9 +85,6 @@ class NPKService:
 
     @staticmethod
     def _compute_feature_matrix(samples_props_list):
-        """Rescale band mentah GEE (DN 0-10000) menjadi reflektansi 0.0-1.0,
-        lalu hitung indeks spektral NDVI/NDRE/NDWI secara vektor (NumPy).
-        """
         def band(name):
             raw = np.array(
                 [float(p.get(name, 0.0)) for p in samples_props_list], dtype=np.float64
