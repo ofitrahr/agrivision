@@ -3,8 +3,7 @@ import json
 from app import create_app
 from app.db.database import db
 from app.db.models import User, Company, Project, ProjectPermission, Farm, Farmer
-from geoalchemy2.elements import WKTElement
-from sqlalchemy import func
+from sqlalchemy import func, select
 import bcrypt
 
 app = create_app()
@@ -13,13 +12,12 @@ COMPANY_NAME = "PT Uji coba"
 LOCATION = "Purwakarta, Jawa Barat"
 GEOJSON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'seed_data', 'purwakarta')
 
-# Satu file GeoJSON = satu lahan. Semua blok di dalam file digabung jadi satu MultiPolygon
-# supaya client melihatnya sebagai satu lahan, bukan puluhan blok kecil.
-# area_eksisting_tanpa_jalan.geojson = 21 blok area_eksisting_tanpa_garis.geojson yang jalan
-# di antaranya ditutup jadi satu polygon; luas_ha tetap luas bersih 21 blok (tanpa jalan).
-AREAS = [
-    {"file": "area_eksisting_tanpa_jalan.geojson", "name": "Lahan 1 Uji Coba", "farmer": "Petani 1", "label": "area eksisting"},
-    {"file": "area_penambahan_tanpa_garis.geojson", "name": "Lahan 2 Uji Coba", "farmer": "Petani 2", "label": "areal penambahan"},
+# Area_Eksisting_Clean.json (17 poligon) + Areal_Penambahan.geojson digabung jadi satu lahan.
+FARM_NAME = "Lahan Uji Coba"
+FARM_GEOJSON = "area_eksisting_dan_penambahan.geojson"
+FARMERS = [
+    {"name": "Petani 1", "label": "area eksisting"},
+    {"name": "Petani 2", "label": "areal penambahan"},
 ]
 
 
@@ -27,36 +25,30 @@ def get_password_hash(password):
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
-def load_area(filepath):
-    """Gabungkan semua feature Polygon dalam file jadi satu WKT MULTIPOLYGON + total luas (ha)."""
+def load_boundary(filepath):
+    """Semua feature Polygon/MultiPolygon di file digabung jadi satu MultiPolygon GeoJSON."""
     with open(filepath, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-    if data.get('type') != 'FeatureCollection' or not data.get('features'):
-        raise ValueError(f"{filepath}: diharapkan FeatureCollection yang berisi minimal satu feature.")
+    polygons = []
+    for ft in data.get('features', []):
+        geometry = ft.get('geometry') or {}
+        if geometry.get('type') == 'Polygon':
+            polygons.append(geometry['coordinates'])
+        elif geometry.get('type') == 'MultiPolygon':
+            polygons.extend(geometry['coordinates'])
+    if not polygons:
+        raise ValueError(f"{filepath}: tidak ada feature Polygon/MultiPolygon.")
 
-    polygons, total_ha = [], 0.0
-    for i, ft in enumerate(data['features']):
-        geometry = ft['geometry']
-        if geometry.get('type') != 'Polygon':
-            raise ValueError(f"{filepath}#{i}: hanya geometry Polygon yang didukung, dapat '{geometry.get('type')}'.")
-        rings = ", ".join(
-            "(" + ", ".join(f"{lon} {lat}" for lon, lat in ring) + ")"
-            for ring in geometry['coordinates']
-        )
-        polygons.append(f"({rings})")
-        total_ha += float(ft.get('properties', {}).get('luas_ha', 0))
-
-    return f"MULTIPOLYGON({', '.join(polygons)})", len(polygons), round(total_ha, 2)
+    return {'type': 'MultiPolygon', 'coordinates': polygons}
 
 
-def to_boundary(wkt_geom):
-    # ST_MakeValid: Blok Eksisting 4 punya ring self-intersection.
-    # ST_CollectionExtract(..., 3) membuang sisa titik/garis hasil perbaikan, lalu
-    # ST_UnaryUnion melebur blok yang bersentuhan; hasilnya Polygon kalau cuma satu bagian.
-    return func.ST_UnaryUnion(
-        func.ST_CollectionExtract(func.ST_MakeValid(WKTElement(wkt_geom, srid=4326)), 3)
-    )
+def to_boundary(geojson_geom):
+    # Sama dengan create_farm di admin_routes: lubang ikut terbaca, poligon tidak valid dirapikan,
+    # bagian yang bersentuhan dilebur, dan koordinat Z dibuang.
+    return func.ST_UnaryUnion(func.ST_CollectionExtract(func.ST_MakeValid(
+        func.ST_Force2D(func.ST_SetSRID(func.ST_GeomFromGeoJSON(json.dumps(geojson_geom)), 4326))
+    ), 3))
 
 
 def seed_super_admin():
@@ -154,29 +146,32 @@ def seed_purwakarta_data():
     db.session.add_all([manager, board])
     db.session.commit()
 
-    for area in AREAS:
-        farmer = Farmer(
+    geojson_geom = load_boundary(os.path.join(GEOJSON_DIR, FARM_GEOJSON))
+    total_ha = round(float(db.session.scalar(
+        select(func.ST_Area(func.Geography(to_boundary(geojson_geom))) / 10000)
+    )), 2)
+
+    farm = Farm(
+        project_id=project.id,
+        name=FARM_NAME,
+        location=LOCATION,
+        total_area_ha=total_ha,
+        boundary=to_boundary(geojson_geom),
+        created_by=manager.id,
+        status="active",
+    )
+    for f in FARMERS:
+        farm.farmers.append(Farmer(
             company_id=company.id,
-            name=area["farmer"],
+            name=f["name"],
             address=LOCATION,
-            farm_info=f"Petani penggarap {area['label']}",
-        )
-        wkt_geom, block_count, total_ha = load_area(os.path.join(GEOJSON_DIR, area["file"]))
-        farm = Farm(
-            project_id=project.id,
-            name=area["name"],
-            location=LOCATION,
-            total_area_ha=total_ha,
-            boundary=to_boundary(wkt_geom),
-            created_by=manager.id,
-            status="active",
-        )
-        farm.farmers.append(farmer)
-        db.session.add_all([farmer, farm])
-        db.session.commit()
+            farm_info=f"Petani penggarap {f['label']}",
+        ))
+    db.session.add(farm)
+    db.session.commit()
 
-        print(f"Lahan '{area['name']}' ({block_count} blok, {total_ha:.2f} ha) ditanam, digarap oleh {area['farmer']}.")
-
+    print(f"Lahan '{FARM_NAME}' ({len(geojson_geom['coordinates'])} bagian, {total_ha:.2f} ha) ditanam, "
+          f"digarap oleh {', '.join(f['name'] for f in FARMERS)}.")
     print(f"Seed data {COMPANY_NAME} berhasil. Login: manager_p / board_p (password123).")
 
 
