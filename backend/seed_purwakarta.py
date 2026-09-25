@@ -15,9 +15,11 @@ GEOJSON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'seed_dat
 
 # Satu file GeoJSON = satu lahan. Semua blok di dalam file digabung jadi satu MultiPolygon
 # supaya client melihatnya sebagai satu lahan, bukan puluhan blok kecil.
+# area_eksisting_tanpa_jalan.geojson = 21 blok area_eksisting_tanpa_garis.geojson yang jalan
+# di antaranya ditutup jadi satu polygon; luas_ha tetap luas bersih 21 blok (tanpa jalan).
 AREAS = [
-    {"file": "area_eksisting_tanpa_garis.geojson", "name": "Area Eksisting - Purwakarta", "farmer": "Petani 1", "label": "area eksisting"},
-    {"file": "area_penambahan_tanpa_garis.geojson", "name": "Areal Penambahan - Purwakarta", "farmer": "Petani 2", "label": "areal penambahan"},
+    {"file": "area_eksisting_tanpa_jalan.geojson", "name": "Lahan 1 Uji Coba", "farmer": "Petani 1", "label": "area eksisting"},
+    {"file": "area_penambahan_tanpa_garis.geojson", "name": "Lahan 2 Uji Coba", "farmer": "Petani 2", "label": "areal penambahan"},
 ]
 
 
