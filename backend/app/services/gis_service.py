@@ -17,6 +17,25 @@ class GISService:
         'potassium': ['#93c5fd', '#a78bfa', '#8b5cf6', '#6d28d9', '#4c1d95'],
         'soilnpk': ['#99f6e4', '#5eead4', '#14b8a6', '#0d9488', '#065f46'],
     }
+    LAYER_LABELS = {
+        'ndvi': 'NDVI',
+        'soc': 'Karbon Tanah (SOC)',
+        'biomass': 'Biomassa',
+        'yield': 'Estimasi Yield',
+        'nitrogen': 'Nitrogen (N)',
+        'phosphorus': 'Fosfor (P)',
+        'potassium': 'Kalium (K)',
+        'soilnpk': 'Indeks Nutrisi NPK',
+    }
+    LAYER_UNITS = {
+        'soc': 'Ton C/Ha',
+        'biomass': 'Ton/Ha',
+        'yield': 'Ton/Ha',
+        'nitrogen': '%',
+        'phosphorus': 'mg/kg',
+        'potassium': 'mg/kg',
+        'soilnpk': 'index',
+    }
 
     @staticmethod
     def _percentile(sorted_vals, p):
@@ -255,56 +274,38 @@ class GISService:
         return '#6b7280'
 
     @staticmethod
-    def _build_legend_html(layer_type, lo=None, hi=None, unit=''):
-        ramp = GISService.LAYER_RAMPS.get(layer_type)
-        if ramp and lo is not None and hi is not None:
+    def _build_legend_html(layer_type, lo=None, hi=None):
+        ramp = GISService.LAYER_RAMPS.get(layer_type, ['#e5e7eb', '#6b7280'])
+        title = GISService.LAYER_LABELS.get(layer_type, layer_type.upper())
+        unit = GISService.LAYER_UNITS.get(layer_type)
+        unit_html = f' <span style="font-weight:400;color:#6b7280;">({unit})</span>' if unit else ''
+        row_style = 'display:flex;justify-content:space-between;width:160px;font-size:10px;'
+
+        numbers_html = ''
+        if lo is not None and hi is not None:
             fmt = GISService._value_fmt(lo, hi)
-            unit_suffix = f" {unit}" if unit else ''
-            return (
-                f'<div style="position:absolute;bottom:30px;left:10px;z-index:1000;'
-                f'background:rgba(255,255,255,0.92);border:1px solid #d1fae5;border-radius:8px;'
-                f'padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.1);font-family:sans-serif;">'
-                f'<div style="font-size:11px;font-weight:600;color:#116a3a;margin-bottom:6px;">'
-                f'{layer_type.upper()}{unit_suffix}</div>'
-                f'<div style="width:160px;height:10px;border-radius:5px;'
-                f'background:linear-gradient(to right,{",".join(ramp)});"></div>'
-                f'<div style="display:flex;justify-content:space-between;width:160px;'
-                f'margin-top:3px;font-size:10px;color:#374151;">'
-                f'<span>{fmt(lo)}</span><span>{fmt((lo + hi) / 2)}</span><span>{fmt(hi)}</span>'
-                f'</div></div>'
+            numbers_html = (
+                f'<div style="{row_style}margin-top:3px;color:#374151;">'
+                f'<span>{fmt(lo)}</span><span>{fmt((lo + hi) / 2)}</span><span>{fmt(hi)}</span></div>'
             )
 
-        legends = {
-            'ndvi': [('#10b981', 'Sehat (>0.7)'), ('#f59e0b', 'Waspada (0.4-0.7)'), ('#ef4444', 'Kritis (<0.4)')],
-            'soc': [('#8b5a2b', 'Tinggi (>50)'), ('#cd853f', 'Sedang (30-50)'), ('#deb887', 'Rendah (<30)')],
-            'biomass': [('#006d2c', 'Tinggi (>65 Ton/Ha)'), ('#74c476', 'Sedang (25-65)'), ('#edf8e9', 'Rendah (<25)')],
-            'yield': [('#15803d', 'Tinggi (>0.25 Ton/Ha)'), ('#84cc16', 'Optimal (0.15-0.25)'), ('#eab308', 'Cukup (0.08-0.15)'), ('#ef4444', 'Rendah (<0.08)')],
-            'soilnpk': [('#065f46', 'Optimal (>66)'), ('#0d9488', 'Cukup (33-66)'), ('#99f6e4', 'Defisit (<33)')],
-            'nitrogen': [('#14532d', 'Tinggi (>0.75%)'), ('#22c55e', 'Sedang (0.55-0.75%)'), ('#eab308', 'Rendah (<0.55%)')],
-            'phosphorus': [('#991b1b', 'Tinggi (>150 mg/kg)'), ('#ea580c', 'Sedang (50-150 mg/kg)'), ('#fed7aa', 'Rendah (<50 mg/kg)')],
-            'potassium': [('#4c1d95', 'Tinggi (>150 mg/kg)'), ('#8b5cf6', 'Sedang (130-150 mg/kg)'), ('#93c5fd', 'Rendah (<130 mg/kg)')],
-        }
-        items = legends.get(layer_type, [])
-        rows_html = ''.join(
-            f'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
-            f'<div style="width:14px;height:14px;border-radius:50%;background:{color};flex-shrink:0;"></div>'
-            f'<span style="font-size:11px;color:#374151;">{label}</span></div>'
-            for color, label in items
-        )
         return (
             f'<div style="position:absolute;bottom:30px;left:10px;z-index:1000;'
             f'background:rgba(255,255,255,0.92);border:1px solid #d1fae5;border-radius:8px;'
             f'padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.1);font-family:sans-serif;">'
-            f'<div style="font-size:11px;font-weight:600;color:#116a3a;margin-bottom:6px;">'
-            f'{layer_type.upper()} Legend</div>'
-            f'{rows_html}</div>'
+            f'<div style="font-size:11px;font-weight:600;color:#116a3a;margin-bottom:6px;">{title}{unit_html}</div>'
+            f'<div style="width:160px;height:10px;border-radius:5px;'
+            f'background:linear-gradient(to right,{",".join(ramp)});"></div>'
+            f'{numbers_html}'
+            f'<div style="{row_style}margin-top:2px;color:#6b7280;font-weight:600;">'
+            f'<span>&#9664; Rendah</span><span>Tinggi &#9654;</span></div>'
+            f'</div>'
         )
 
     @staticmethod
     def generate_agronomy_map(farm_boundary_geojson=None, existing_blocks_geojson=None, layer_type='ndvi', has_access=False, sample_points=None):
         m = folium.Map(location=[-0.7893, 113.9213], zoom_start=5, max_zoom=22, tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", attr="Google")
         legend_lo = legend_hi = None
-        legend_unit = ''
 
         if farm_boundary_geojson:
             bounds_layer = folium.GeoJson(
@@ -321,26 +322,15 @@ class GISService:
 
         if has_access:
             if sample_points:
-                unit_map = {
-                    'soc': 'Ton C/Ha',
-                    'biomass': 'Ton/Ha',
-                    'yield': 'Ton/Ha',
-                    'ndvi': '',
-                    'nitrogen': '%',
-                    'phosphorus': 'mg/kg',
-                    'potassium': 'mg/kg',
-                    'soilnpk': 'index'
-                }
-                unit_label = unit_map.get(layer_type, '')
+                unit_label = GISService.LAYER_UNITS.get(layer_type, '')
 
                 all_vals = sorted(float(p['value']) for p in sample_points if p.get('value') is not None)
                 legend_lo, legend_hi = GISService._compute_stretch(all_vals)
-                legend_unit = unit_label
                 val_fmt = GISService._value_fmt(legend_lo, legend_hi)
 
                 if len(sample_points) < 3 and farm_boundary_geojson:
                     avg_val = sum(all_vals) / len(all_vals) if all_vals else 0.0
-                    color = GISService._get_color_for_value(avg_val, layer_type)
+                    color = GISService._ramp_color(avg_val, layer_type, legend_lo, legend_hi)
                     folium.GeoJson(
                         farm_boundary_geojson,
                         style_function=lambda x, c=color: {'color': c, 'fillColor': c, 'weight': 2, 'fillOpacity': 0.75},
@@ -469,7 +459,7 @@ class GISService:
         m.get_root().html.add_child(folium.Element("<style>.leaflet-control-attribution { display: none !important; }</style>"))
 
         if has_access:
-            legend_html = GISService._build_legend_html(layer_type, legend_lo, legend_hi, legend_unit)
+            legend_html = GISService._build_legend_html(layer_type, legend_lo, legend_hi)
             m.get_root().html.add_child(folium.Element(legend_html))
 
         ref_pts_json = json.dumps([[p['lat'], p['lon']] for p in sample_points[:2]]) if (sample_points and len(sample_points) >= 2) else "[]"
