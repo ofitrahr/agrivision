@@ -425,47 +425,16 @@ class GISService:
                                 fill_opacity=0.85,
                                 tooltip=f"<b>{layer_type.upper()}:</b> {val_display} {unit_label}".strip()
                             ).add_to(m)
-            else:
-                import random
-                if farm_boundary_geojson:
-                    if layer_type == 'soc':
-                        value = round(random.uniform(20.0, 80.0), 1)
-                        color = GISService._get_color_for_value(value, layer_type)
-                        popup_html = f"<b>Kandungan SOC:</b> {value} ton/ha"
-                    elif layer_type == 'biomass':
-                        value = round(random.uniform(5.0, 120.0), 1)
-                        color = GISService._get_color_for_value(value, layer_type)
-                        popup_html = f"<b>Estimasi Biomassa:</b> {value} ton/ha"
-                    elif layer_type == 'yield':
-                        value = round(random.uniform(0.05, 0.35), 3)
-                        color = GISService._get_color_for_value(value, layer_type)
-                        popup_html = f"<b>Estimasi Produksi (Yield):</b> {value} Ton/Ha"
-                    elif layer_type == 'soilnpk':
-                        value = round(random.uniform(20.0, 90.0), 1)
-                        color = GISService._get_color_for_value(value, layer_type)
-                        popup_html = f"<b>Nutrisi Tanah (NPK):</b> {value} index"
-                    elif layer_type == 'nitrogen':
-                        value = round(random.uniform(10.0, 50.0), 1)
-                        color = GISService._get_color_for_value(value, layer_type)
-                        popup_html = f"<b>Nitrogen (N):</b> {value} kg/Ha"
-                    elif layer_type == 'phosphorus':
-                        value = round(random.uniform(5.0, 30.0), 1)
-                        color = GISService._get_color_for_value(value, layer_type)
-                        popup_html = f"<b>Fosfor (P):</b> {value} kg/Ha"
-                    elif layer_type == 'potassium':
-                        value = round(random.uniform(20.0, 60.0), 1)
-                        color = GISService._get_color_for_value(value, layer_type)
-                        popup_html = f"<b>Kalium (K):</b> {value} kg/Ha"
-                    else:
-                        value = round(random.uniform(0.4, 0.9), 2)
-                        color = GISService._get_color_for_value(value, layer_type)
-                        popup_html = f"<b>Score NDVI:</b> {value}"
-
-                    folium.GeoJson(
-                        farm_boundary_geojson,
-                        style_function=lambda x, c=color: {'color': c, 'fillColor': c, 'weight': 3, 'fillOpacity': 0.6},
-                        tooltip=popup_html
-                    ).add_to(m)
+            elif farm_boundary_geojson:
+                layer_label = GISService.LAYER_LABELS.get(layer_type, layer_type.upper())
+                folium.GeoJson(
+                    farm_boundary_geojson,
+                    style_function=lambda x: {
+                        'color': '#9ca3af', 'fillColor': '#9ca3af', 'weight': 2,
+                        'fillOpacity': 0.35, 'dashArray': '6 4',
+                    },
+                    tooltip=f"<b>{layer_label}:</b> <i>Belum ada data untuk periode ini</i>",
+                ).add_to(m)
         elif farm_boundary_geojson:
             label_map = {
                 'soc': 'Modul SOC', 'biomass': 'Modul Biomassa',
@@ -480,7 +449,7 @@ class GISService:
 
         m.get_root().html.add_child(folium.Element("<style>.leaflet-control-attribution { display: none !important; }</style>"))
 
-        if has_access:
+        if has_access and sample_points:
             legend_html = GISService._build_legend_html(layer_type, legend_lo, legend_hi)
             m.get_root().html.add_child(folium.Element(legend_html))
 
