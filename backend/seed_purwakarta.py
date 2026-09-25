@@ -9,7 +9,7 @@ import bcrypt
 
 app = create_app()
 
-COMPANY_NAME = "PT Purwa Agro Lestari"
+COMPANY_NAME = "PT Uji coba"
 LOCATION = "Purwakarta, Jawa Barat"
 GEOJSON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'seed_data', 'purwakarta')
 
@@ -157,7 +157,7 @@ def seed_purwakarta_data():
             company_id=company.id,
             name=area["farmer"],
             address=LOCATION,
-            farm_info=f"Petani penggarap {area['label']} Purwakarta",
+            farm_info=f"Petani penggarap {area['label']}",
         )
         wkt_geom, block_count, total_ha = load_area(os.path.join(GEOJSON_DIR, area["file"]))
         farm = Farm(
