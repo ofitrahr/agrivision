@@ -87,6 +87,12 @@ class GISService:
         return GISService._lerp_color(ramp, t)
 
     @staticmethod
+    def _round_coords(geojson_geom, ndigits=7):
+        def rnd(c):
+            return [rnd(x) for x in c] if isinstance(c[0], (list, tuple)) else [round(v, ndigits) for v in c]
+        return {'type': geojson_geom['type'], 'coordinates': rnd(geojson_geom['coordinates'])}
+
+    @staticmethod
     def _value_fmt(lo, hi):
         """Jumlah desimal menyesuaikan rentang layer (yield kopi ~0.15 Ton/Ha butuh 3 desimal)."""
         if lo is None or hi is None:
@@ -343,6 +349,7 @@ class GISService:
 
                         from shapely.geometry import MultiPoint, Point, mapping, shape
                         from shapely.ops import voronoi_diagram
+                        from shapely.prepared import prep
                         from shapely.strtree import STRtree
 
                         boundary_poly = shape(farm_boundary_geojson)
@@ -356,12 +363,12 @@ class GISService:
 
                         if polys:
                             tree = STRtree(polys)
+                            boundary_prepared = prep(boundary_poly)
+                            features = []
 
                             for i, point in enumerate(sample_points):
                                 pt = pts_list[i]
                                 val = float(point['value']) if point.get('value') is not None else 0.0
-                                val_display = val_fmt(val)
-                                color = GISService._ramp_color(val, layer_type, legend_lo, legend_hi)
 
                                 matching_poly = None
                                 res = tree.query(pt)
@@ -371,20 +378,35 @@ class GISService:
                                         break
 
                                 if matching_poly:
-                                    clipped_geom = matching_poly.intersection(boundary_poly)
+                                    clipped_geom = (
+                                        matching_poly if boundary_prepared.contains(matching_poly)
+                                        else matching_poly.intersection(boundary_poly)
+                                    )
                                     if not clipped_geom.is_empty:
-                                        smoothed_geom = clipped_geom.buffer(0.000005)
-                                        folium.GeoJson(
-                                            data=mapping(smoothed_geom),
-                                            style_function=lambda x, c=color: {
-                                                'fillColor': c,
-                                                'color': c,
-                                                'stroke': False,
-                                                'weight': 0,
-                                                'fillOpacity': 0.95
+                                        # join mitre: sudut tetap tajam, tidak menambah ~8 titik per sudut seperti join round.
+                                        smoothed_geom = clipped_geom.buffer(0.000005, join_style='mitre')
+                                        features.append({
+                                            'type': 'Feature',
+                                            'id': len(features),
+                                            'geometry': GISService._round_coords(mapping(smoothed_geom)),
+                                            'properties': {
+                                                'color': GISService._ramp_color(val, layer_type, legend_lo, legend_hi),
+                                                'tooltip': f"<b>{layer_type.upper()}:</b> {val_fmt(val)} {unit_label}".strip(),
                                             },
-                                            tooltip=f"<b>{layer_type.upper()}:</b> {val_display} {unit_label}".strip()
-                                        ).add_to(m)
+                                        })
+
+                            # Satu layer untuk semua sel: folium merender template sekali, bukan per sel.
+                            folium.GeoJson(
+                                {'type': 'FeatureCollection', 'features': features},
+                                style_function=lambda f: {
+                                    'fillColor': f['properties']['color'],
+                                    'color': f['properties']['color'],
+                                    'stroke': False,
+                                    'weight': 0,
+                                    'fillOpacity': 0.95,
+                                },
+                                tooltip=folium.GeoJsonTooltip(fields=['tooltip'], labels=False),
+                            ).add_to(m)
 
                     except Exception as e:
                         print("Error clipping geometry:", str(e))
