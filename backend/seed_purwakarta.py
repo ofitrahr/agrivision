@@ -13,10 +13,11 @@ COMPANY_NAME = "PT Purwa Agro Lestari"
 LOCATION = "Purwakarta, Jawa Barat"
 GEOJSON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'seed_data', 'purwakarta')
 
-# Tiap feature Polygon jadi satu Farm, karena Farm.boundary hanya menerima POLYGON.
+# Satu file GeoJSON = satu lahan. Semua blok di dalam file digabung jadi satu MultiPolygon
+# supaya client melihatnya sebagai satu lahan, bukan puluhan blok kecil.
 AREAS = [
-    {"file": "area_eksisting_tanpa_garis.geojson", "farmer": "Petani 1", "label": "area eksisting"},
-    {"file": "area_penambahan_tanpa_garis.geojson", "farmer": "Petani 2", "label": "areal penambahan"},
+    {"file": "area_eksisting_tanpa_garis.geojson", "name": "Area Eksisting - Purwakarta", "farmer": "Petani 1", "label": "area eksisting"},
+    {"file": "area_penambahan_tanpa_garis.geojson", "name": "Areal Penambahan - Purwakarta", "farmer": "Petani 2", "label": "areal penambahan"},
 ]
 
 
@@ -24,14 +25,15 @@ def get_password_hash(password):
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
-def load_polygon_features(filepath):
+def load_area(filepath):
+    """Gabungkan semua feature Polygon dalam file jadi satu WKT MULTIPOLYGON + total luas (ha)."""
     with open(filepath, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     if data.get('type') != 'FeatureCollection' or not data.get('features'):
         raise ValueError(f"{filepath}: diharapkan FeatureCollection yang berisi minimal satu feature.")
 
-    result = []
+    polygons, total_ha = [], 0.0
     for i, ft in enumerate(data['features']):
         geometry = ft['geometry']
         if geometry.get('type') != 'Polygon':
@@ -40,8 +42,19 @@ def load_polygon_features(filepath):
             "(" + ", ".join(f"{lon} {lat}" for lon, lat in ring) + ")"
             for ring in geometry['coordinates']
         )
-        result.append((ft.get('properties', {}), f"POLYGON({rings})"))
-    return result
+        polygons.append(f"({rings})")
+        total_ha += float(ft.get('properties', {}).get('luas_ha', 0))
+
+    return f"MULTIPOLYGON({', '.join(polygons)})", len(polygons), round(total_ha, 2)
+
+
+def to_boundary(wkt_geom):
+    # ST_MakeValid: Blok Eksisting 4 punya ring self-intersection.
+    # ST_CollectionExtract(..., 3) membuang sisa titik/garis hasil perbaikan, lalu
+    # ST_UnaryUnion melebur blok yang bersentuhan; hasilnya Polygon kalau cuma satu bagian.
+    return func.ST_UnaryUnion(
+        func.ST_CollectionExtract(func.ST_MakeValid(WKTElement(wkt_geom, srid=4326)), 3)
+    )
 
 
 def seed_purwakarta_data():
@@ -108,29 +121,23 @@ def seed_purwakarta_data():
             address=LOCATION,
             farm_info=f"Petani penggarap {area['label']} Purwakarta",
         )
-        db.session.add(farmer)
-
-        features = load_polygon_features(os.path.join(GEOJSON_DIR, area["file"]))
-        for props, wkt_geom in features:
-            farm = Farm(
-                project_id=project.id,
-                name=f"{props['nama']} - Purwakarta",
-                location=LOCATION,
-                total_area_ha=props['luas_ha'],
-                # Blok Eksisting 4 punya ring self-intersection; ST_MakeValid memperbaikinya
-                # tetap sebagai satu POLYGON dengan luas yang sama.
-                boundary=func.ST_MakeValid(WKTElement(wkt_geom, srid=4326)),
-                created_by=manager.id,
-                status="active",
-            )
-            farm.farmers.append(farmer)
-            db.session.add(farm)
+        wkt_geom, block_count, total_ha = load_area(os.path.join(GEOJSON_DIR, area["file"]))
+        farm = Farm(
+            project_id=project.id,
+            name=area["name"],
+            location=LOCATION,
+            total_area_ha=total_ha,
+            boundary=to_boundary(wkt_geom),
+            created_by=manager.id,
+            status="active",
+        )
+        farm.farmers.append(farmer)
+        db.session.add_all([farmer, farm])
         db.session.commit()
 
-        total_ha = sum(props['luas_ha'] for props, _ in features)
-        print(f"{len(features)} lahan {area['label']} ({total_ha:.2f} ha) ditanam, digarap oleh {area['farmer']}.")
+        print(f"Lahan '{area['name']}' ({block_count} blok, {total_ha:.2f} ha) ditanam, digarap oleh {area['farmer']}.")
 
-    print(f"Seed data {COMPANY_NAME} berhasil. Login: manager_purwakarta / board_purwakarta (password123).")
+    print(f"Seed data {COMPANY_NAME} berhasil. Login: manager_p / board_p (password123).")
 
 
 if __name__ == "__main__":
