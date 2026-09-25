@@ -12,6 +12,7 @@ from app.services.npk_service import NPKService
 from app.services.soc_service import SOCService
 from app.services.yield_service import YieldService
 from geoalchemy2.functions import ST_AsGeoJSON
+from sqlalchemy import insert
 
 logger = logging.getLogger(__name__)
 
@@ -90,74 +91,45 @@ class AgronomyPipelineService:
             ])
         ).delete(synchronize_session=False)
 
-        # Simpan seluruh titik piksel spasial ke tabel gis_layers
-        new_layers = []
+        soc_source = (
+            f"GEE Sentinel-2 + ERA5 + ANN ONNX (BD {SOCService.BULK_DENSITY_G_CM3} g/cm3, "
+            f"{SOCService.SAMPLING_DEPTH_CM} cm, kalibrasi lab "
+            f"{'x%.4f' % SOCService.CALIBRATION_GAIN if SOCService.CALIBRATION_ENABLED else 'nonaktif'})"
+        )
+        yield_source = f"Sentinel-2 NDVI Calibrated Yield Model ({yield_service.last_source})"
+
+        # Bulk insert: baris dikirim sebagai dict, tanpa membuat ~28 ribu objek ORM GisLayer.
+        layer_rows = []
         for p, soc_val, npk_val, ndvi_val, yield_val in zip(
             pixel_samples, predictions, npk_predictions, ndvi_arr, yield_predictions
         ):
-            new_layers.append(GisLayer(
-                farm_id=farm.id,
-                coordinate=f"SRID=4326;POINT({p['lon']} {p['lat']})",
-                parameter_type='soc',
-                period=period,
-                numerical_value=round(soc_val, 3),
-                unit="Ton C/Ha",
-                is_anomaly=(soc_val < 30.0),
-                source=(
-                    f"GEE Sentinel-2 + ERA5 + ANN ONNX (BD {SOCService.BULK_DENSITY_G_CM3} g/cm3, "
-                    f"{SOCService.SAMPLING_DEPTH_CM} cm, kalibrasi lab "
-                    f"{'x%.4f' % SOCService.CALIBRATION_GAIN if SOCService.CALIBRATION_ENABLED else 'nonaktif'})"
-                )
-            ))
+            base = {
+                'farm_id': farm.id,
+                'coordinate': f"SRID=4326;POINT({p['lon']} {p['lat']})",
+                'period': period,
+            }
+            layer_rows.append({**base, 'parameter_type': 'soc', 'numerical_value': round(soc_val, 3),
+                               'unit': "Ton C/Ha", 'is_anomaly': bool(soc_val < 30.0), 'source': soc_source})
+            layer_rows.append({**base, 'parameter_type': 'ndvi', 'numerical_value': round(float(ndvi_val), 4),
+                               'unit': "index", 'is_anomaly': bool(ndvi_val < 0.40),
+                               'source': "GEE Sentinel-2 (NDVI Band Ratio)"})
+            layer_rows.append({**base, 'parameter_type': 'yield', 'numerical_value': round(yield_val, 3),
+                               'unit': "Ton/Ha", 'is_anomaly': bool(yield_val < 0.05), 'source': yield_source})
 
-            new_layers.append(GisLayer(
-                farm_id=farm.id,
-                coordinate=f"SRID=4326;POINT({p['lon']} {p['lat']})",
-                parameter_type='ndvi',
-                period=period,
-                numerical_value=round(float(ndvi_val), 4),
-                unit="index",
-                is_anomaly=(ndvi_val < 0.40),
-                source="GEE Sentinel-2 (NDVI Band Ratio)"
-            ))
-
-            new_layers.append(GisLayer(
-                farm_id=farm.id,
-                coordinate=f"SRID=4326;POINT({p['lon']} {p['lat']})",
-                parameter_type='yield',
-                period=period,
-                numerical_value=round(yield_val, 3),
-                unit="Ton/Ha",
-                is_anomaly=(yield_val < 0.05),
-                source=f"Sentinel-2 NDVI Calibrated Yield Model ({yield_service.last_source})"
-            ))
-
-            n_val, p_val, k_val = npk_val['nitrogen'], npk_val['phosphorus'], npk_val['potassium']
-            for nutrient, val in (('nitrogen', n_val), ('phosphorus', p_val), ('potassium', k_val)):
-                new_layers.append(GisLayer(
-                    farm_id=farm.id,
-                    coordinate=f"SRID=4326;POINT({p['lon']} {p['lat']})",
-                    parameter_type=nutrient,
-                    period=period,
-                    numerical_value=round(val, 3),
-                    unit=NPKService.UNITS[nutrient],
-                    is_anomaly=(val < NPKService.ANOMALY_THRESH[nutrient]),
-                    source="GEE Sentinel-2 + Regresi Linear NPK Kadatuan"
-                ))
+            for nutrient in ('nitrogen', 'phosphorus', 'potassium'):
+                val = npk_val[nutrient]
+                layer_rows.append({**base, 'parameter_type': nutrient, 'numerical_value': round(val, 3),
+                                   'unit': NPKService.UNITS[nutrient],
+                                   'is_anomaly': bool(val < NPKService.ANOMALY_THRESH[nutrient]),
+                                   'source': "GEE Sentinel-2 + Regresi Linear NPK Kadatuan"})
 
             composite_npk = NPKService.composite_index(npk_val)
-            new_layers.append(GisLayer(
-                farm_id=farm.id,
-                coordinate=f"SRID=4326;POINT({p['lon']} {p['lat']})",
-                parameter_type='soilnpk',
-                period=period,
-                numerical_value=round(composite_npk, 3),
-                unit=NPKService.COMPOSITE_UNIT,
-                is_anomaly=(composite_npk < NPKService.COMPOSITE_ANOMALY_THRESH),
-                source="GEE Sentinel-2 + Regresi Linear NPK Kadatuan (komposit)"
-            ))
+            layer_rows.append({**base, 'parameter_type': 'soilnpk', 'numerical_value': round(composite_npk, 3),
+                               'unit': NPKService.COMPOSITE_UNIT,
+                               'is_anomaly': bool(composite_npk < NPKService.COMPOSITE_ANOMALY_THRESH),
+                               'source': "GEE Sentinel-2 + Regresi Linear NPK Kadatuan (komposit)"})
 
-        db.session.add_all(new_layers)
+        db.session.execute(insert(GisLayer), layer_rows)
         db.session.commit()
 
         # Statistik Ringkasan NPK
