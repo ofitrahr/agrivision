@@ -83,11 +83,6 @@ def get_manager_stats(current_user):
 
 
 def _biomass_carbon_stock(project_id, farms):
-    """Stok karbon biomassa (bukan serapan) dari layer AGB periode terakhir tiap lahan.
-
-    Karbon = (AGB + BGB) x fraksi karbon, BGB = rasio x AGB; CO2e = karbon x 44/12.
-    Mengembalikan None jika proyek tidak punya akses biomassa atau belum ada data.
-    """
     from app.db.models import ProjectPermission, GisLayer
     from app.services.biomass_service import BiomassService
     from sqlalchemy import func, and_
@@ -775,6 +770,7 @@ def _project_next_value(values, window=6):
 @role_required('manager')
 def get_agronomy_stats(current_user, farm_id):
     from app.db.models import ProjectPermission, GisLayer
+    from sqlalchemy import func
     import statistics
     import math
 
@@ -805,22 +801,20 @@ def get_agronomy_stats(current_user, farm_id):
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
-    # Query data GisLayer untuk periode yang diminta
-    rows = GisLayer.query.filter_by(
+    rows = db.session.query(GisLayer.numerical_value, GisLayer.is_anomaly).filter_by(
         farm_id=farm_id,
         parameter_type=layer_type,
         period=period
     ).all()
 
-    values = [float(r.numerical_value) for r in rows if r.numerical_value is not None]
+    values = [float(v) for v, _ in rows if v is not None]
 
-    # Seluruh periode yang tersedia untuk farm & layer ini (bulanan, terurut kronologis
-    # karena format 'YYYY-MM' bisa diurutkan secara leksikografis)
-    all_periods = sorted({
-        p[0] for p in db.session.query(GisLayer.period)
-        .filter_by(farm_id=farm_id, parameter_type=layer_type)
-        .distinct().all() if p[0]
-    })
+    # Rata-rata per periode dihitung di database (GROUP BY); format 'YYYY-MM' terurut leksikografis.
+    period_means = db.session.query(GisLayer.period, func.avg(GisLayer.numerical_value)).filter_by(
+        farm_id=farm_id, parameter_type=layer_type
+    ).group_by(GisLayer.period).all()
+    all_periods = sorted(p for p, _ in period_means if p)
+    mean_by_period = {p: float(avg) for p, avg in period_means if p and avg is not None}
 
     # Calculate previous period (MoM) for change delta
     prev_period = None
@@ -851,14 +845,9 @@ def get_agronomy_stats(current_user, farm_id):
     max_val = max(values)
     std_val = statistics.stdev(values) if len(values) > 1 else 0.0
 
-    # Calculate change
     change = None
-    if prev_period:
-        prev_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type=layer_type, period=prev_period).all()
-        prev_vals = [float(r.numerical_value) for r in prev_rows if r.numerical_value is not None]
-        if prev_vals:
-            prev_mean = statistics.mean(prev_vals)
-            change = mean_val - prev_mean
+    if prev_period in mean_by_period:
+        change = mean_val - mean_by_period[prev_period]
 
     total_count = len(values)
     area_per_pixel = float(farm.total_area_ha) / total_count if total_count > 0 and farm.total_area_ha else 0
@@ -876,23 +865,14 @@ def get_agronomy_stats(current_user, farm_id):
         histogram = [{'bin': str(round(min_val, 3)), 'count': len(values), 'area_ha': round(len(values) * area_per_pixel, 2)}]
 
     # Anomali
-    anomaly_rows = [r for r in rows if r.is_anomaly]
-    anomaly_count = len(anomaly_rows)
+    anomaly_count = sum(1 for _, is_anomaly in rows if is_anomaly)
     anomaly_percent = round((anomaly_count / total_count) * 100, 2) if total_count > 0 else 0.0
 
-    # Tren lintas waktu
-    trend = []
-    for p in all_periods:
-        period_rows = GisLayer.query.filter_by(
-            farm_id=farm_id, parameter_type=layer_type, period=p
-        ).all()
-        period_vals = [float(r.numerical_value) for r in period_rows if r.numerical_value is not None]
-        if period_vals:
-            trend.append({
-                'period': period_label(p, short=True),
-                'period_id': p,
-                'value': round(statistics.mean(period_vals), 4)
-            })
+    trend = [
+        {'period': period_label(p, short=True), 'period_id': p, 'value': round(mean_by_period[p], 4)}
+        for p in all_periods
+        if p in mean_by_period
+    ]
 
     # Sensor Data
     sensor_data = None
@@ -907,31 +887,29 @@ def get_agronomy_stats(current_user, farm_id):
                 'humidity': float(sensor.humidity) if sensor.humidity else None,
             }
 
-        # Get N, P, K averages for KPI strip
-        n_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='nitrogen', period=period).all()
-        p_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='phosphorus', period=period).all()
-        k_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='potassium', period=period).all()
-
-        n_vals = [float(r.numerical_value) for r in n_rows if r.numerical_value is not None]
-        p_vals = [float(r.numerical_value) for r in p_rows if r.numerical_value is not None]
-        k_vals = [float(r.numerical_value) for r in k_rows if r.numerical_value is not None]
+        npk_means = dict(db.session.query(GisLayer.parameter_type, func.avg(GisLayer.numerical_value)).filter(
+            GisLayer.farm_id == farm_id,
+            GisLayer.period == period,
+            GisLayer.parameter_type.in_(('nitrogen', 'phosphorus', 'potassium')),
+        ).group_by(GisLayer.parameter_type).all())
 
         if sensor_data is None:
             sensor_data = {}
-        sensor_data['nitrogen_mean'] = round(statistics.mean(n_vals), 2) if n_vals else None
-        sensor_data['phosphorus_mean'] = round(statistics.mean(p_vals), 2) if p_vals else None
-        sensor_data['potassium_mean'] = round(statistics.mean(k_vals), 2) if k_vals else None
+        for nutrient in ('nitrogen', 'phosphorus', 'potassium'):
+            avg = npk_means.get(nutrient)
+            sensor_data[f'{nutrient}_mean'] = round(float(avg), 2) if avg is not None else None
 
     # Forecast (Yield) - selalu 1 bulan setelah periode yang diminta
     forecast = None
     if layer_type == 'yield':
         next_p = shift_period(period, 1)
-        fc_rows = GisLayer.query.filter_by(farm_id=farm_id, parameter_type='yield_forecast', period=next_p).all()
-        fc_vals = [float(r.numerical_value) for r in fc_rows if r.numerical_value is not None]
-        if fc_vals:
+        fc_avg = db.session.query(func.avg(GisLayer.numerical_value)).filter_by(
+            farm_id=farm_id, parameter_type='yield_forecast', period=next_p
+        ).scalar()
+        if fc_avg is not None:
             forecast = {
                 'period': next_p,
-                'value': round(statistics.mean(fc_vals), 4),
+                'value': round(float(fc_avg), 4),
                 'method': 'model',
                 'label': 'Prediksi model',
             }
