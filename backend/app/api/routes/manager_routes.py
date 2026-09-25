@@ -718,23 +718,20 @@ def get_agronomy_farm_map(current_user, farm_id):
         from geoalchemy2.functions import ST_X, ST_Y
 
         latest_period = request.args.get('period', current_period_id())
-        gis_rows = GisLayer.query.filter_by(
-            farm_id=farm_id,
-            parameter_type=layer_type,
-            period=latest_period
+        gis_rows = db.session.query(
+            ST_X(GisLayer.coordinate), ST_Y(GisLayer.coordinate), GisLayer.numerical_value
+        ).filter(
+            GisLayer.farm_id == farm_id,
+            GisLayer.parameter_type == layer_type,
+            GisLayer.period == latest_period,
+            GisLayer.coordinate.isnot(None),
+            GisLayer.numerical_value.isnot(None),
         ).all()
 
-        sample_points = []
-        for row in gis_rows:
-            if row.coordinate is not None and row.numerical_value is not None:
-                lon = db.session.scalar(ST_X(row.coordinate))
-                lat = db.session.scalar(ST_Y(row.coordinate))
-                if lat is not None and lon is not None:
-                    sample_points.append({
-                        'lat': float(lat),
-                        'lon': float(lon),
-                        'value': float(row.numerical_value)
-                    })
+        sample_points = [
+            {'lat': float(lat), 'lon': float(lon), 'value': float(value)}
+            for lon, lat, value in gis_rows
+        ]
 
         map_html = GISService.generate_agronomy_map(
             farm_boundary_geojson=farm_geojson,
