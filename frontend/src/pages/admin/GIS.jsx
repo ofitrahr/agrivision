@@ -242,24 +242,34 @@ const GIS = () => {
         }
         try {
             const data = JSON.parse(jsonStr);
-            let geom = data;
 
-            if (data.type === 'FeatureCollection' && data.features && data.features.length > 0) {
-                geom = data.features[0].geometry;
-            } else if (data.type === 'Feature' && data.geometry) {
-                geom = data.geometry;
-            }
+            // Semua feature Polygon/MultiPolygon digabung jadi satu geometri, bukan hanya feature pertama.
+            const toPolygons = (g) => {
+                if (g?.type === 'Polygon') return [g.coordinates];
+                if (g?.type === 'MultiPolygon') return g.coordinates;
+                return [];
+            };
+            const sourceGeoms = data.type === 'FeatureCollection' ? (data.features || []).map(f => f.geometry)
+                : data.type === 'Feature' ? [data.geometry]
+                : [data];
+            const polygons = sourceGeoms.flatMap(toPolygons);
+            const skipped = sourceGeoms.filter(g => toPolygons(g).length === 0).length;
 
-            if (geom && (geom.type === 'Polygon' || geom.type === 'MultiPolygon')) {
+            const geom = polygons.length === 1 ? { type: 'Polygon', coordinates: polygons[0] }
+                : polygons.length > 1 ? { type: 'MultiPolygon', coordinates: polygons }
+                : null;
+
+            if (geom) {
                 const autoHa = calculatePolygonAreaHa(geom);
                 setDrawnGeometry(geom);
                 setFormData(prev => ({
                     ...prev,
                     total_area_ha: autoHa > 0 ? autoHa : prev.total_area_ha
                 }));
-                setGeoJsonStatus({ 
-                    success: true, 
-                    message: `Geometri valid: ${geom.type} • Estimasi Luas: ${autoHa} Ha (Otomatis terisi, dapat diedit)` 
+                const skippedNote = skipped > 0 ? ` • ${skipped} feature non-poligon diabaikan` : '';
+                setGeoJsonStatus({
+                    success: true,
+                    message: `Geometri valid: ${geom.type} (${polygons.length} poligon)${skippedNote} • Estimasi Luas: ${autoHa} Ha (Otomatis terisi, dapat diedit)`
                 });
                 setIsModalOpen(true);
             } else {

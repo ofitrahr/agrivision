@@ -262,23 +262,20 @@ def get_global_map(current_user):
 @token_required
 @role_required('super_admin')
 def create_farm(current_user):
+    import json
+    from sqlalchemy import func, select
+
     data = request.json
     try:
-        geometry = data.get('geometry')
-        geom_type = geometry.get('type')
-        if geom_type == 'Polygon':
-            coords = geometry['coordinates'][0]
-            wkt_coords = ", ".join([f"{c[0]} {c[1]}" for c in coords])
-            wkt_geom = f"SRID=4326;POLYGON(({wkt_coords}))"
-        elif geom_type == 'MultiPolygon':
-            polys = []
-            for poly in geometry['coordinates']:
-                coords = poly[0]
-                wkt_coords = ", ".join([f"{c[0]} {c[1]}" for c in coords])
-                polys.append(f"(({wkt_coords}))")
-            wkt_geom = f"SRID=4326;MULTIPOLYGON({','.join(polys)})"
-        else:
+        geometry = data.get('geometry') or {}
+        if geometry.get('type') not in ('Polygon', 'MultiPolygon'):
             raise Exception("Tipe geometri tidak didukung. Harap gunakan Polygon atau MultiPolygon.")
+
+        # Lubang (inner ring) ikut terbaca; ST_MakeValid + ST_UnaryUnion merapikan poligon yang
+        # tidak valid atau saling tumpang tindih; ST_Force2D membuang koordinat Z bila ada.
+        boundary_expr = func.ST_UnaryUnion(func.ST_CollectionExtract(func.ST_MakeValid(
+            func.ST_Force2D(func.ST_SetSRID(func.ST_GeomFromGeoJSON(json.dumps(geometry)), 4326))
+        ), 3))
 
         user_area = data.get('total_area_ha')
         try:
@@ -286,14 +283,8 @@ def create_farm(current_user):
         except (ValueError, TypeError):
             area_val = 0.0
 
-        # Jika luas lahan kosong atau 0, hitung otomatis secara presisi dari geometri PostGIS
         if area_val <= 0:
-            from sqlalchemy import text
-            clean_wkt = wkt_geom.replace("SRID=4326;", "")
-            calc_area = db.session.scalar(
-                text("SELECT ST_Area(ST_GeomFromText(:wkt, 4326)::geography) / 10000;"),
-                {"wkt": clean_wkt}
-            )
+            calc_area = db.session.scalar(select(func.ST_Area(func.Geography(boundary_expr)) / 10000))
             area_val = round(float(calc_area), 2) if calc_area else 0.0
 
         new_farm = Farm(
@@ -301,7 +292,7 @@ def create_farm(current_user):
             name=data.get('name'),
             crop_variety=data.get('crop_variety'),
             total_area_ha=area_val,
-            boundary=wkt_geom,
+            boundary=boundary_expr,
             created_by=current_user.id
         )
 

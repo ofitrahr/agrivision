@@ -48,19 +48,19 @@ const AgronomyDetailView = ({
   const [activeSubLayer, setActiveSubLayer] = useState('nitrogen');
 
   useEffect(() => {
+    if (!farm?.id) return;
     const fetchPeriods = async () => {
       try {
-        const res = await api.get('/manager/available-periods');
-        if (res.data.success && res.data.data.length > 0) {
-          setPeriods(res.data.data);
-          setCurrentPeriodIdx(res.data.data.length - 1);
-        }
+        const res = await api.get('/manager/available-periods', { params: { farm_id: farm.id } });
+        const list = res.data.success && res.data.data.length > 0 ? res.data.data : FALLBACK_PERIODS;
+        setPeriods(list);
+        setCurrentPeriodIdx(list.length - 1);
       } catch (err) {
         console.warn('Gagal memuat daftar periode, menggunakan fallback:', err);
       }
     };
     fetchPeriods();
-  }, []);
+  }, [farm?.id]);
 
   const fetchStats = useCallback(async (farmId, layer, period) => {
     setStatsLoading(true);

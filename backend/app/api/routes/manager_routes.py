@@ -809,7 +809,7 @@ def get_agronomy_stats(current_user, farm_id):
 
     values = [float(v) for v, _ in rows if v is not None]
 
-    # Rata-rata per periode dihitung di database (GROUP BY); format 'YYYY-MM' terurut leksikografis.
+    # Rata-rata per periode dihitung di database (GROUP BY); format 'YYYY-MM' terurut
     period_means = db.session.query(GisLayer.period, func.avg(GisLayer.numerical_value)).filter_by(
         farm_id=farm_id, parameter_type=layer_type
     ).group_by(GisLayer.period).all()
@@ -1240,6 +1240,11 @@ def get_available_periods(current_user):
     from app.db.models import GisLayer
     project_id = current_user.project_id
     farm_ids = [f.id for f in Farm.query.filter_by(project_id=project_id).all()]
+
+    # Dengan farm_id, hanya periode milik lahan itu, supaya lahan tidak dibuka di periode yang tak punya data.
+    farm_id = request.args.get('farm_id')
+    if farm_id:
+        farm_ids = [fid for fid in farm_ids if str(fid) == farm_id]
 
     if not farm_ids:
         return jsonify({'success': True, 'data': []}), 200
