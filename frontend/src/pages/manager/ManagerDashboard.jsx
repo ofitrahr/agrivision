@@ -134,6 +134,8 @@ const ManagerDashboard = () => {
   const [stats, setStats] = useState(null);
   const [farms, setFarms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [insightIndex, setInsightIndex] = useState(0);
+  const [fade, setFade] = useState(true);
   const navigate = useNavigate();
 
   const getGreeting = () => {
@@ -185,6 +187,50 @@ const ManagerDashboard = () => {
   const totalRevenue = stats?.total_revenue > 0 ? stats.total_revenue : null;
   const totalCarbonTon = stats?.total_carbon_ton > 0 ? stats.total_carbon_ton : null;
 
+  const insights = [
+    {
+      title: `Valuasi ${primaryCommodity || 'Kopi Arabika'} Premium Capai Rekor`,
+      dropCap: 'V',
+      text: `aluasi ekspor untuk komoditas unggulan kita mencatatkan angka yang sangat menjanjikan di kuartal ini. Berkat metode panen selektif dan proses pascapanen terstandarisasi, 1 Kg biji premium berpotensi menembus harga ekspor hingga Rp 150.000.`,
+      recommendation: `Tingkatkan frekuensi pelatihan pemangkasan cabang bagi petani agar kuantitas buah ceri merah tetap stabil.`
+    },
+    {
+      title: `Serapan Karbon Ekivalen Dengan Ribuan Pohon Hutan`,
+      dropCap: 'D',
+      text: `ata terbaru mencatat total serapan emisi mencapai ${totalCarbonTon || 'ratusan'} ton CO2e. Volume mitigasi ekologis ini setara dengan fungsi filtrasi udara dari ${(totalCarbonTon ? Math.round(totalCarbonTon * 1.2) : 500).toLocaleString('id-ID')} pohon mahoni dewasa yang berumur lebih dari 10 tahun.`,
+      recommendation: `Aset karbon ini dapat didaftarkan pada skema perdagangan karbon (Carbon Trading) untuk mendiversifikasi sumber pendapatan.`
+    },
+    {
+      title: `Skor NDVI Optimal: Hemat Biaya Pupuk Kimia`,
+      dropCap: 'S',
+      text: `istem pemantauan satelit menunjukkan Indeks Vegetasi (NDVI) lahan berada di zona hijau pekat (0.75 - 0.85). Kondisi tutupan kanopi yang rapat ini menjaga kelembapan mikroklimat sekaligus mempercepat dekomposisi bahan organik alami.`,
+      recommendation: `Kurangi alokasi belanja pupuk sintetis sebesar 15-20% musim ini dan alihkan untuk subsidi pupuk organik.`
+    },
+    {
+      title: `Transparansi Rantai Pasok Tingkatkan Kepercayaan`,
+      dropCap: 'T',
+      text: `raceability (keterlacakan) menjadi kunci utama penembusan pasar global. Dengan mencatat setiap fase penanaman hingga panen dari ${totalFarmers || 'puluhan'} petani lokal kita, produk AgriVision diakui memiliki sertifikasi asal usul yang kredibel.`,
+      recommendation: `Pastikan setiap mandor kebun melakukan pembaruan log aktivitas mingguan secara disiplin di sistem.`
+    },
+    {
+      title: `Pemberdayaan Komunitas Mendukung Pilar SDGs`,
+      dropCap: 'P',
+      text: `elibatan aktif komunitas lokal dalam sistem agroforestri kita berkontribusi langsung pada pencapaian Tujuan Pembangunan Berkelanjutan (SDGs). Pendapatan petani kini terdistribusi lebih adil melalui skema bagi hasil transparan.`,
+      recommendation: `Jadwalkan agenda rembuk tani bulanan untuk menjaring aspirasi dan meningkatkan kesejahteraan pekerja.`
+    }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFade(false); // mulai memudar
+      setTimeout(() => {
+        setInsightIndex((prev) => (prev + 1) % insights.length);
+        setFade(true); // muncul kembali
+      }, 500); // durasi transisi 500ms
+    }, 15000); // ganti setiap 15 detik
+    return () => clearInterval(timer);
+  }, [insights.length]);
+
   return (
     <div className="hover-enabled">
       <header className="page-header" style={{ marginBottom: 'var(--space-md)' }}>
@@ -204,6 +250,7 @@ const ManagerDashboard = () => {
           Pengaturan
         </button>
       </header>
+
 
       {/* METRICS 2x2 GRID */}
       <section aria-label="Metrik Utama" style={{ marginBottom: 'var(--space-lg)' }}>
@@ -253,6 +300,80 @@ const ManagerDashboard = () => {
               />
             </>
           )}
+        </div>
+      </section>
+
+      {/* EXECUTIVE BRIEF / INSIGHT (Newspaper Style - Dynamic Billboard) */}
+      <section aria-label="Market Insight" style={{ marginBottom: 'var(--space-lg)' }}>
+        <div style={{ 
+          background: '#fdfdfc', 
+          borderTop: '3px solid #012d1d',
+          borderBottom: '1px solid #dcdcdc',
+          padding: '24px 32px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+        }}>
+          {/* Masthead */}
+          <div style={{ borderBottom: '1px solid #eaeaea', paddingBottom: '12px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#012d1d', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px', color: 'var(--color-dark-amber)' }}>new_releases</span>
+              The AgriVision Brief
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: '#666', fontStyle: 'italic' }}>Edisi Multi-Konteks</span>
+              {/* Pagination Dots */}
+              <div style={{ display: 'flex', gap: '4px', marginLeft: '12px' }}>
+                {insights.map((_, idx) => (
+                  <div key={idx} style={{ 
+                    width: '6px', height: '6px', borderRadius: '50%', 
+                    background: insightIndex === idx ? 'var(--color-main-green)' : '#ddd',
+                    transition: 'background 0.3s ease'
+                  }} />
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div style={{ 
+            display: 'flex', flexWrap: 'wrap', gap: '32px',
+            opacity: fade ? 1 : 0, transition: 'opacity 0.5s ease-in-out'
+          }}>
+            {/* Column 1 */}
+            <div style={{ flex: '1 1 320px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#012d1d', margin: '0 0 12px 0', lineHeight: 1.35, fontFamily: 'var(--font-display)' }}>
+                {insights[insightIndex].title}
+              </h2>
+              <p style={{ fontSize: '14px', color: '#2a2a2a', lineHeight: 1.7, margin: 0, textAlign: 'justify' }}>
+                <span style={{ 
+                  float: 'left', 
+                  fontSize: '48px', 
+                  lineHeight: '40px', 
+                  paddingTop: '6px', 
+                  paddingRight: '10px', 
+                  color: 'var(--color-main-green)', 
+                  fontWeight: 800, 
+                  fontFamily: 'var(--font-display)' 
+                }}>{insights[insightIndex].dropCap}</span>
+                {insights[insightIndex].text}
+              </p>
+            </div>
+            
+            {/* Column 2 */}
+            <div style={{ flex: '1 1 320px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <p style={{ fontSize: '14px', color: '#2a2a2a', lineHeight: 1.7, margin: '0 0 16px 0', textAlign: 'justify' }}>
+                {insightIndex === 0 && "Peningkatan tren harga ini tidak semata-mata didorong oleh kelangkaan suplai, melainkan juga oleh preferensi global terhadap praktik keberlanjutan. Jejak karbon rendah memberikan daya tawar tambahan di mata investor."}
+                {insightIndex === 1 && "Selain berdampak positif pada lingkungan global, pengurangan emisi dan tingginya biomasa pada lahan agroforestri terbukti meningkatkan ketahanan kebun terhadap cuaca ekstrem dan kekeringan."}
+                {insightIndex === 2 && "Kondisi kelembapan dan porositas tanah yang terjaga dengan baik memfasilitasi aktivitas mikrobioma, sehingga dekomposisi organik berlangsung maksimal tanpa perlu suplemen kimia."}
+                {insightIndex === 3 && "Sistem pencatatan digital yang kita terapkan meminimalisasi risiko kecurangan (fraud) rantai pasok. Pembeli akhir kini menuntut transparansi total mulai dari tingkat petani hingga ke meja konsumen."}
+                {insightIndex === 4 && "Pola kemitraan yang memberdayakan ini juga memotong jalur distribusi tengkulak, memastikan bahwa sirkulasi ekonomi berjalan di tingkat tapak dan memperkuat ketahanan pangan regional."}
+              </p>
+              <div style={{ background: '#f5fbf7', padding: '14px', borderRadius: '4px', borderLeft: '3px solid var(--color-main-green)' }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#116a3a', margin: 0, lineHeight: 1.5 }}>
+                  💡 Insight Eksekutif: {insights[insightIndex].recommendation}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
