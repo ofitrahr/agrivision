@@ -457,6 +457,39 @@ def api_save_project_traceability(current_user, project_id):
     return jsonify(result), status_code
 
 
+@admin_bp.route('/farms/<farm_id>', methods=['DELETE'])
+@token_required
+@role_required('super_admin')
+def delete_farm(current_user, farm_id):
+    import uuid
+    try:
+        uuid.UUID(str(farm_id))
+    except ValueError:
+        return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
+
+    try:
+        farm = Farm.query.filter_by(id=farm_id).first()
+        if not farm:
+            return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
+
+        farm_name = farm.name
+        project_name = farm.project.name if farm.project else '-'
+        db.session.delete(farm)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Gagal menghapus lahan: {str(e)}'}), 500
+
+    from app.services.activity_service import log_activity
+    log_activity(
+        user_id=current_user.id,
+        action='DELETE_FARM',
+        entity_type='Farm',
+        details=f"Menghapus lahan '{farm_name}' dari proyek '{project_name}'"
+    )
+    return jsonify({'success': True, 'message': f"Lahan '{farm_name}' berhasil dihapus"}), 200
+
+
 @admin_bp.route('/farms/<farm_id>/map', methods=['GET'])
 @token_required
 @role_required('super_admin')

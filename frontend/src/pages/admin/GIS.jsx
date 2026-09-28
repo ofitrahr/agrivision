@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Map, Leaf, Maximize, Calendar, Sprout, Upload, FileCode, CheckCircle2, AlertCircle, ArrowLeft, UploadCloud, Loader2, Sparkles, X, CheckCircle, Satellite } from 'lucide-react';
+import { Plus, Map, Leaf, Maximize, Calendar, Sprout, Upload, FileCode, CheckCircle2, AlertCircle, ArrowLeft, UploadCloud, Loader2, Sparkles, X, CheckCircle, Satellite, Trash2 } from 'lucide-react';
 import InputNumber from '../../shared/components/UI/InputNumber';
 import AdminGISUploader from './AdminGISUploader';
 import AlertModal from '../../shared/components/UI/AlertModal';
@@ -98,6 +98,7 @@ const GIS = () => {
     const [mapModalHtml, setMapModalHtml] = useState(null);
     const [mapModalLoading, setMapModalLoading] = useState(false);
     const [batchProgress, setBatchProgress] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
 
     const handleRunObservation = async (e, farm) => {
         e.stopPropagation();
@@ -143,6 +144,31 @@ const GIS = () => {
 
         setBatchProgress(prev => ({ ...prev, status: 'done', errors }));
         fetchFarms();
+    };
+
+    const openDeleteFarm = (e, farm) => {
+        e.stopPropagation();
+        setDeleteTarget({ farm, step: 1, confirmText: '', deleting: false });
+    };
+
+    const closeDeleteFarm = () => {
+        if (deleteTarget?.deleting) return;
+        setDeleteTarget(null);
+    };
+
+    const handleDeleteFarm = async () => {
+        if (!deleteTarget || deleteTarget.confirmText !== deleteTarget.farm.name) return;
+        const { farm } = deleteTarget;
+        setDeleteTarget((prev) => ({ ...prev, deleting: true }));
+        try {
+            const res = await api.delete(`/admin/farms/${farm.id}`);
+            setDeleteTarget(null);
+            fetchFarms();
+            showAlert('success', res.data?.message || `Lahan "${farm.name}" berhasil dihapus.`);
+        } catch (err) {
+            setDeleteTarget(null);
+            showAlert('error', err.response?.data?.message || 'Gagal menghapus lahan.');
+        }
     };
 
     const handleOpenMapModal = async (e, farm) => {
@@ -683,6 +709,17 @@ const GIS = () => {
                                             </>
                                         )}
                                     </button>
+                                    <button
+                                        type="button"
+                                        className="secondary-btn"
+                                        onClick={(e) => openDeleteFarm(e, farm)}
+                                        disabled={analyzingFarm?.id === farm.id}
+                                        title="Hapus lahan"
+                                        aria-label={`Hapus lahan ${farm.name}`}
+                                        style={{ fontSize: '12px', padding: '7px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', color: '#b91c1c', borderColor: '#fecaca' }}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1027,6 +1064,83 @@ const GIS = () => {
                         >
                             {batchProgress.status === 'done' ? 'Tutup' : 'Memproses...'}
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {deleteTarget && (
+                <div className="modal-overlay" style={{ zIndex: 10000 }}>
+                    <div className="modal-content" style={{ maxWidth: '460px', borderRadius: '14px', padding: '28px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                            <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: '#fee2e2', color: '#b91c1c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <Trash2 size={22} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#111827' }}>Hapus Lahan</h3>
+                                <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748b' }}>Konfirmasi {deleteTarget.step} dari 2</p>
+                            </div>
+                        </div>
+
+                        {deleteTarget.step === 1 ? (
+                            <>
+                                <p style={{ fontSize: '14px', color: '#374151', margin: '0 0 12px 0' }}>
+                                    Yakin ingin menghapus lahan <strong>{deleteTarget.farm.name}</strong> dari project <strong>{deleteTarget.farm.project_name}</strong>?
+                                </p>
+                                <ul style={{ fontSize: '13px', color: '#4b5563', margin: '0 0 20px 0', paddingLeft: '18px', lineHeight: 1.6 }}>
+                                    <li>Batas lahan, hasil analisis satelit, dan alokasi tanaman akan ikut terhapus.</li>
+                                    <li>Petani tidak dihapus, hanya dilepas dari lahan ini.</li>
+                                    <li>Catatan keuangan dan panen tetap tersimpan, tetapi tidak lagi terhubung ke lahan ini.</li>
+                                </ul>
+                                <div className="form-actions">
+                                    <button type="button" className="secondary-btn" onClick={closeDeleteFarm}>Batal</button>
+                                    <button
+                                        type="button"
+                                        className="primary-btn"
+                                        style={{ backgroundColor: '#dc2626' }}
+                                        onClick={() => setDeleteTarget((prev) => ({ ...prev, step: 2 }))}
+                                    >
+                                        Lanjutkan
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <p style={{ fontSize: '14px', color: '#374151', margin: '0 0 12px 0' }}>
+                                    Tindakan ini tidak dapat dibatalkan. Ketik <strong>{deleteTarget.farm.name}</strong> untuk mengonfirmasi.
+                                </p>
+                                <input
+                                    type="text"
+                                    autoFocus
+                                    value={deleteTarget.confirmText}
+                                    onChange={(e) => setDeleteTarget((prev) => ({ ...prev, confirmText: e.target.value }))}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleDeleteFarm(); }}
+                                    disabled={deleteTarget.deleting}
+                                    placeholder={deleteTarget.farm.name}
+                                    aria-label="Ketik nama lahan untuk konfirmasi"
+                                    style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', marginBottom: '20px', boxSizing: 'border-box' }}
+                                />
+                                <div className="form-actions">
+                                    <button type="button" className="secondary-btn" onClick={closeDeleteFarm} disabled={deleteTarget.deleting}>Batal</button>
+                                    <button
+                                        type="button"
+                                        className="primary-btn"
+                                        onClick={handleDeleteFarm}
+                                        disabled={deleteTarget.deleting || deleteTarget.confirmText !== deleteTarget.farm.name}
+                                        style={{
+                                            backgroundColor: '#dc2626',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            opacity: deleteTarget.deleting || deleteTarget.confirmText !== deleteTarget.farm.name ? 0.5 : 1,
+                                            cursor: deleteTarget.deleting || deleteTarget.confirmText !== deleteTarget.farm.name ? 'not-allowed' : 'pointer'
+                                        }}
+                                    >
+                                        {deleteTarget.deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                        {deleteTarget.deleting ? 'Menghapus...' : 'Hapus Permanen'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
