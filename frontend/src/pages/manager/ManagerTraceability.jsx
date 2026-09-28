@@ -36,6 +36,7 @@ const ManagerTraceability = () => {
   const [showSaveConfirmModal, setShowSaveConfirmModal] = useState(false);
   const [heroUploading, setHeroUploading] = useState(false);
   const [heroError, setHeroError] = useState('');
+  const [projectMeta, setProjectMeta] = useState({ company_name: null, commodity: null, location: null });
   const heroFileInputRef = useRef(null);
 
   const hasChanges = useMemo(() => {
@@ -48,7 +49,8 @@ const ManagerTraceability = () => {
       try {
         const res = await api.get('/manager/traceability/profile');
         if (res.data.success) {
-          const d = res.data.data;
+          const { company_name, commodity, location, ...d } = res.data.data;
+          setProjectMeta({ company_name, commodity, location });
           setFormData(d);
           setSavedFormData({ ...d });
           setOriginStoryCount(d.origin_story?.length || 0);
@@ -348,7 +350,7 @@ const ManagerTraceability = () => {
                   border: '1px solid #E0EBE4', borderRadius: 8,
                   fontSize: 16, color: '#5C7A6D', cursor: 'not-allowed'
                 }}>
-                  Kadatuan Coffee
+                  {projectMeta.company_name || 'Data belum tersedia'}
                 </div>
               </div>
               <div>
@@ -361,7 +363,7 @@ const ManagerTraceability = () => {
                   border: '1px solid #E0EBE4', borderRadius: 8,
                   fontSize: 16, color: '#5C7A6D', cursor: 'not-allowed'
                 }}>
-                  Coffee
+                  {projectMeta.commodity || 'Data belum tersedia'}
                 </div>
               </div>
               <div>
@@ -376,7 +378,7 @@ const ManagerTraceability = () => {
                   display: 'flex', alignItems: 'center', gap: 8
                 }}>
                   <MapPin size={18} />
-                  Aceh Tengah
+                  {projectMeta.location || 'Data belum tersedia'}
                 </div>
               </div>
             </div>

@@ -22,6 +22,7 @@ const ProjectList = () => {
     const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
 
     const [formData, setFormData] = useState(initialFormData);
+    const [editingId, setEditingId] = useState(null);
 
     const fetchProjects = async () => {
         setLoading(true);
@@ -45,16 +46,65 @@ const ProjectList = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleAddProject = async (e) => {
+    const openAddModal = () => {
+        setEditingId(null);
+        setFormData(initialFormData);
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (project) => {
+        setEditingId(project.id);
+        setFormData({
+            name: project.name || '',
+            description: project.description || '',
+            commodity: project.commodity || '',
+            location: project.location || ''
+        });
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setEditingId(null);
+        setFormData(initialFormData);
+    };
+
+    const handleSubmitProject = async (e) => {
         e.preventDefault();
         try {
-            await api.post(`/admin/companies/${companyId}/projects`, formData);
-            setIsModalOpen(false);
-            setFormData(initialFormData);
+            if (editingId) {
+                await api.put(`/admin/projects/${editingId}`, formData);
+            } else {
+                await api.post(`/admin/companies/${companyId}/projects`, formData);
+            }
+            const message = editingId
+                ? `Project "${formData.name}" berhasil diperbarui.`
+                : `Project "${formData.name}" berhasil ditambahkan.`;
+            closeModal();
             fetchProjects();
+            showAlert('success', message);
         } catch (error) {
             showAlert('error', error.response?.data?.message || 'Terjadi kesalahan!');
         }
+    };
+
+    const handleDeleteProject = async (project) => {
+        try {
+            const response = await api.delete(`/admin/projects/${project.id}`);
+            fetchProjects();
+            showAlert('success', response.data?.message || `Project "${project.name}" berhasil dihapus.`);
+        } catch (error) {
+            showAlert('error', error.response?.data?.message || 'Gagal menghapus project.');
+        }
+    };
+
+    const confirmDeleteProject = (project) => {
+        setAlertState({
+            isOpen: true,
+            type: 'confirm',
+            message: `Yakin ingin menghapus project "${project.name}"? Semua lahan, user, dan data terkait project ini akan ikut terhapus dan tidak dapat dikembalikan.`,
+            onConfirm: () => handleDeleteProject(project),
+        });
     };
 
     if (loading) return <div style={{ padding: '30px' }}>Memuat daftar project...</div>;
@@ -70,7 +120,7 @@ const ProjectList = () => {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h1 style={{ color: '#1B4332', margin: 0 }}>Kelola Project</h1>
-                <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
+                <button className="primary-btn" onClick={openAddModal}>
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
                     Tambah Project
                 </button>
@@ -104,10 +154,20 @@ const ProjectList = () => {
                                     <td>{p.location || '-'}</td>
                                     <td>{new Date(p.created_at).toLocaleDateString('id-ID')}</td>
                                     <td>
-                                        <button className="action-btn primary-btn" onClick={() => navigate(`/admin/projects/${p.id}/permissions`)} style={{ padding: '6px 12px', fontSize: '12px' }}>
-                                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>tune</span>
-                                            Modul SaaS
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '5px' }}>
+                                            <button className="action-btn edit-btn" onClick={() => openEditModal(p)}>
+                                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span>
+                                                Edit
+                                            </button>
+                                            <button className="action-btn primary-btn" onClick={() => navigate(`/admin/projects/${p.id}/permissions`)} style={{ padding: '6px 12px', fontSize: '12px' }}>
+                                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>tune</span>
+                                                Modul SaaS
+                                            </button>
+                                            <button className="action-btn delete-btn" onClick={() => confirmDeleteProject(p)}>
+                                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
+                                                Hapus
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))
@@ -120,12 +180,12 @@ const ProjectList = () => {
                 <div className="modal-overlay">
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h2>Tambah Project Baru</h2>
-                            <button className="close-btn" onClick={() => setIsModalOpen(false)}>
+                            <h2>{editingId ? 'Edit Project' : 'Tambah Project Baru'}</h2>
+                            <button className="close-btn" onClick={closeModal}>
                                 &times;
                             </button>
                         </div>
-                        <form onSubmit={handleAddProject}>
+                        <form onSubmit={handleSubmitProject}>
                             <div className="form-group">
                                 <label>Nama Project *</label>
                                 <input type="text" name="name" value={formData.name} onChange={handleInputChange} required />
@@ -143,8 +203,8 @@ const ProjectList = () => {
                                 <input type="text" name="location" value={formData.location} onChange={handleInputChange} />
                             </div>
                             <div className="form-actions">
-                                <button type="button" className="secondary-btn" onClick={() => setIsModalOpen(false)}>Batal</button>
-                                <button type="submit" className="primary-btn">Simpan Project</button>
+                                <button type="button" className="secondary-btn" onClick={closeModal}>Batal</button>
+                                <button type="submit" className="primary-btn">{editingId ? 'Simpan Perubahan' : 'Simpan Project'}</button>
                             </div>
                         </form>
                     </div>
@@ -156,6 +216,7 @@ const ProjectList = () => {
                 onClose={closeAlert}
                 type={alertState.type}
                 message={alertState.message}
+                onConfirm={alertState.onConfirm}
             />
         </div>
     );

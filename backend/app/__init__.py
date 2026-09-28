@@ -4,6 +4,7 @@ import sys
 
 from flask import Flask
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app.core.config import Config
 from app.db.database import db
@@ -25,10 +26,13 @@ def create_app():
     _setup_logging()
     app = Flask(__name__)
 
-    CORS(app)
-
     #Load Konfigurasi database  
     app.config.from_object(Config)
+
+    CORS(app, origins=app.config['CORS_ORIGINS'], supports_credentials=True)
+
+    if app.config['TRUSTED_PROXY_COUNT'] > 0:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=app.config['TRUSTED_PROXY_COUNT'])
     db.init_app(app)
 
     @app.route('/api/health')

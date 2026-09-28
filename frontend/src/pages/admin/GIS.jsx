@@ -23,6 +23,17 @@ const formatPeriodLabel = (yyyyMm) => {
     return idx >= 0 && idx < 12 ? `${MONTH_NAMES_ID[idx]} ${year}` : yyyyMm;
 };
 
+const GEE_TIMEOUT_MS = 120000;
+
+const isTimeoutError = (err) => err?.code === 'ECONNABORTED' || err?.code === 'ETIMEDOUT';
+
+const getObservationErrorMessage = (err) => {
+    if (isTimeoutError(err)) {
+        return `Google Earth Engine tidak merespons dalam ${GEE_TIMEOUT_MS / 1000} detik. Proses mungkin masih berjalan di server; periksa kembali hasilnya beberapa saat lagi atau coba ulang.`;
+    }
+    return err.response?.data?.message || err.message;
+};
+
 const FarmMapThumbnail = ({ farmId }) => {
     const [mapHtml, setMapHtml] = useState(null);
 
@@ -100,12 +111,12 @@ const GIS = () => {
         try {
             const res = await api.post(`/admin/farms/${farm.id}/run-observation`, {
                 period: observationPeriod
-            });
+            }, { timeout: GEE_TIMEOUT_MS });
             if (res.data.success) {
                 setAnalysisResult(res.data);
             }
         } catch (err) {
-            showAlert('error', "Gagal menjalankan analisis satelit: " + (err.response?.data?.message || err.message));
+            showAlert('error', "Gagal menjalankan analisis satelit: " + getObservationErrorMessage(err));
         } finally {
             clearInterval(timer);
             setAnalyzingFarm(null);
@@ -124,9 +135,9 @@ const GIS = () => {
         for (let i = 0; i < farms.length; i++) {
             setBatchProgress(prev => ({ ...prev, current: i + 1, currentFarmName: farms[i].name }));
             try {
-                await api.post(`/admin/farms/${farms[i].id}/run-observation`, { period: observationPeriod });
+                await api.post(`/admin/farms/${farms[i].id}/run-observation`, { period: observationPeriod }, { timeout: GEE_TIMEOUT_MS });
             } catch (err) {
-                errors.push({ farmName: farms[i].name, message: err.response?.data?.message || err.message });
+                errors.push({ farmName: farms[i].name, message: getObservationErrorMessage(err) });
             }
         }
 

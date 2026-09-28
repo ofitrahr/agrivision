@@ -78,9 +78,31 @@ const CompanyList = () => {
             }
             setIsModalOpen(false);
             fetchCompanies(); // Refresh data
+            showAlert('success', modalMode === 'add'
+                ? `Company "${formData.name}" berhasil ditambahkan.`
+                : `Company "${formData.name}" berhasil diperbarui.`);
         } catch (error) {
             showAlert('error', error.response?.data?.message || "Terjadi kesalahan!");
         }
+    };
+
+    const handleDelete = async (company) => {
+        try {
+            const response = await api.delete(`/admin/companies/${company.id}`);
+            fetchCompanies();
+            showAlert('success', response.data?.message || `Company "${company.name}" berhasil dihapus.`);
+        } catch (error) {
+            showAlert('error', error.response?.data?.message || "Gagal menghapus company.");
+        }
+    };
+
+    const confirmDelete = (company) => {
+        setAlertState({
+            isOpen: true,
+            type: 'confirm',
+            message: `Yakin ingin menghapus company "${company.name}"? Semua project, user, dan data terkait akan ikut terhapus dan tidak dapat dikembalikan.`,
+            onConfirm: () => handleDelete(company),
+        });
     };
 
     if (loading) return <div style={{padding: '30px'}}>Memuat daftar company...</div>;
@@ -145,6 +167,10 @@ const CompanyList = () => {
                                         <button className="action-btn view-btn" onClick={() => navigate(`/admin/companies/${company.id}/users`)}>
                                             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>group</span>
                                             Users
+                                        </button>
+                                        <button className="action-btn delete-btn" onClick={() => confirmDelete(company)}>
+                                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
+                                            Hapus
                                         </button>
                                     </td>
                                 </tr>
@@ -217,6 +243,7 @@ const CompanyList = () => {
                 onClose={closeAlert}
                 type={alertState.type}
                 message={alertState.message}
+                onConfirm={alertState.onConfirm}
             />
         </div>
     );

@@ -23,6 +23,7 @@ const CompanyUsers = () => {
 
     const [confirmDialog, setConfirmDialog] = useState(null);
     const [alertDialog, setAlertDialog] = useState(null);
+    const [resetDialog, setResetDialog] = useState(null);
 
     const [formData, setFormData] = useState(initialFormData);
     const [editFormData, setEditFormData] = useState({});
@@ -78,23 +79,32 @@ const CompanyUsers = () => {
     };
 
     const confirmResetPassword = (userId, username) => {
-        setConfirmDialog({
-            message: `Yakin ingin reset password untuk user: ${username}?`,
-            onConfirm: () => handleResetPassword(userId)
-        });
+        setResetDialog({ userId, username, password: '', confirmPassword: '', error: '' });
     };
 
-    const handleResetPassword = async (userId) => {
-        setConfirmDialog(null);
+    const handleResetPassword = async (e) => {
+        e.preventDefault();
+        if (resetDialog.password.length < 8) {
+            setResetDialog({ ...resetDialog, error: 'Password baru minimal 8 karakter.' });
+            return;
+        }
+        if (resetDialog.password !== resetDialog.confirmPassword) {
+            setResetDialog({ ...resetDialog, error: 'Konfirmasi password tidak cocok.' });
+            return;
+        }
         try {
-            const response = await api.post(`/admin/users/${userId}/reset-password`, {});
+            const response = await api.post(`/admin/users/${resetDialog.userId}/reset-password`, {
+                new_password: resetDialog.password
+            });
             if (response.data.success) {
+                const { username } = resetDialog;
+                setResetDialog(null);
                 setAlertDialog({
-                    message: `Password berhasil direset!\n\nPassword Baru: ${response.data.data.new_password}\n\nSilakan catat password ini, karena tidak akan ditampilkan lagi.`
+                    message: `Password untuk user ${username} berhasil direset. Sampaikan password baru kepada pengguna melalui saluran yang aman.`
                 });
             }
         } catch (error) {
-            setAlertDialog({ message: error.response?.data?.message || 'Gagal mereset password' });
+            setResetDialog({ ...resetDialog, error: error.response?.data?.message || 'Gagal mereset password' });
         }
     };
 
@@ -321,6 +331,51 @@ const CompanyUsers = () => {
                             <div className="form-actions">
                                 <button type="button" className="secondary-btn" onClick={() => setIsEditModalOpen(false)}>Batal</button>
                                 <button type="submit" className="primary-btn">Simpan Perubahan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {resetDialog && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '400px' }}>
+                        <div className="modal-header">
+                            <h2>Reset Password</h2>
+                            <button className="close-btn" onClick={() => setResetDialog(null)}>
+                                &times;
+                            </button>
+                        </div>
+                        <form onSubmit={handleResetPassword}>
+                            <p style={{ marginBottom: '15px' }}>Atur password baru untuk user: <strong>{resetDialog.username}</strong></p>
+                            <div className="form-group">
+                                <label>Password Baru *</label>
+                                <input
+                                    type="password"
+                                    minLength="8"
+                                    autoComplete="new-password"
+                                    value={resetDialog.password}
+                                    onChange={(e) => setResetDialog({ ...resetDialog, password: e.target.value, error: '' })}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Konfirmasi Password Baru *</label>
+                                <input
+                                    type="password"
+                                    minLength="8"
+                                    autoComplete="new-password"
+                                    value={resetDialog.confirmPassword}
+                                    onChange={(e) => setResetDialog({ ...resetDialog, confirmPassword: e.target.value, error: '' })}
+                                    required
+                                />
+                            </div>
+                            {resetDialog.error && (
+                                <p style={{ color: '#e11d48', marginBottom: '15px' }}>{resetDialog.error}</p>
+                            )}
+                            <div className="form-actions">
+                                <button type="button" className="secondary-btn" onClick={() => setResetDialog(null)}>Batal</button>
+                                <button type="submit" className="primary-btn">Simpan Password</button>
                             </div>
                         </form>
                     </div>

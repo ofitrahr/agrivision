@@ -4,7 +4,7 @@ import base64
 from datetime import datetime
 from app.core.security import token_required, role_required
 from app.core.period_utils import current_period_id, period_label, shift_period
-from app.services.upload_service import save_file_locally
+from app.services.upload_service import IMAGE_EXTENSIONS, save_file_locally
 from app.db.models import Company, Farm, Farmer
 from app.db.database import db
 from app.services.report_service import ReportService
@@ -156,7 +156,7 @@ def manager_profile(current_user):
             file = request.files['logo']
             if file.filename != '':
                 try:
-                    logo_url = save_file_locally(file, subfolder='logos')
+                    logo_url = save_file_locally(file, subfolder='logos', allowed_extensions=IMAGE_EXTENSIONS)
                     company.logo_url = logo_url
                 except ValueError as e:
                     return jsonify({'success': False, 'message': str(e)}), 400
@@ -201,6 +201,9 @@ def manager_traceability_profile(current_user):
                 'social_narrative': profile.social_narrative or '',
                 'economic_narrative': profile.economic_narrative or '',
                 'environmental_narrative': profile.environmental_narrative or '',
+                'company_name': project.company.name if project.company else None,
+                'commodity': project.commodity,
+                'location': project.location,
             }
         }), 200
 
@@ -234,13 +237,15 @@ def manager_traceability_profile(current_user):
                     except Exception:
                         file.seek(0)
 
-                    hero_url = save_file_locally(file, subfolder='traceability')
+                    hero_url = save_file_locally(file, subfolder='traceability', allowed_extensions=IMAGE_EXTENSIONS)
                     if hero_url:
                         data['hero_image_url'] = hero_url
         else:
             data = request.get_json(silent=True) or {}
         result, status_code = save_project_traceability_profile(project.id, data)
         return jsonify(result), status_code
+    except ValueError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -310,7 +315,7 @@ def manager_farmers(current_user):
         if 'photo' in request.files:
             file = request.files['photo']
             if file.filename != '':
-                photo_url = save_file_locally(file, subfolder='farmers')
+                photo_url = save_file_locally(file, subfolder='farmers', allowed_extensions=IMAGE_EXTENSIONS)
 
         parsed_birth_year = _parse_year(raw_birth_year)
         parsed_join_year = _parse_year(raw_join_year)
@@ -329,6 +334,9 @@ def manager_farmers(current_user):
         db.session.commit()
 
         return jsonify({'success': True, 'message': 'Petani berhasil ditambahkan'}), 201
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -369,11 +377,14 @@ def edit_farmer(current_user, farmer_id):
         if 'photo' in request.files:
             file = request.files['photo']
             if file.filename != '':
-                photo_url = save_file_locally(file, subfolder='farmers')
+                photo_url = save_file_locally(file, subfolder='farmers', allowed_extensions=IMAGE_EXTENSIONS)
                 farmer.photo_url = photo_url
 
         db.session.commit()
         return jsonify({'success': True, 'message': 'Petani berhasil diperbarui'}), 200
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500

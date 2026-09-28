@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../features/auth/AuthContext';
-import { clearSession, isTokenValid } from '../../shared/utils/token';
 import './Login.css';
 
 const Login = () => {
@@ -9,30 +8,19 @@ const Login = () => {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useContext(AuthContext);
+  const { user, loading: authLoading, login } = useContext(AuthContext);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+    if (authLoading || !user) return;
 
-    if (!isTokenValid(token) || !userData) {
-      clearSession();
-      return;
+    if (user.role === 'super_admin') {
+      navigate('/admin/dashboard');
+    } else if (user.role === 'manager') {
+      navigate('/manager/dashboard');
+    } else if (user.role === 'board') {
+      navigate('/board/dashboard');
     }
-
-    try {
-      const parsedUser = JSON.parse(userData);
-      if (parsedUser.role === 'super_admin') {
-        navigate('/admin/dashboard');
-      } else if (parsedUser.role === 'manager') {
-        navigate('/manager/dashboard');
-      } else if (parsedUser.role === 'board') {
-        navigate('/board/dashboard');
-      }
-    } catch {
-      clearSession();
-    }
-  }, [navigate]);
+  }, [authLoading, user, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

@@ -706,3 +706,12 @@ class DocumentReport(db.Model):
     status = db.Column(db.String(20), nullable=False, default='available')
     file_url = db.Column(db.Text)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+
+class LoginAttempt(db.Model):
+    __tablename__ = 'login_attempts'
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    ip_address = db.Column(db.String(45), nullable=False, index=True)
+    username = db.Column(db.String(100), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)

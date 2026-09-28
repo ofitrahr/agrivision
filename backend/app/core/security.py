@@ -8,8 +8,8 @@ from flask import current_app, jsonify, request
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = None
-        if 'Authorization' in request.headers:
+        token = request.cookies.get(current_app.config['AUTH_COOKIE_NAME'])
+        if not token and 'Authorization' in request.headers:
             auth_header = request.headers['Authorization']
             if auth_header.startswith('Bearer '):
                 token = auth_header.split(" ")[1]

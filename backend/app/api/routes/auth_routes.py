@@ -3,7 +3,12 @@ from app.core.security import token_required
 from app.db.database import db
 from app.db.models import User
 from app.services.auth_service import authenticate_user
-from flask import Blueprint, jsonify, request
+from app.services.login_rate_limit_service import (
+    clear_failed_logins,
+    get_login_retry_after,
+    record_failed_login,
+)
+from flask import Blueprint, current_app, jsonify, make_response, request
 
 auth_bp = Blueprint('auth_bp', __name__)
 
@@ -13,11 +18,52 @@ def login():
 
     if not data or not data.get('username') or not data.get('password'):
         return jsonify({"success": False, "message": "Username dan password wajib diisi"}), 400
+
+    if not isinstance(data.get('username'), str) or not isinstance(data.get('password'), str):
+        return jsonify({"success": False, "message": "Format username atau password tidak valid"}), 400
     
+    ip_address = request.remote_addr or 'unknown'
+    retry_after = get_login_retry_after(ip_address, data.get('username'))
+    if retry_after:
+        response = make_response(jsonify({
+            "success": False,
+            "message": f"Terlalu banyak percobaan login gagal. Coba lagi dalam {retry_after} detik."
+        }), 429)
+        response.headers['Retry-After'] = str(retry_after)
+        return response
+
     result = authenticate_user(data.get('username'), data.get('password'))
 
     status_code = result.pop('status')
-    return jsonify(result), status_code
+    if status_code == 200:
+        clear_failed_logins(data.get('username'))
+    else:
+        record_failed_login(ip_address, data.get('username'))
+    token = result.pop('token', None)
+    response = make_response(jsonify(result), status_code)
+    if token:
+        response.set_cookie(
+            current_app.config['AUTH_COOKIE_NAME'],
+            token,
+            max_age=current_app.config['AUTH_COOKIE_MAX_AGE'],
+            httponly=True,
+            secure=current_app.config['AUTH_COOKIE_SECURE'],
+            samesite=current_app.config['AUTH_COOKIE_SAMESITE'],
+            path='/',
+        )
+    return response
+
+@auth_bp.route('/logout', methods=['POST'])
+def logout():
+    response = make_response(jsonify({"success": True, "message": "Berhasil logout"}), 200)
+    response.delete_cookie(
+        current_app.config['AUTH_COOKIE_NAME'],
+        path='/',
+        secure=current_app.config['AUTH_COOKIE_SECURE'],
+        samesite=current_app.config['AUTH_COOKIE_SAMESITE'],
+        httponly=True,
+    )
+    return response
 
 @auth_bp.route('/profile', methods=['GET', 'PUT'])
 @token_required

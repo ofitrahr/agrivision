@@ -1074,13 +1074,17 @@ def upload_project_sdg_evidence(project_id, file):
     if not file or not file.filename:
         return {"success": False, "message": "File tidak ditemukan"}, 400
 
+    try:
+        file_url = save_file_locally(file, subfolder='evidence')
+    except ValueError as e:
+        return {"success": False, "message": str(e)}, 400
+
     profile = ProjectTraceabilityProfile.query.filter_by(project_id=project.id).first()
     if not profile:
         profile = ProjectTraceabilityProfile(project_id=project.id)
         db.session.add(profile)
         db.session.flush()
 
-    file_url = save_file_locally(file, subfolder='evidence')
     original_name = file.filename
     ext = original_name.rsplit('.', 1)[1].lower() if '.' in original_name else ''
 

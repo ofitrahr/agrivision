@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import api from '../../shared/api/axios';
-import { clearSession, isTokenValid } from '../../shared/utils/token';
+import { clearSession } from '../../shared/utils/token';
 
 export const AuthContext = createContext();
 
@@ -9,30 +9,43 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
 
-        if (!isTokenValid(token) || !userData) {
+        if (!userData) {
             clearSession();
-            setUser(null);
             setLoading(false);
             return;
         }
 
+        let parsedUser;
         try {
-            setUser(JSON.parse(userData));
+            parsedUser = JSON.parse(userData);
         } catch {
             clearSession();
-            setUser(null);
+            setLoading(false);
+            return;
         }
-        setLoading(false);
+
+        api.get('/auth/profile', { skipAuthRedirect: true })
+            .then((response) => {
+                if (response.data.success) {
+                    setUser({ ...parsedUser, role: response.data.data.role });
+                } else {
+                    clearSession();
+                }
+            })
+            .catch(() => {
+                clearSession();
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     }, []);
 
     const login = async (username, password) => {
         try {
             const response = await api.post('/auth/login', { username, password });
             if (response.data.success) {
-                localStorage.setItem('token', response.data.token);
                 localStorage.setItem('user', JSON.stringify(response.data.user));
                 setUser(response.data.user);
             }
@@ -43,6 +56,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = () => {
+        api.post('/auth/logout', null, { skipAuthRedirect: true }).catch(() => {});
         clearSession();
         setUser(null);
     };

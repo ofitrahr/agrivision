@@ -27,6 +27,14 @@ const formatYearMonthToIndonesian = (yyyyMm) => {
   return yyyyMm;
 };
 
+const hasValue = (v) => v !== null && v !== undefined && v !== '' && v !== '-';
+
+const NoDataLabel = () => (
+  <span style={{ fontSize: '12px', fontWeight: 500, fontStyle: 'italic', color: 'var(--color-text-muted)' }}>
+    Data belum tersedia
+  </span>
+);
+
 const MonthYearPicker = ({ value, onChange, label }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = React.useRef(null);
@@ -392,20 +400,9 @@ const ManagerEconomics = () => {
   };
 
   const handleDownload = (report) => {
-    const token = localStorage.getItem('token');
-
-    fetch(`${api.defaults.baseURL || '/api'}/manager/reports/${report.id}/download`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
+    api.get(`/manager/reports/${report.id}/download`, { responseType: 'blob' })
     .then(response => {
-      if (!response.ok) throw new Error('Gagal mengunduh');
-      return response.blob();
-    })
-    .then(blob => {
-      const url = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(response.data);
       const a = document.createElement('a');
       a.href = url;
       const fileExt = (report.format || 'pdf').toLowerCase();
@@ -423,26 +420,24 @@ const ManagerEconomics = () => {
 
   // Metrik Lahan & Observasi
   const currentFarmObj = farms.find((f) => String(f.id) === String(selectedFarm));
-  const currentAreaHa = parseFloat(currentFarmObj?.total_area_ha) || 4.3;
+  const currentAreaHa = parseFloat(currentFarmObj?.total_area_ha) || null;
   const totalHarvestKg = harvests.reduce((sum, h) => sum + (parseFloat(h.yield_kg) || 0), 0);
-  const productivityTonPerHa = observationSummary?.productivity ?? (totalHarvestKg > 0 ? (totalHarvestKg / 1000 / currentAreaHa).toFixed(2) : '3.03');
+  const productivityTonPerHa = hasValue(observationSummary?.productivity)
+    ? observationSummary.productivity
+    : (totalHarvestKg > 0 && currentAreaHa ? (totalHarvestKg / 1000 / currentAreaHa).toFixed(2) : null);
 
-  const socCarbon = observationSummary?.soc_carbon || '57.8';
-  const agbBiomass = observationSummary?.agb_biomass || '230';
-  const plantHealth = observationSummary?.plant_health || '80';
+  const socCarbon = hasValue(observationSummary?.soc_carbon) ? observationSummary.soc_carbon : null;
+  const agbBiomass = hasValue(observationSummary?.agb_biomass) ? observationSummary.agb_biomass : null;
+  const plantHealth = hasValue(observationSummary?.plant_health) ? observationSummary.plant_health : null;
 
-  const estimasiPendapatan = records.length > 0
-    ? Number(records[0].estimated_revenue).toLocaleString('id-ID')
-    : '8.670.000';
+  const estimasiPendapatanCarbon = hasValue(observationSummary?.estimasi_pendapatan_carbon) ? observationSummary.estimasi_pendapatan_carbon : null;
 
-  const estimasiPendapatanCarbon = observationSummary?.estimasi_pendapatan_carbon || '8.670.000';
+  const toNutrientValue = (v) => (hasValue(v) ? String(v).replace(/[^\d.]/g, '') || null : null);
+  const nValue = toNutrientValue(observationSummary?.n_value);
+  const pValue = toNutrientValue(observationSummary?.p_value);
+  const kValue = toNutrientValue(observationSummary?.k_value);
 
-  const nValue = observationSummary?.n_value ? String(observationSummary.n_value).replace(/[^\d.]/g, '') : '46.9';
-  const pValue = observationSummary?.p_value ? String(observationSummary.p_value).replace(/[^\d.]/g, '') : '46.8';
-  const kValue = observationSummary?.k_value ? String(observationSummary.k_value).replace(/[^\d.]/g, '') : '46.4';
-
-  const petaniTerberdayakan = observationSummary?.petani_terberdayakan || '2';
-  const totalLahanTerdaftar = farms.length > 0 ? farms.length : '2';
+  const petaniTerberdayakan = hasValue(observationSummary?.petani_terberdayakan) ? observationSummary.petani_terberdayakan : null;
 
   // Perhitungan Pertumbuhan Pendapatan Dinamis
   const peningkatanPendapatan = useMemo(() => {
@@ -495,10 +490,7 @@ const ManagerEconomics = () => {
       });
     }
     if (male === 0 && female === 0) {
-      return [
-        { name: 'Laki-laki', value: 1, color: '#053b26' },
-        { name: 'Perempuan', value: 1, color: '#f59e0b' },
-      ];
+      return [];
     }
     return [
       { name: 'Laki-laki', value: male, color: '#053b26' },
@@ -525,29 +517,13 @@ const ManagerEconomics = () => {
     }
     const total = muda + dewasa + tua;
     if (total === 0) {
-      return [{ name: '30-50', value: 2, color: '#053b26' }];
+      return [];
     }
     const items = [];
     if (muda > 0) items.push({ name: '<30', value: muda, color: '#10b981' });
     if (dewasa > 0) items.push({ name: '30-50', value: dewasa, color: '#053b26' });
     if (tua > 0) items.push({ name: '>50', value: tua, color: '#f59e0b' });
     return items;
-  }, [observationSummary]);
-
-  const sebaranGenderText = useMemo(() => {
-    if (observationSummary?.sebaran_gender && observationSummary.sebaran_gender !== '-') {
-      return observationSummary.sebaran_gender;
-    }
-    const male = genderChartData.find((g) => g.name === 'Laki-laki')?.value || 0;
-    const female = genderChartData.find((g) => g.name === 'Perempuan')?.value || 0;
-    return `${male} Laki / ${female} Pr`;
-  }, [observationSummary, genderChartData]);
-
-  const sebaranUsiaText = useMemo(() => {
-    if (observationSummary?.sebaran_usia && observationSummary.sebaran_usia !== '-') {
-      return observationSummary.sebaran_usia;
-    }
-    return '30-50th: 2 Orang';
   }, [observationSummary]);
 
   const displayedReports = recentReports;
@@ -728,7 +704,7 @@ const ManagerEconomics = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-muted)', paddingBottom: '10px' }}>
                       <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Produktivitas (Ton/Ha)</span>
-                      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{productivityTonPerHa}</span>
+                      {productivityTonPerHa !== null ? <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{productivityTonPerHa}</span> : <NoDataLabel />}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-muted)', paddingBottom: '10px' }}>
                       <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Peningkatan Pendapatan</span>
@@ -740,7 +716,7 @@ const ManagerEconomics = () => {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '2px' }}>
                       <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Estimasi Karbon (IDR)</span>
-                      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>Rp {estimasiPendapatanCarbon}</span>
+                      {estimasiPendapatanCarbon !== null ? <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>Rp {estimasiPendapatanCarbon}</span> : <NoDataLabel />}
                     </div>
                   </div>
                 </div>
@@ -784,20 +760,22 @@ const ManagerEconomics = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-muted)', paddingBottom: '10px' }}>
                       <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Kesehatan Tanaman</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{plantHealth}%</span>
-                        <span className={`badge ${Number(plantHealth) >= 50 ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '11px', padding: '2px 8px' }}>
-                          {Number(plantHealth) >= 50 ? 'Sehat' : 'Perhatian'}
-                        </span>
-                      </div>
+                      {plantHealth !== null ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{plantHealth}%</span>
+                          <span className={`badge ${Number(plantHealth) >= 50 ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '11px', padding: '2px 8px' }}>
+                            {Number(plantHealth) >= 50 ? 'Sehat' : 'Perhatian'}
+                          </span>
+                        </div>
+                      ) : <NoDataLabel />}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-muted)', paddingBottom: '10px' }}>
                       <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Serapan Karbon Tanah</span>
-                      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{socCarbon} <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)' }}>ton CO2e</span></span>
+                      {socCarbon !== null ? <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{socCarbon} <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)' }}>ton CO2e</span></span> : <NoDataLabel />}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-muted)', paddingBottom: '10px' }}>
                       <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Biomassa Karbon</span>
-                      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{agbBiomass} <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)' }}>ton CO2e</span></span>
+                      {agbBiomass !== null ? <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{agbBiomass} <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)' }}>ton CO2e</span></span> : <NoDataLabel />}
                     </div>
 
                     {/* Bagian Nutrisi (NPK) Dipisah */}
@@ -814,7 +792,7 @@ const ManagerEconomics = () => {
                           textAlign: 'center'
                         }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Nitrogen (N)</div>
-                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '2px' }}>{nValue} mg/kg</div>
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '2px' }}>{nValue !== null ? `${nValue} mg/kg` : '—'}</div>
                         </div>
                         <div style={{
                           background: 'var(--color-surface-container-low)',
@@ -824,7 +802,7 @@ const ManagerEconomics = () => {
                           textAlign: 'center'
                         }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Fosfor (P)</div>
-                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '2px' }}>{pValue} mg/kg</div>
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '2px' }}>{pValue !== null ? `${pValue} mg/kg` : '—'}</div>
                         </div>
                         <div style={{
                           background: 'var(--color-surface-container-low)',
@@ -834,7 +812,7 @@ const ManagerEconomics = () => {
                           textAlign: 'center'
                         }}>
                           <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Kalium (K)</div>
-                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '2px' }}>{kValue} mg/kg</div>
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-main)', marginTop: '2px' }}>{kValue !== null ? `${kValue} mg/kg` : '—'}</div>
                         </div>
                       </div>
                     </div>
@@ -881,7 +859,7 @@ const ManagerEconomics = () => {
                     {/* Baris 1: Petani Terberdayakan */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-muted)', paddingBottom: '10px' }}>
                       <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Petani Terberdayakan</span>
-                      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{petaniTerberdayakan} Orang</span>
+                      {petaniTerberdayakan !== null ? <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{petaniTerberdayakan} Orang</span> : <NoDataLabel />}
                     </div>
 
                     {/* Baris 2: 2 Kolom Sebaran Gender & Sebaran Usia */}
@@ -900,37 +878,42 @@ const ManagerEconomics = () => {
                           Sebaran Gender
                         </span>
                         <div style={{ width: 84, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <PieChart width={84} height={84}>
-                            <Tooltip
-                              formatter={(val, name) => [`${val} Orang`, name]}
-                              contentStyle={{
-                                background: 'var(--color-surface-white)',
-                                border: '1px solid var(--color-border-muted)',
-                                borderRadius: '6px',
-                                fontSize: '11px',
-                                padding: '4px 8px',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                              }}
-                              itemStyle={{ color: 'var(--color-text-main)', fontWeight: 600 }}
-                            />
-                            <Pie
-                              data={genderChartData}
-                              dataKey="value"
-                              nameKey="name"
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={20}
-                              outerRadius={36}
-                              paddingAngle={3}
-                              stroke="none"
-                            >
-                              {genderChartData.map((entry, index) => (
-                                <Cell key={`gender-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                          </PieChart>
+                          {genderChartData.length > 0 ? (
+                            <PieChart width={84} height={84}>
+                              <Tooltip
+                                formatter={(val, name) => [`${val} Orang`, name]}
+                                contentStyle={{
+                                  background: 'var(--color-surface-white)',
+                                  border: '1px solid var(--color-border-muted)',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  padding: '4px 8px',
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                                }}
+                                itemStyle={{ color: 'var(--color-text-main)', fontWeight: 600 }}
+                              />
+                              <Pie
+                                data={genderChartData}
+                                dataKey="value"
+                                nameKey="name"
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={20}
+                                outerRadius={36}
+                                paddingAngle={3}
+                                stroke="none"
+                              >
+                                {genderChartData.map((entry, index) => (
+                                  <Cell key={`gender-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          ) : (
+                            <div style={{ width: 72, height: 72, borderRadius: '50%', border: '14px solid var(--color-border-muted)', boxSizing: 'border-box' }} />
+                          )}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '6px', width: '100%' }}>
+                          {genderChartData.length === 0 && <NoDataLabel />}
                           {genderChartData.map((item, idx) => {
                             const totalGender = genderChartData.reduce((sum, g) => sum + g.value, 0);
                             const pct = totalGender > 0 ? Math.round((item.value / totalGender) * 100) : 0;
@@ -965,37 +948,42 @@ const ManagerEconomics = () => {
                           Sebaran Usia
                         </span>
                         <div style={{ width: 84, height: 84, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <PieChart width={84} height={84}>
-                            <Tooltip
-                              formatter={(val, name) => [`${val} Orang`, `${name} th`]}
-                              contentStyle={{
-                                background: 'var(--color-surface-white)',
-                                border: '1px solid var(--color-border-muted)',
-                                borderRadius: '6px',
-                                fontSize: '11px',
-                                padding: '4px 8px',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                              }}
-                              itemStyle={{ color: 'var(--color-text-main)', fontWeight: 600 }}
-                            />
-                            <Pie
-                              data={ageChartData}
-                              dataKey="value"
-                              nameKey="name"
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={20}
-                              outerRadius={36}
-                              paddingAngle={3}
-                              stroke="none"
-                            >
-                              {ageChartData.map((entry, index) => (
-                                <Cell key={`age-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                          </PieChart>
+                          {ageChartData.length > 0 ? (
+                            <PieChart width={84} height={84}>
+                              <Tooltip
+                                formatter={(val, name) => [`${val} Orang`, `${name} th`]}
+                                contentStyle={{
+                                  background: 'var(--color-surface-white)',
+                                  border: '1px solid var(--color-border-muted)',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  padding: '4px 8px',
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                                }}
+                                itemStyle={{ color: 'var(--color-text-main)', fontWeight: 600 }}
+                              />
+                              <Pie
+                                data={ageChartData}
+                                dataKey="value"
+                                nameKey="name"
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={20}
+                                outerRadius={36}
+                                paddingAngle={3}
+                                stroke="none"
+                              >
+                                {ageChartData.map((entry, index) => (
+                                  <Cell key={`age-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          ) : (
+                            <div style={{ width: 72, height: 72, borderRadius: '50%', border: '14px solid var(--color-border-muted)', boxSizing: 'border-box' }} />
+                          )}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '6px', width: '100%' }}>
+                          {ageChartData.length === 0 && <NoDataLabel />}
                           {ageChartData.map((item, idx) => {
                             const totalAge = ageChartData.reduce((sum, a) => sum + a.value, 0);
                             const pct = totalAge > 0 ? Math.round((item.value / totalAge) * 100) : 0;

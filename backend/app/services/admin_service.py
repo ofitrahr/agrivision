@@ -1,5 +1,3 @@
-import random
-import string
 from datetime import datetime
 
 import bcrypt
@@ -186,20 +184,14 @@ def reset_user_password(user_id, data):
             return {"success": False, "message": "User tidak ditemukan"}
             
         new_password = data.get('new_password')
-        
-        if not new_password:
-            chars = string.ascii_letters + string.digits
-            new_password = ''.join(random.choice(chars) for _ in range(8))
-                
+        if not isinstance(new_password, str) or len(new_password) < 8:
+            return {"success": False, "message": "Password baru minimal 8 karakter"}
+
         salt = bcrypt.gensalt()
         user.password_hash = bcrypt.hashpw(new_password.encode('utf-8'), salt).decode('utf-8')
             
         db.session.commit()
-        return {
-            "success": True, 
-            "message": "Password berhasil direset", 
-            "data": {"new_password": new_password} 
-        }
+        return {"success": True, "message": "Password berhasil direset"}
     except Exception as e:
         db.session.rollback()
         return {"success": False, "message": f"Gagal mereset password: {str(e)}"}
@@ -280,6 +272,42 @@ def create_project(company_id, data):
     except Exception as e:
         db.session.rollback()
         return {"success": False, "message": f"Gagal membuat project: {str(e)}"}    
+
+def update_project(project_id, data):
+    try:
+        project = Project.query.get(project_id)
+        if not project:
+            return {"success": False, "message": "Project tidak ditemukan"}, 404
+
+        if 'name' in data:
+            name = (data.get('name') or '').strip()
+            if not name:
+                return {"success": False, "message": "Nama project wajib diisi"}, 400
+            project.name = name
+        for field in ('description', 'commodity', 'location'):
+            if field in data:
+                setattr(project, field, data.get(field))
+
+        db.session.commit()
+        return {"success": True, "message": "Project berhasil diperbarui", "data": {"id": str(project.id)}}, 200
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": f"Gagal memperbarui project: {str(e)}"}, 500
+
+
+def delete_project(project_id):
+    try:
+        project = Project.query.get(project_id)
+        if not project:
+            return {"success": False, "message": "Project tidak ditemukan"}, 404
+
+        project_name = project.name
+        db.session.delete(project)
+        db.session.commit()
+        return {"success": True, "message": "Project berhasil dihapus", "data": {"name": project_name}}, 200
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": f"Gagal menghapus project: {str(e)}"}, 500
 
 
 # ==========================================

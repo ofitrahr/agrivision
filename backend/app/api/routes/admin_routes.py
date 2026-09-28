@@ -341,6 +341,41 @@ def add_project(current_user, company_id):
     status_code = 201 if result.get('success') else 400
     return jsonify(result), status_code
 
+@admin_bp.route('/projects/<project_id>', methods=['PUT'])
+@token_required
+@role_required('super_admin')
+def edit_project(current_user, project_id):
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not data:
+        return jsonify({"success": False, "message": "Data body tidak boleh kosong"}), 400
+
+    result, status_code = update_project(project_id, data)
+    if result.get('success'):
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='UPDATE_PROJECT',
+            entity_type='Project',
+            entity_id=project_id,
+            details=f"Memperbarui proyek '{data.get('name', 'proyek')}'"
+        )
+    return jsonify(result), status_code
+
+@admin_bp.route('/projects/<project_id>', methods=['DELETE'])
+@token_required
+@role_required('super_admin')
+def remove_project(current_user, project_id):
+    result, status_code = delete_project(project_id)
+    if result.get('success'):
+        from app.services.activity_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action='DELETE_PROJECT',
+            entity_type='Project',
+            details=f"Menghapus proyek '{result['data']['name']}'"
+        )
+    return jsonify(result), status_code
+
 @admin_bp.route('/farms', methods=['GET'])
 @token_required
 @role_required('super_admin')
@@ -551,9 +586,9 @@ def create_recent_activity(current_user):
 
         image_path = None
         if 'file' in request.files and request.files['file'].filename:
-            from app.services.upload_service import save_file_locally
+            from app.services.upload_service import IMAGE_EXTENSIONS, save_file_locally
             try:
-                image_path = save_file_locally(request.files['file'], subfolder='activities')
+                image_path = save_file_locally(request.files['file'], subfolder='activities', allowed_extensions=IMAGE_EXTENSIONS)
             except ValueError as e:
                 return jsonify({'success': False, 'message': str(e)}), 400
 
@@ -641,9 +676,9 @@ def update_recent_activity(current_user, activity_id):
             activity.activity_date = date.fromisoformat(activity_date)
 
         if 'file' in request.files and request.files['file'].filename:
-            from app.services.upload_service import save_file_locally
+            from app.services.upload_service import IMAGE_EXTENSIONS, save_file_locally
             try:
-                activity.image_path = save_file_locally(request.files['file'], subfolder='activities')
+                activity.image_path = save_file_locally(request.files['file'], subfolder='activities', allowed_extensions=IMAGE_EXTENSIONS)
             except ValueError as e:
                 return jsonify({'success': False, 'message': str(e)}), 400
 
