@@ -307,11 +307,10 @@ const ManagerDashboard = () => {
       <section aria-label="Market Insight" style={{ marginBottom: 'var(--space-lg)' }}>
         <div style={{ 
           background: '#fdfdfc', 
-          borderTop: '3px solid #012d1d',
-          borderBottom: '1px solid #dcdcdc',
+          border: '1px solid rgba(17, 106, 58, 0.25)',
           padding: '24px 32px',
           borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+          boxShadow: '0 4px 20px rgba(17, 106, 58, 0.06)'
         }}>
           {/* Masthead */}
           <div style={{ borderBottom: '1px solid #eaeaea', paddingBottom: '12px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
