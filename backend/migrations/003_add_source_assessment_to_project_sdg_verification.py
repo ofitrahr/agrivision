@@ -1,22 +1,8 @@
 #!/usr/bin/env python
-"""
-Migration 003: Add source_assessment_id to project_sdg_verifications.
-
-Admin kini dapat memilih assessment (questionnaire ke-N) mana yang menjadi
-sumber SDG project. Kolom ini mencatat pilihan tersebut agar hasil yang
-ditampilkan konsisten dengan pilihan admin, bukan selalu assessment terbaru.
-
-Backfill: verification yang sudah ada menunjuk assessment completed terbaru
-milik project-nya (perilaku lama).
-
-Run manual:  python migrations/003_add_source_assessment_to_project_sdg_verification.py
-"""
-
 import psycopg2
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
 
 DB_USER = os.getenv('DB_USER', 'postgres')
@@ -27,7 +13,6 @@ DB_PORT = os.getenv('DB_PORT', '5433')
 
 
 def run_migration():
-    """Add source_assessment_id column + backfill to latest completed assessment."""
     try:
         conn = psycopg2.connect(
             host=DB_HOST,
@@ -38,7 +23,6 @@ def run_migration():
         )
         cur = conn.cursor()
 
-        # 1. Idempotent: tambah kolom jika belum ada
         cur.execute("""
             ALTER TABLE project_sdg_verifications
             ADD COLUMN IF NOT EXISTS source_assessment_id UUID;
@@ -46,7 +30,6 @@ def run_migration():
         conn.commit()
         print("   ✅ Kolom 'source_assessment_id' siap/ada")
 
-        # 2. FK + index (idempotent)
         cur.execute("""
             DO $$
             BEGIN
@@ -68,7 +51,6 @@ def run_migration():
         conn.commit()
         print("   ✅ FK + index siap/ada")
 
-        # 3. Backfill: verification tanpa source -> assessment completed terbaru
         cur.execute("""
             UPDATE project_sdg_verifications v
             SET source_assessment_id = t.id
@@ -86,7 +68,6 @@ def run_migration():
         conn.commit()
         print(f"   ✅ Backfill: {backfilled} verification ditautkan ke assessment terbaru")
 
-        # Verify
         cur.execute("""
             SELECT COLUMN_NAME
             FROM information_schema.columns

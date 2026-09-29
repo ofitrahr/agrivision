@@ -14,6 +14,9 @@ import bcrypt
 
 app = create_app()
 
+# ---------------------------------------------------------------
+# SDG CATALOG
+# ---------------------------------------------------------------
 SDG_CATALOG = [
     (1, "No Poverty", "Menghapus kemiskinan dalam segala bentuknya di mana-mana"),
     (2, "Zero Hunger", "Menghapus kelaparan, mencapai ketahanan pangan dan gizi yang lebih baik, dan mendukung pertanian berkelanjutan"),
@@ -34,10 +37,11 @@ SDG_CATALOG = [
     (17, "Partnerships for the Goals", "Memperkuat sarana pelaksanaan dan menghidupkan kembali kemitraan global untuk pembangunan berkelanjutan"),
 ]
 
+# ---------------------------------------------------------------
+# KADATUAN CONFIGURATION
+# ---------------------------------------------------------------
 SEED_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'seed_data')
 
-# Satu FeatureCollection berisi kelima parsel. Blok dicocokkan lewat (PJ, Luas) pada
-# properties, bukan lewat urutan feature, agar aman kalau urutannya berubah.
 KADATUAN_GEOJSON = os.path.join(SEED_DATA_DIR, 'AOI_KADATUAN_js.geojson')
 HARVEST_XLSX = os.path.join(SEED_DATA_DIR, 'Rekap_Data_Periodik_2025-2026.xlsx')
 
@@ -60,15 +64,14 @@ KADATUAN_CROP_ALLOCATION = {
     "blok5": [("Kopi Arabika", 0.29), ("Alpukat", 0.07), ("Jeruk Bali", 0.05), ("Cabe", 0.04), ("Terong", 0.03)],
 }
 
-# Rekap panen ceri kopi bulanan (Rekap_Data_Periodik_2025-2026.xlsx), total 7.153 kg.
-# Data agregat kebun (sumbernya tidak dipecah per blok) - dicatat di Blok 3 (Lahan Utama).
-# Dibaca dari Rekap_Data_Periodik_2025-2026.xlsx, bukan di-hardcode, supaya Excel
-# tetap jadi satu-satunya sumber kebenaran angka panen.
 KADATUAN_HARVEST_DATA = monthly_harvest(HARVEST_XLSX)
-PRICE_PER_KG_CHERRY = 12000  # estimasi pendapatan Rp/kg ceri
-OPERATIONAL_COST_RATIO = 0.45  # estimasi biaya operasional proporsional thd pendapatan
+PRICE_PER_KG_CHERRY = 12000
+OPERATIONAL_COST_RATIO = 0.45
 
 
+# ---------------------------------------------------------------
+# SDG AND SUPER ADMIN SEEDING
+# ---------------------------------------------------------------
 def get_password_hash(password):
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
@@ -129,8 +132,10 @@ def seed_super_admin():
     print("Superadmin seeded.")
 
 
+# ---------------------------------------------------------------
+# KADATUAN DATA SEEDING
+# ---------------------------------------------------------------
 def clear_old_data():
-    # farm_crops ikut terhapus otomatis (FarmCrop.farm_id ondelete='CASCADE' di models.py)
     old_company_names = ["AgriCorp Indonesia", "PT Kadatuan Koffie Nusantara"]
     deleted = Company.query.filter(Company.name.in_(old_company_names)).delete(synchronize_session=False)
     db.session.commit()
@@ -153,7 +158,6 @@ def geometry_to_wkt(geometry, label=''):
 
 
 def load_kadatuan_boundaries(filepath=KADATUAN_GEOJSON, tolerance=0.01):
-    """Baca satu FeatureCollection, pasangkan tiap feature ke blok lewat (PJ, Luas)."""
     with open(filepath, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
@@ -190,7 +194,6 @@ def seed_kadatuan_data():
     clear_old_data()
     now = datetime.now(timezone.utc).replace(tzinfo=None)
 
-    # 1. Company & Project
     company = Company(
         name="PT Kadatuan Koffie Nusantara",
         description="Perkebunan kopi arabika spesialti agroforestri di dataran tinggi Garut, Jawa Barat.",
@@ -227,7 +230,6 @@ def seed_kadatuan_data():
     ))
     db.session.commit()
 
-    # 2. Akun Pengguna
     manager = User(
         project_id=project.id,
         username="manager",
@@ -245,9 +247,6 @@ def seed_kadatuan_data():
     db.session.add_all([manager, board])
     db.session.commit()
 
-    # 3. Petani Penanggung Jawab (PJ) per blok
-    # Catatan: birth_year/join_year tidak ada di sumber data - diisi estimasi wajar
-    # (Pak Pena paling senior karena bertanggung jawab atas 3 blok termasuk lahan utama).
     farmer_defs = {
         "Pak Erus": {"birth_year": 1979, "join_year": 2022},
         "Pak Ido": {"birth_year": 1986, "join_year": 2022},
@@ -268,7 +267,6 @@ def seed_kadatuan_data():
         farmers_by_name[name] = farmer
     db.session.commit()
 
-    # 4. Blok Lahan dari GeoJSON + penugasan petani via relasi farm_farmers
     boundaries = load_kadatuan_boundaries()
     farms_by_block = {}
     main_farm = None
@@ -301,7 +299,6 @@ def seed_kadatuan_data():
 
     print(f"{len(farms_by_block)} blok lahan Kadatuan berhasil ditanam dari {os.path.basename(KADATUAN_GEOJSON)}.")
 
-    # 5. Rekap Panen & Finansial Bulanan (dicatat di Blok 3 - Lahan Utama, lihat catatan di atas)
     for period, kg in KADATUAN_HARVEST_DATA:
         revenue = kg * PRICE_PER_KG_CHERRY
         cost = round(revenue * OPERATIONAL_COST_RATIO, 2)
@@ -328,7 +325,6 @@ def seed_kadatuan_data():
     total_kg = sum(kg for _, kg in KADATUAN_HARVEST_DATA)
     print(f"{len(KADATUAN_HARVEST_DATA)} periode data panen & finansial (Okt 2025 - Jul 2026, total {total_kg:,} kg) berhasil ditanam.".replace(',', '.'))
 
-    # 6. Traceability Narrative
     origin_story = (
         "Kopi Arabika Kadatuan ditanam secara agroforestri di bawah naungan pohon pinus "
         "dataran tinggi Jawa Barat."
@@ -357,7 +353,6 @@ def seed_kadatuan_data():
     ))
     db.session.commit()
 
-    # 7. Activity Log & Recent Activity (ringan, untuk dashboard admin/publik)
     db.session.add_all([
         ActivityLog(user_id=manager.id, action='CREATE', entity_type='Company', details='Perusahaan PT Kadatuan Koffie Nusantara berhasil diinisialisasi', created_at=now - timedelta(days=5)),
         ActivityLog(user_id=manager.id, action='CREATE', entity_type='Project', details='Proyek Perkebunan Kopi Arabika Kadatuan dibuat', created_at=now - timedelta(days=5)),
@@ -399,6 +394,9 @@ def link_project_sdgs(project, goal_numbers=(1, 2, 8, 12, 13, 15)):
     print(f"[SDG] {added} SDG baru dihubungkan (goal: {linked_goals}) ke project '{project.name}'.")
 
 
+# ---------------------------------------------------------------
+# MINIO LOGO UPLOAD
+# ---------------------------------------------------------------
 def upload_sdg_logos_to_minio():
     use_minio = os.getenv('USE_MINIO', 'false').lower() == 'true'
     if not use_minio:
@@ -413,7 +411,6 @@ def upload_sdg_logos_to_minio():
         return
 
     endpoint = os.getenv('MINIO_INTERNAL_ENDPOINT') or os.getenv('MINIO_ENDPOINT', 'http://localhost:9000')
-    # URL yang disimpan ke DB dibaca browser, jadi harus endpoint publik - bukan nama service Docker
     public_endpoint = os.getenv('MINIO_ENDPOINT', 'http://localhost:9000').rstrip('/')
     access_key = os.getenv('MINIO_ACCESS_KEY', 'admin_utama')
     secret_key = os.getenv('MINIO_SECRET_KEY', 'password_sangat_kuat_32karakter')
@@ -430,7 +427,6 @@ def upload_sdg_logos_to_minio():
         region_name='us-east-1',
     )
 
-    # Pastikan bucket ada
     try:
         client.head_bucket(Bucket=bucket_name)
     except Exception:
@@ -476,27 +472,19 @@ def upload_sdg_logos_to_minio():
         print(f"[SDG Logos] {success} logo berhasil di-upload ke MinIO.")
 
 
+# ---------------------------------------------------------------
+# MAIN RUNNER
+# ---------------------------------------------------------------
 if __name__ == "__main__":
     with app.app_context():
         seed_sdgs()
         seed_super_admin()
 
-        # ==========================================
-        # Seed data riil PT Kadatuan Koffie Nusantara
-        # ==========================================
         kadatuan_project = seed_kadatuan_data()
 
-        # ==========================================
-        # Arsitektur traceability BARU (plan revisi terbaru).
-        # Tanam SDG Master + Questionnaire kontribusi SDG (105 pertanyaan hardcoded).
-        # ==========================================
         from seed_sdg_contribution import run as seed_sdg_contribution
         seed_sdg_contribution()
 
-        # Hubungkan project Kadatuan ke SDG 1, 2, 8, 12, 13, 15 (butuh SdgMaster di atas).
         link_project_sdgs(kadatuan_project)
 
-        # ==========================================
-        # Upload SDG logos ke MinIO (jika USE_MINIO=true).
-        # ==========================================
         upload_sdg_logos_to_minio()

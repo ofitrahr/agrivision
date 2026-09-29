@@ -7,7 +7,6 @@ const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'curren
 const SocPanel = ({ statsData, statsLoading, farm }) => {
   const [priceInput, setPriceInput] = useState('200.000');
 
-  // Compute derived state
   const socValue = statsData?.stats?.mean ?? 0;
   const totalHa = farm?.total_area_ha || 0;
   const totalC = socValue * totalHa;

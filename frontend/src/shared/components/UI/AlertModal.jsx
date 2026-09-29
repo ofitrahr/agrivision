@@ -1,7 +1,6 @@
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, HelpCircle } from 'lucide-react';
 import Modal from './Modal';
 
-// Ikon, warna, dan judul default per tipe
 const TYPE_CONFIG = {
   success: { Icon: CheckCircle2, color: '#116a3a', title: 'Berhasil' },
   error: { Icon: AlertCircle, color: '#ba1a1a', title: 'Terjadi Kesalahan' },

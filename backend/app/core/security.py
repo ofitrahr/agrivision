@@ -13,10 +13,10 @@ def token_required(f):
             auth_header = request.headers['Authorization']
             if auth_header.startswith('Bearer '):
                 token = auth_header.split(" ")[1]
-        
+
         if not token and 'token' in request.args:
             token = request.args.get('token')
-        
+
         if not token:
             return jsonify({'success': False, 'message': 'Token tidak ditemukan!'}), 401
 
@@ -30,12 +30,12 @@ def token_required(f):
             if current_user.role != 'super_admin' and current_user.project and current_user.project.company:
                 if not current_user.project.company.is_active:
                     raise Exception("Company tidak aktif")
-                
+
         except jwt.ExpiredSignatureError:
             return jsonify({'success': False, 'message': 'Token Expired, silahkan login ulang!'}), 401
         except Exception as e:
             return jsonify({'success': False, 'message': "Token tidak valid!"}), 401
-        
+
         return f(current_user, *args, **kwargs)
     return decorated
 
@@ -50,7 +50,6 @@ def role_required(required_role):
     return decorated
 
 def roles_required(*allowed_roles):
-    """Memungkinkan banyak role (mis. super_admin & manager). (Arsitektur baru)"""
     def decorated(f):
         @wraps(f)
         def decorated(current_user, *args, **kwargs):
@@ -59,4 +58,3 @@ def roles_required(*allowed_roles):
             return f(current_user, *args, **kwargs)
         return decorated
     return decorated
-

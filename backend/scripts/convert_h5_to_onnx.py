@@ -30,7 +30,6 @@ def convert_with_tf2onnx():
 
 
 def convert_from_weights():
-    """Bangun graf ONNX langsung dari bobot .h5 (MLP Dense murni, tanpa TensorFlow)."""
     import h5py
     import numpy as np
     import onnx

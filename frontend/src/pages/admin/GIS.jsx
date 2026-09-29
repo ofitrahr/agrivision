@@ -34,6 +34,9 @@ const getObservationErrorMessage = (err) => {
     return err.response?.data?.message || err.message;
 };
 
+// ---------------------------------------------------------------
+// FARM MAP THUMBNAIL
+// ---------------------------------------------------------------
 const FarmMapThumbnail = ({ farmId }) => {
     const [mapHtml, setMapHtml] = useState(null);
 
@@ -42,9 +45,7 @@ const FarmMapThumbnail = ({ farmId }) => {
             if (res.data.success) {
                 setMapHtml(res.data.data.html);
             }
-        }).catch(() => {
-            // ignore error for thumbnails
-        });
+        }).catch(() => {});
     }, [farmId]);
 
     if (!mapHtml) {
@@ -67,8 +68,10 @@ const FarmMapThumbnail = ({ farmId }) => {
     );
 };
 
+// ---------------------------------------------------------------
+// GIS PAGE
+// ---------------------------------------------------------------
 const GIS = () => {
-    // State for grid view
     const [farms, setFarms] = useState([]);
     const [loading, setLoading] = useState(true);
     const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
@@ -76,7 +79,6 @@ const GIS = () => {
     const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
     const navigate = useNavigate();
 
-    // State for creating farm (GeoJSON view)
     const [isCreatingFarm, setIsCreatingFarm] = useState(false);
     const [isUploadingData, setIsUploadingData] = useState(false);
     const [companies, setCompanies] = useState([]);
@@ -89,7 +91,6 @@ const GIS = () => {
     const [dragActive, setDragActive] = useState(false);
     const [geoJsonStatus, setGeoJsonStatus] = useState(null);
 
-    // State untuk Analisis Satelit GEE & Model AI
     const [observationPeriod, setObservationPeriod] = useState(getCurrentPeriodId());
     const [analyzingFarm, setAnalyzingFarm] = useState(null);
     const [loadingStep, setLoadingStep] = useState(1);
@@ -100,6 +101,9 @@ const GIS = () => {
     const [batchProgress, setBatchProgress] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
 
+    // ---------------------------------------------------------------
+    // SATELLITE OBSERVATION (GEE & AI MODEL)
+    // ---------------------------------------------------------------
     const handleRunObservation = async (e, farm) => {
         e.stopPropagation();
         setAnalyzingFarm(farm);
@@ -146,6 +150,9 @@ const GIS = () => {
         fetchFarms();
     };
 
+    // ---------------------------------------------------------------
+    // FARM DELETION
+    // ---------------------------------------------------------------
     const openDeleteFarm = (e, farm) => {
         e.stopPropagation();
         setDeleteTarget({ farm, step: 1, confirmText: '', deleting: false });
@@ -171,6 +178,9 @@ const GIS = () => {
         }
     };
 
+    // ---------------------------------------------------------------
+    // FARM MAP MODAL
+    // ---------------------------------------------------------------
     const handleOpenMapModal = async (e, farm) => {
         e.stopPropagation();
         setSelectedMapFarm(farm);
@@ -187,6 +197,9 @@ const GIS = () => {
         }
     };
 
+    // ---------------------------------------------------------------
+    // DATA FETCHING
+    // ---------------------------------------------------------------
     useEffect(() => {
         fetchFarms();
         fetchCompanies();
@@ -232,9 +245,12 @@ const GIS = () => {
         }
     };
 
+    // ---------------------------------------------------------------
+    // GEOJSON PARSING & FARM CREATION
+    // ---------------------------------------------------------------
     const calculatePolygonAreaHa = (geometry) => {
         if (!geometry) return 0;
-        const RADIUS = 6378137; // Jari-jari bumi WGS84 dalam meter
+        const RADIUS = 6378137;
 
         const ringArea = (coords) => {
             let area = 0;
@@ -280,7 +296,6 @@ const GIS = () => {
         try {
             const data = JSON.parse(jsonStr);
 
-            // Semua feature Polygon/MultiPolygon digabung jadi satu geometri, bukan hanya feature pertama.
             const toPolygons = (g) => {
                 if (g?.type === 'Polygon') return [g.coordinates];
                 if (g?.type === 'MultiPolygon') return g.coordinates;
@@ -367,11 +382,13 @@ const GIS = () => {
         }
     };
 
+    // ---------------------------------------------------------------
+    // SUMMARY STATS & SHARED ELEMENTS
+    // ---------------------------------------------------------------
     const totalFarms = farms.length;
     const totalArea = farms.reduce((sum, f) => sum + (f.total_area_ha || 0), 0);
     const totalCrops = farms.reduce((sum, f) => sum + (f.total_crops || 0), 0);
 
-    // Dipakai di tampilan buat lahan dan grid
     const alertModal = (
         <AlertModal
             isOpen={alertState.isOpen}
@@ -381,6 +398,9 @@ const GIS = () => {
         />
     );
 
+    // ---------------------------------------------------------------
+    // CREATE FARM VIEW (GEOJSON INPUT)
+    // ---------------------------------------------------------------
     if (isCreatingFarm) {
         return (
             <div style={{ padding: '24px 30px', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
@@ -414,7 +434,7 @@ const GIS = () => {
                 )}
                 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
-                    {/* Opsi 1: Upload File */}
+                    {/* Option 1: Upload File */}
                     <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                             <div style={{ padding: '8px', backgroundColor: '#e6f4eb', borderRadius: '8px', color: '#1B4332' }}>
@@ -457,7 +477,7 @@ const GIS = () => {
                         </div>
                     </div>
 
-                    {/* Opsi 2: Paste Raw JSON */}
+                    {/* Option 2: Paste Raw JSON */}
                     <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                             <div style={{ padding: '8px', backgroundColor: '#e6f4eb', borderRadius: '8px', color: '#1B4332' }}>
@@ -555,6 +575,9 @@ const GIS = () => {
         );
     }
 
+    // ---------------------------------------------------------------
+    // ML DATA IMPORT VIEW
+    // ---------------------------------------------------------------
     if (isUploadingData) {
         return (
             <div style={{ padding: '24px 30px', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
@@ -573,7 +596,9 @@ const GIS = () => {
         );
     }
 
-    // Default view: Grid
+    // ---------------------------------------------------------------
+    // FARM GRID VIEW (DEFAULT)
+    // ---------------------------------------------------------------
     return (
         <div>
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
@@ -669,7 +694,7 @@ const GIS = () => {
                                     <Leaf size={14} color="#10b981" /> {farm.crop_variety || 'Belum di set'}
                                 </div>
 
-                                {/* Tombol Aksi Superadmin */}
+                                {/* Superadmin Action Buttons */}
                                 <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
                                     <button 
                                         type="button"
@@ -727,7 +752,7 @@ const GIS = () => {
                 )}
             </div>
 
-            {/* Modal Animasi Loading Progresif saat Menunggu GEE & Model AI */}
+            {/* Progressive Loading Modal While Waiting for GEE & AI Model */}
             {analyzingFarm && (
                 <div className="modal-overlay" style={{ zIndex: 10000 }}>
                     <div className="modal-content" style={{ maxWidth: '480px', borderRadius: '14px', padding: '28px', textAlign: 'center' }}>
@@ -752,7 +777,7 @@ const GIS = () => {
                             Lahan: <strong>{analyzingFarm.name}</strong> • Periode: <strong>{formatPeriodLabel(observationPeriod)}</strong>
                         </p>
 
-                        {/* Stepper Progres */}
+                        {/* Progress Stepper */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left', marginBottom: '20px' }}>
                             <div style={{ 
                                 display: 'flex', 
@@ -830,7 +855,7 @@ const GIS = () => {
                 </div>
             )}
 
-            {/* Modal Hasil Analisis Satelit GEE & AI */}
+            {/* GEE & AI Satellite Analysis Result Modal */}
             {analysisResult && (
                 <div className="modal-overlay" style={{ zIndex: 9999 }}>
                     <div className="modal-content" style={{ maxWidth: '640px', borderRadius: '14px', padding: '24px' }}>
@@ -847,14 +872,14 @@ const GIS = () => {
                             <button className="close-btn" onClick={() => setAnalysisResult(null)}>&times;</button>
                         </div>
 
-                        {/* Grid 5 Parameter Observasi */}
+                        {/* Grid of 5 Observation Parameters */}
                         <div style={{ marginBottom: '16px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                 <span style={{ fontSize: '12px', fontWeight: '700', color: '#374151' }}>Hasil 5 Parameter Observasi:</span>
                                 <span style={{ fontSize: '11px', color: '#64748b' }}>4 Selesai • 1 Menunggu Model R&D</span>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-                                {/* 1. SOC (Active - Hasil Real AI) */}
+                                {/* 1. SOC (Active - Real AI Result) */}
                                 <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                                         <span style={{ fontSize: '11px', fontWeight: '700', color: '#166534' }}>Stok Karbon (SOC)</span>
@@ -874,7 +899,7 @@ const GIS = () => {
                                     </div>
                                 </div>
 
-                                {/* 2. Vegetasi NDVI */}
+                                {/* 2. NDVI Vegetation */}
                                 <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                                         <span style={{ fontSize: '11px', fontWeight: '700', color: '#166534' }}>Vegetasi (NDVI)</span>
@@ -892,7 +917,7 @@ const GIS = () => {
                                     <div style={{ fontSize: '10px', color: '#166534' }}>Sentinel-2 Index (B8/B4)</div>
                                 </div>
 
-                                {/* 3. Biomassa Karbon (dataset terpisah, bukan hasil pipeline satelit) */}
+                                {/* 3. Carbon Biomass (separate dataset, not from the satellite pipeline) */}
                                 <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                                         <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Biomassa Karbon</span>
@@ -904,7 +929,7 @@ const GIS = () => {
                                     <div style={{ fontSize: '10px', color: '#94a3b8' }}>Survei AGB, lihat layer Biomassa di Agronomi</div>
                                 </div>
 
-                                {/* 4. Nutrisi NPK */}
+                                {/* 4. NPK Nutrients */}
                                 <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                                         <span style={{ fontSize: '11px', fontWeight: '700', color: '#166534' }}>Nutrisi (NPK)</span>
@@ -920,7 +945,7 @@ const GIS = () => {
                                     </div>
                                 </div>
 
-                                {/* 5. Estimasi Yield (Active - NDVI terkalibrasi data panen) */}
+                                {/* 5. Yield Estimate (Active - NDVI calibrated with harvest data) */}
                                 <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                                         <span style={{ fontSize: '11px', fontWeight: '700', color: '#166534' }}>Estimasi Yield</span>
@@ -940,7 +965,7 @@ const GIS = () => {
                             </div>
                         </div>
 
-                        {/* Informasi Citra Satelit & Topografi */}
+                        {/* Satellite Imagery & Topography Info */}
                         <div style={{ marginBottom: '16px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                                 <span style={{ fontSize: '12px', fontWeight: '600', color: '#374151' }}>Metadata Citra Satelit Sentinel-2 & DEM:</span>
@@ -994,7 +1019,7 @@ const GIS = () => {
                 </div>
             )}
 
-            {/* Modal Detail Peta Lahan */}
+            {/* Farm Map Detail Modal */}
             {selectedMapFarm && (
                 <div className="modal-overlay" style={{ zIndex: 9999 }}>
                     <div className="modal-content" style={{ maxWidth: '800px', width: '90%', borderRadius: '12px', padding: '20px' }}>

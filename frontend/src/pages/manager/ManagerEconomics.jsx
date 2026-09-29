@@ -5,12 +5,14 @@ import InputNumber from '../../shared/components/UI/InputNumber';
 import { PieChart, Pie, Cell, Tooltip } from 'recharts';
 import AlertModal from '../../shared/components/UI/AlertModal';
 
+// ---------------------------------------------------------------
+// HELPERS
+// ---------------------------------------------------------------
 const MONTH_NAMES_ID = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
-// Identifier periode kanonis format 'YYYY-MM', dipakai sebagai value asli yang dikirim ke backend
 const getCurrentPeriodId = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -35,6 +37,9 @@ const NoDataLabel = () => (
   </span>
 );
 
+// ---------------------------------------------------------------
+// MONTH-YEAR PICKER
+// ---------------------------------------------------------------
 const MonthYearPicker = ({ value, onChange, label }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = React.useRef(null);
@@ -177,14 +182,15 @@ const ManagerEconomics = () => {
   const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
   const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
   const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'records'
+  const [activeTab, setActiveTab] = useState('overview');
 
-  // Operational records states
+  // ---------------------------------------------------------------
+  // OPERATIONAL RECORDS STATE
+  // ---------------------------------------------------------------
   const [records, setRecords] = useState([]);
   const [harvests, setHarvests] = useState([]);
-  const [recordType, setRecordType] = useState('finance'); // 'finance' | 'harvest'
+  const [recordType, setRecordType] = useState('finance');
 
-  // Finance form states
   const [period, setPeriod] = useState(getCurrentPeriodId());
   const [production, setProduction] = useState('');
   const [cost, setCost] = useState('');
@@ -192,13 +198,14 @@ const ManagerEconomics = () => {
   const [notes, setNotes] = useState('');
   const [savingFinance, setSavingFinance] = useState(false);
 
-  // Harvest form states
   const [analyticsPeriod, setAnalyticsPeriod] = useState(getCurrentPeriodId());
   const [analyticsYield, setAnalyticsYield] = useState('');
   const [analyticsNotes, setAnalyticsNotes] = useState('');
   const [savingHarvest, setSavingHarvest] = useState(false);
 
-  // Generate Report Modal states
+  // ---------------------------------------------------------------
+  // REPORT STATE
+  // ---------------------------------------------------------------
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [reportType, setReportType] = useState(['comprehensive']);
@@ -206,11 +213,13 @@ const ManagerEconomics = () => {
   const [reportPeriod, setReportPeriod] = useState('current_month');
   const [reportFormat, setReportFormat] = useState('pdf');
 
-  // Reports data states
   const [recentReports, setRecentReports] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [observationSummary, setObservationSummary] = useState(null);
 
+  // ---------------------------------------------------------------
+  // DATA FETCHING
+  // ---------------------------------------------------------------
   useEffect(() => {
     fetchFarms();
     fetchReports();
@@ -286,6 +295,9 @@ const ManagerEconomics = () => {
     }
   }, [selectedFarm]);
 
+  // ---------------------------------------------------------------
+  // OPERATIONAL RECORD SUBMISSION
+  // ---------------------------------------------------------------
   const handleFinanceSubmit = async (e) => {
     e.preventDefault();
     if (!selectedFarm) return showAlert('warning', 'Pilih lahan terlebih dahulu.');
@@ -342,6 +354,9 @@ const ManagerEconomics = () => {
     }
   };
 
+  // ---------------------------------------------------------------
+  // REPORT GENERATION & DOWNLOAD
+  // ---------------------------------------------------------------
   const handleGenerateReport = async (e) => {
     e.preventDefault();
     setGenerating(true);
@@ -387,7 +402,6 @@ const ManagerEconomics = () => {
       if (response.data.success) {
         setRecentReports((prev) => [response.data.data, ...prev]);
         setShowGenerateModal(false);
-        // Otomatis unduh file yang baru saja di-generate
         handleDownload(response.data.data);
       }
     } catch (error) {
@@ -418,7 +432,9 @@ const ManagerEconomics = () => {
     });
   };
 
-  // Metrik Lahan & Observasi
+  // ---------------------------------------------------------------
+  // OBSERVATION METRICS
+  // ---------------------------------------------------------------
   const currentFarmObj = farms.find((f) => String(f.id) === String(selectedFarm));
   const currentAreaHa = parseFloat(currentFarmObj?.total_area_ha) || null;
   const totalHarvestKg = harvests.reduce((sum, h) => sum + (parseFloat(h.yield_kg) || 0), 0);
@@ -439,7 +455,6 @@ const ManagerEconomics = () => {
 
   const petaniTerberdayakan = hasValue(observationSummary?.petani_terberdayakan) ? observationSummary.petani_terberdayakan : null;
 
-  // Perhitungan Pertumbuhan Pendapatan Dinamis
   const peningkatanPendapatan = useMemo(() => {
     if (observationSummary?.peningkatan_pendapatan && observationSummary.peningkatan_pendapatan !== '-') {
       let val = String(observationSummary.peningkatan_pendapatan);
@@ -458,7 +473,6 @@ const ManagerEconomics = () => {
     return '-';
   }, [observationSummary, records]);
 
-  // Perhitungan Penghematan Biaya Dinamis
   const penghematanBiaya = useMemo(() => {
     if (observationSummary?.penghematan_biaya && observationSummary.penghematan_biaya !== '-') {
       let val = String(observationSummary.penghematan_biaya);
@@ -477,7 +491,9 @@ const ManagerEconomics = () => {
     return '-';
   }, [observationSummary, records]);
 
-  // Data Donut Chart Sebaran Gender Dinamis
+  // ---------------------------------------------------------------
+  // DEMOGRAPHIC CHART DATA
+  // ---------------------------------------------------------------
   const genderChartData = useMemo(() => {
     let male = 0;
     let female = 0;
@@ -498,7 +514,6 @@ const ManagerEconomics = () => {
     ];
   }, [observationSummary]);
 
-  // Data Donut Chart Sebaran Usia Dinamis
   const ageChartData = useMemo(() => {
     let muda = 0;
     let dewasa = 0;
@@ -596,7 +611,7 @@ const ManagerEconomics = () => {
           </button>
         </div>
 
-        {/* Lahan Terpilih Selector */}
+        {/* Selected Farm Selector */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -654,7 +669,7 @@ const ManagerEconomics = () => {
       {activeTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-          {/* Section: Kesimpulan Index Observasi (3 Kolom Executive Summary) */}
+          {/* Section: Observation Index Summary (3-Column Executive Summary) */}
           <div>
             <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-main)', marginBottom: '16px' }}>
               Kesimpulan Index Observasi
@@ -666,7 +681,7 @@ const ManagerEconomics = () => {
               gap: '20px',
             }}>
 
-              {/* KOLOM 1: EKONOMI */}
+              {/* COLUMN 1: ECONOMY */}
               <div style={{
                 background: 'var(--color-surface-white)',
                 borderRadius: '12px',
@@ -722,7 +737,7 @@ const ManagerEconomics = () => {
                 </div>
               </div>
 
-              {/* KOLOM 2: EKOLOGI */}
+              {/* COLUMN 2: ECOLOGY */}
               <div style={{
                 background: 'var(--color-surface-white)',
                 borderRadius: '12px',
@@ -778,7 +793,7 @@ const ManagerEconomics = () => {
                       {agbBiomass !== null ? <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{agbBiomass} <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--color-text-muted)' }}>ton CO2e</span></span> : <NoDataLabel />}
                     </div>
 
-                    {/* Bagian Nutrisi (NPK) Dipisah */}
+                    {/* Nutrients (NPK) Section */}
                     <div style={{ paddingTop: '2px' }}>
                       <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500, display: 'block', marginBottom: '8px' }}>
                         Nutrisi Tanah (NPK)
@@ -820,7 +835,7 @@ const ManagerEconomics = () => {
                 </div>
               </div>
 
-              {/* KOLOM 3: SOSIAL */}
+              {/* COLUMN 3: SOCIAL */}
               <div style={{
                 background: 'var(--color-surface-white)',
                 borderRadius: '12px',
@@ -856,15 +871,15 @@ const ManagerEconomics = () => {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {/* Baris 1: Petani Terberdayakan */}
+                    {/* Row 1: Empowered Farmers */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--color-border-muted)', paddingBottom: '10px' }}>
                       <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500 }}>Petani Terberdayakan</span>
                       {petaniTerberdayakan !== null ? <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>{petaniTerberdayakan} Orang</span> : <NoDataLabel />}
                     </div>
 
-                    {/* Baris 2: 2 Kolom Sebaran Gender & Sebaran Usia */}
+                    {/* Row 2: Gender & Age Distribution (2 Columns) */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-                      {/* Kolom 1: Sebaran Gender */}
+                      {/* Column 1: Gender Distribution */}
                       <div style={{
                         background: 'var(--color-surface-container-low)',
                         borderRadius: '8px',
@@ -934,7 +949,7 @@ const ManagerEconomics = () => {
                         </div>
                       </div>
 
-                      {/* Kolom 2: Sebaran Usia */}
+                      {/* Column 2: Age Distribution */}
                       <div style={{
                         background: 'var(--color-surface-container-low)',
                         borderRadius: '8px',
@@ -1013,7 +1028,7 @@ const ManagerEconomics = () => {
 
 
 
-          {/* --- 6. SECTION: LAPORAN TERKINI (TABLE) --- */}
+          {/* --- 6. SECTION: RECENT REPORTS (TABLE) --- */}
           <div style={{
             background: 'var(--color-surface-white)',
             borderRadius: '12px',
@@ -1128,7 +1143,7 @@ const ManagerEconomics = () => {
         </div>
       )}
 
-      {/* --- TAB 2: PENCATATAN OPERASIONAL --- */}
+      {/* --- TAB 2: OPERATIONAL RECORDS --- */}
       {activeTab === 'records' && (
         <div style={{ display: 'grid', gridTemplateColumns: '5fr 7fr', gap: 'var(--gutter)', alignItems: 'start' }}>
           <div className="agro-card" style={{ padding: '24px' }}>
@@ -1329,7 +1344,7 @@ const ManagerEconomics = () => {
         </div>
       )}
 
-      {/* --- MODAL: GENERATE DOKUMEN LAPORAN --- */}
+      {/* --- MODAL: GENERATE REPORT DOCUMENT --- */}
       {showGenerateModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '520px' }}>

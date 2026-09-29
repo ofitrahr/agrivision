@@ -12,6 +12,9 @@ from flask import Blueprint, current_app, jsonify, make_response, request
 
 auth_bp = Blueprint('auth_bp', __name__)
 
+# ---------------------------------------------------------------
+# AUTHENTICATION
+# ---------------------------------------------------------------
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -65,6 +68,9 @@ def logout():
     )
     return response
 
+# ---------------------------------------------------------------
+# USER PROFILE & PASSWORD
+# ---------------------------------------------------------------
 @auth_bp.route('/profile', methods=['GET', 'PUT'])
 @token_required
 def profile(current_user):
@@ -127,7 +133,9 @@ def update_password(current_user):
     
     return jsonify({"success": True, "message": "Password berhasil diperbarui"}), 200
 
-# Default & tipe yang diizinkan; harus selaras dengan DEFAULT_SETTINGS di settingsHelper.js
+# ---------------------------------------------------------------
+# USER SETTINGS
+# ---------------------------------------------------------------
 DEFAULT_PREFERENCES = {
     'areaUnit': 'ha',
     'timezone': 'WIB',
@@ -181,13 +189,11 @@ def settings(current_user):
     if not isinstance(data, dict):
         return jsonify({"success": False, "message": "Data tidak valid"}), 400
 
-    # Key tak dikenal diabaikan, nilai tak valid ditolak
     updates = {k: v for k, v in data.items() if k in DEFAULT_PREFERENCES}
     invalid = [k for k, v in updates.items() if not _validate_preference(k, v)]
     if invalid:
         return jsonify({"success": False, "message": f"Nilai tidak valid: {', '.join(invalid)}"}), 400
 
-    # Assign dict baru agar SQLAlchemy mendeteksi perubahan kolom JSON
     current_user.preferences = {**_merged_preferences(current_user), **updates}
     db.session.commit()
 

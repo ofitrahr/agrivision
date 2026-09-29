@@ -21,14 +21,12 @@ class AgronomyPipelineService:
     def run_pipeline_for_farm(farm_id, period=None):
         period = period or current_period_id()
 
-        # Cari Lahan di Database
         farm = Farm.query.get(farm_id)
         if not farm:
             raise ValueError(f"Lahan dengan ID {farm_id} tidak ditemukan.")
         if farm.boundary is None:
             raise ValueError(f"Lahan '{farm.name}' belum memiliki koordinat batas (boundary).")
 
-        # Ekstrak Geometri PostGIS menjadi GeoJSON
         geojson_str = db.session.scalar(ST_AsGeoJSON(farm.boundary))
         if not geojson_str:
             raise ValueError(f"Gagal mengonversi geometri lahan '{farm.name}' ke format GeoJSON.")
@@ -38,11 +36,9 @@ class AgronomyPipelineService:
         if geom_type not in ('Polygon', 'MultiPolygon'):
             raise ValueError(f"Tipe geometri '{geom_type}' tidak didukung untuk ekstraksi citra satelit.")
 
-        # Rentang tanggal 1 bulan penuh untuk periode ini
         start_date, end_date_inclusive = period_date_range(period)
-        end_date_exclusive = end_date_inclusive + timedelta(days=1)  # GEE filterDate() bersifat exclusive di ujung akhir
+        end_date_exclusive = end_date_inclusive + timedelta(days=1)
 
-        # Ambil Kumpulan Piksel Spasial dari GEE
         logger.info(
             f"Mengambil piksel spasial GEE untuk lahan '{farm.name}' (ID: {farm.id}), "
             f"periode {period} ({start_date} s/d {end_date_inclusive})..."
@@ -55,7 +51,6 @@ class AgronomyPipelineService:
                 f"Tidak ada piksel citra satelit yang berhasil diambil untuk area lahan ini pada periode {period}."
             )
 
-        # Inferensi Model ONNX SOC Secara Paralel (Batch)
         logger.info(f"Menjalankan inferensi ANN ONNX untuk {len(pixel_samples)} titik piksel lahan '{farm.name}'...")
         props_list = [p['properties'] for p in pixel_samples]
         soc_service = SOCService()
@@ -63,26 +58,18 @@ class AgronomyPipelineService:
         oc_gkg = [SOCService.calibrate_oc(v) for v in oc_raw]
         predictions = [SOCService.oc_gkg_to_stock(v) for v in oc_gkg]
 
-        # Inferensi Model Regresi NPK (Nitrogen, Phosphorus, Potassium) - batch, titik piksel yang sama
         logger.info(f"Menjalankan inferensi regresi NPK untuk {len(pixel_samples)} titik piksel lahan '{farm.name}'...")
         npk_service = NPKService()
         npk_predictions = npk_service.predict_npk_batch(props_list)
 
-        # Hitung NDVI langsung dari band Sentinel-2 (deterministik, tanpa model AI).
-        # NDVI adalah rasio band sehingga tidak perlu rescale DN->reflektansi (skala-invarian).
         b4_arr = np.array([float(p.get('B4', 0.0)) for p in props_list], dtype=np.float64)
         b8_arr = np.array([float(p.get('B8', 0.0)) for p in props_list], dtype=np.float64)
         ndvi_arr = compute_ndvi(b8_arr, b4_arr)
 
-        # Estimasi Yield spasial: sebaran NDVI relatif dikalibrasi ke catatan panen riil
         logger.info(f"Menghitung estimasi yield spasial untuk lahan '{farm.name}' periode {period}...")
         yield_service = YieldService()
         yield_predictions = yield_service.estimate_yield_batch(farm.id, period, ndvi_arr)
 
-        # Catatan: Biomassa (AGB) BELUM memiliki model resmi terlatih - jangan simpan
-        # estimasi fiktif ke gis_layers. Tunggu model R&D sebelum mengaktifkan lagi.
-
-        # Hapus record layer lama untuk periode ini agar tidak duplikat
         GisLayer.query.filter(
             GisLayer.farm_id == farm.id,
             GisLayer.period == period,
@@ -98,7 +85,6 @@ class AgronomyPipelineService:
         )
         yield_source = f"Sentinel-2 NDVI Calibrated Yield Model ({yield_service.last_source})"
 
-        # Bulk insert: baris dikirim sebagai dict, tanpa membuat ~28 ribu objek ORM GisLayer.
         layer_rows = []
         for p, soc_val, npk_val, ndvi_val, yield_val in zip(
             pixel_samples, predictions, npk_predictions, ndvi_arr, yield_predictions
@@ -132,22 +118,18 @@ class AgronomyPipelineService:
         db.session.execute(insert(GisLayer), layer_rows)
         db.session.commit()
 
-        # Statistik Ringkasan NPK
         n_mean = float(np.mean([v['nitrogen'] for v in npk_predictions]))
         p_mean = float(np.mean([v['phosphorus'] for v in npk_predictions]))
         k_mean = float(np.mean([v['potassium'] for v in npk_predictions]))
 
-        # Statistik Ringkasan NDVI & Yield
         ndvi_mean = float(np.mean(ndvi_arr))
         yield_mean = float(np.mean(yield_predictions)) if yield_predictions else 0.0
 
-        # Hitung Statistik Spasial
         mean_val = float(np.mean(predictions))
         min_val = float(np.min(predictions))
         max_val = float(np.max(predictions))
         std_val = float(np.std(predictions)) if len(predictions) > 1 else 0.0
 
-        # Rata-rata Topografi untuk Metadata
         elev_avg = float(np.mean([p['properties'].get('elevation', 0) for p in pixel_samples]))
         slope_avg = float(np.mean([p['properties'].get('slope', 0) for p in pixel_samples]))
         aspect_avg = float(np.mean([p['properties'].get('aspect', 0) for p in pixel_samples]))
@@ -185,7 +167,7 @@ class AgronomyPipelineService:
             "soc_bulk_density": SOCService.BULK_DENSITY_G_CM3,
             "soc_depth_cm": SOCService.SAMPLING_DEPTH_CM,
             "ndvi_prediction": round(ndvi_mean, 2),
-            "biomass_prediction": None,  # Belum ada model resmi
+            "biomass_prediction": None,
             "yield_prediction": round(yield_mean, 3),
             "yield_unit": "Ton/Ha",
             "yield_baseline_source": yield_service.last_source,

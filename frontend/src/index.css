@@ -1,12 +1,13 @@
+/* ---------------------------------------------------------------
+   DESIGN TOKENS
+   --------------------------------------------------------------- */
 :root {
-  /* Primary Brand Colors */
   --color-main-green:     #116a3a;
   --color-forest-green:   #1f5438;
   --color-light-grass:    #c8ddad;
   --color-main-gold:      #fdb134;
   --color-dark-amber:     #d97706;
 
-  /* Earth Green Family */
   --color-dark-emerald:   #056046;
   --color-medium-emerald: #059669;
   --color-bright-emerald: #10b981;
@@ -14,13 +15,11 @@
   --color-pale-mint:      #d1fae5;
   --color-whisper-green:  #ecfdf5;
 
-  /* Harvest Gold Family */
   --color-dark-gold:      #f59e0b;
   --color-light-gold:     #fcd34d;
   --color-light-yellow:   #fde68a;
   --color-pale-yellow:    #fef3c7;
 
-  /* Neutral Tech */
   --color-indigo:         #1f2937;
   --color-dark-gray:      #374151;
   --color-medium-gray:    #6b7280;
@@ -28,7 +27,6 @@
   --color-border-gray:    #e5e7eb;
   --color-pure-white:     #ffffff;
 
-  /* Semantic UI Colors */
   --color-primary:        #002415;
   --color-primary-container: #053b26;
   --color-surface:        #f3f4f6;
@@ -46,12 +44,10 @@
   --color-error:          #ba1a1a;
   --color-error-container:#ffdad6;
 
-  /* Typography */
   --font-display:  'Poppins', sans-serif;
   --font-heading:  'Poppins', sans-serif;
   --font-body:     'Poppins', sans-serif;
 
-  /* Spacing (8px grid) */
   --space-xs:  4px;
   --space-sm:  12px;
   --space-md:  24px;
@@ -60,28 +56,23 @@
   --gutter:    24px;
   --margin-desktop: 48px;
 
-  /* Border Radius */
   --radius-sm:  8px;
   --radius-md:  16px;
   --radius-lg:  24px;
   --radius-xl:  32px;
   --radius-pill: 9999px;
 
-  /* Shadows (Anti-Slop: No thick blurred shadows) */
   --shadow-soft:    none;
   --shadow-card:    none;
   --shadow-elevated:0 4px 12px rgba(5, 59, 38, 0.05);
 
-  /* Layout */
   --sidebar-width: 280px;
   --topnav-height: 60px;
 
-  /* Transition */
   --transition: 200ms ease;
   --transition-spring: 350ms cubic-bezier(0.16, 1, 0.3, 1);
   --transition-bounce: 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* Legacy Variables for Backward Compatibility */
   --text-main: var(--color-text-main);
   --text-muted: var(--color-text-muted);
   --border-muted: var(--color-border-muted);
@@ -95,7 +86,9 @@
   --bg-color: var(--color-surface);
 }
 
-/* ─── RESET & BASE ───────────────────────────────── */
+/* ---------------------------------------------------------------
+   RESET & BASE
+   --------------------------------------------------------------- */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -123,7 +116,9 @@ button { cursor: pointer; border: none; background: none; font-family: var(--fon
 input, select, textarea { font-family: var(--font-body); }
 img { max-width: 100%; display: block; }
 
-/* ─── TYPOGRAPHY ─────────────────────────────────── */
+/* ---------------------------------------------------------------
+   TYPOGRAPHY
+   --------------------------------------------------------------- */
 .text-display-lg  { font-family: var(--font-display); font-size: 48px; line-height: 56px; font-weight: 700; letter-spacing: -0.02em; }
 .text-headline-lg { font-family: var(--font-display); font-size: 32px; line-height: 40px; font-weight: 700; }
 .text-stat-xl     { font-family: var(--font-display); font-size: 40px; line-height: 48px; font-weight: 600; letter-spacing: -0.01em; }
@@ -132,14 +127,18 @@ img { max-width: 100%; display: block; }
 .text-label-md    { font-size: 14px; line-height: 20px; font-weight: 500; letter-spacing: 0.01em; }
 .text-label-sm    { font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.05em; }
 
-/* ─── LAYOUT ─────────────────────────────────────── */
+/* ---------------------------------------------------------------
+   LAYOUT
+   --------------------------------------------------------------- */
 .app-layout {
   display: flex;
   min-height: 100vh;
   background: #ffffff;
 }
 
-/* ─── SIDEBAR ────────────────────────────────────── */
+/* ---------------------------------------------------------------
+   SIDEBAR
+   --------------------------------------------------------------- */
 .sidebar {
   position: fixed;
   left: 0;
@@ -370,7 +369,9 @@ img { max-width: 100%; display: block; }
 }
 
 
-/* ─── TOP NAV (SEAMLESS INSIDE CANVAS) ──────────── */
+/* ---------------------------------------------------------------
+   TOP NAV
+   --------------------------------------------------------------- */
 .topnav {
   display: flex;
   align-items: center;
@@ -454,7 +455,9 @@ img { max-width: 100%; display: block; }
   overflow: hidden;
 }
 
-/* ─── MAIN CONTENT (FLOATING CARD CANVAS) ───────── */
+/* ---------------------------------------------------------------
+   MAIN CONTENT
+   --------------------------------------------------------------- */
 .main-content {
   margin-left: calc(var(--sidebar-width) + 16px);
   margin-top: 16px;
@@ -471,7 +474,9 @@ img { max-width: 100%; display: block; }
   box-sizing: border-box;
 }
 
-/* ─── SIDEBAR COLLAPSED STATE (FULL FOCUS MODE) ──── */
+/* ---------------------------------------------------------------
+   SIDEBAR COLLAPSED STATE
+   --------------------------------------------------------------- */
 .app-layout.sidebar-collapsed .sidebar {
   transform: translateX(-100%);
 }
@@ -486,7 +491,9 @@ img { max-width: 100%; display: block; }
   width: calc(100% - 32px);
 }
 
-/* ─── CUSTOM FLOATING TOOLTIP ─────────────────────── */
+/* ---------------------------------------------------------------
+   FLOATING TOOLTIP
+   --------------------------------------------------------------- */
 .tooltip-wrapper {
   position: relative;
   display: inline-flex;
@@ -565,7 +572,9 @@ img { max-width: 100%; display: block; }
   line-height: 1.5;
 }
 
-/* ─── STAT CARDS ─────────────────────────────────── */
+/* ---------------------------------------------------------------
+   STAT CARDS
+   --------------------------------------------------------------- */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -707,7 +716,6 @@ img { max-width: 100%; display: block; }
   transform: rotate(0deg) scale(1.04);
 }
 
-/* Dark Green Solid Card (Serapan Karbon) */
 .stat-card-dark {
   background: var(--color-primary-container);
   border: 1px solid var(--color-primary-container);
@@ -831,7 +839,9 @@ img { max-width: 100%; display: block; }
   line-height: 1.4;
 }
 
-/* ─── CARDS ──────────────────────────────────────── */
+/* ---------------------------------------------------------------
+   CARDS
+   --------------------------------------------------------------- */
 .card {
   background: #ffffff;
   border-radius: 12px;
@@ -853,7 +863,9 @@ img { max-width: 100%; display: block; }
 }
 .card-body { padding: 20px; }
 
-/* ─── TABLES ─────────────────────────────────────── */
+/* ---------------------------------------------------------------
+   TABLES
+   --------------------------------------------------------------- */
 .table-container { overflow-x: auto; }
 .data-table {
   width: 100%;
@@ -892,7 +904,9 @@ img { max-width: 100%; display: block; }
 }
 .data-table tbody td:first-child { font-weight: 500; color: var(--color-text-main); }
 
-/* ─── BADGES ─────────────────────────────────────── */
+/* ---------------------------------------------------------------
+   BADGES
+   --------------------------------------------------------------- */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -919,7 +933,9 @@ img { max-width: 100%; display: block; }
 .badge-stable  { background: var(--color-pale-mint); color: var(--color-dark-emerald); }
 .badge-warning { background: var(--color-pale-yellow); color: var(--color-dark-amber); }
 
-/* ─── BUTTONS ────────────────────────────────────── */
+/* ---------------------------------------------------------------
+   BUTTONS
+   --------------------------------------------------------------- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -971,7 +987,9 @@ img { max-width: 100%; display: block; }
 .btn-sm { padding: 6px 16px; font-size: 13px; }
 .btn-icon { padding: 8px; border-radius: 50%; width: 36px; height: 36px; justify-content: center; }
 
-/* ─── FORM INPUTS ────────────────────────────────── */
+/* ---------------------------------------------------------------
+   FORM INPUTS
+   --------------------------------------------------------------- */
 .form-input {
   width: 100%;
   padding: 10px 16px;
@@ -997,7 +1015,9 @@ img { max-width: 100%; display: block; }
   display: block;
 }
 
-/* ─── ACTION BUTTONS (Table Inline) ──────────────── */
+/* ---------------------------------------------------------------
+   TABLE ACTION BUTTONS
+   --------------------------------------------------------------- */
 .action-btn {
   display: inline-flex;
   align-items: center;
@@ -1017,7 +1037,9 @@ img { max-width: 100%; display: block; }
 .action-btn.view:hover,
 .action-btn.view-btn:hover { color: var(--color-dark-emerald); }
 
-/* ─── FARMER CARD & MODAL BUTTON HOVER STATES ──────── */
+/* ---------------------------------------------------------------
+   FARMER CARD & MODAL BUTTONS
+   --------------------------------------------------------------- */
 .farmer-card-action-btn {
   display: flex;
   align-items: center;
@@ -1145,7 +1167,9 @@ img { max-width: 100%; display: block; }
 .action-btn.delete:hover,
 .action-btn.delete-btn:hover { color: var(--color-error); }
 
-/* ─── STANDALONE BUTTONS (primary-btn, secondary-btn) */
+/* ---------------------------------------------------------------
+   STANDALONE BUTTONS
+   --------------------------------------------------------------- */
 .primary-btn {
   display: inline-flex;
   align-items: center;
@@ -1195,7 +1219,9 @@ img { max-width: 100%; display: block; }
   border-color: var(--color-primary-container);
 }
 
-/* ─── CLOSE BUTTON ───────────────────────────────── */
+/* ---------------------------------------------------------------
+   CLOSE BUTTON
+   --------------------------------------------------------------- */
 .close-btn {
   display: flex;
   align-items: center;
@@ -1216,7 +1242,9 @@ img { max-width: 100%; display: block; }
   color: var(--color-text-main);
 }
 
-/* ─── MODAL ──────────────────────────────────────── */
+/* ---------------------------------------------------------------
+   MODAL
+   --------------------------------------------------------------- */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -1253,7 +1281,9 @@ img { max-width: 100%; display: block; }
   margin: 0;
 }
 
-/* ─── FORM ELEMENTS ──────────────────────────────── */
+/* ---------------------------------------------------------------
+   FORM ELEMENTS
+   --------------------------------------------------------------- */
 .form-group {
   margin-bottom: 16px;
 }
@@ -1294,7 +1324,9 @@ img { max-width: 100%; display: block; }
   border-top: 1px solid var(--color-border-muted);
 }
 
-/* ─── ADDITIONAL BADGES ──────────────────────────── */
+/* ---------------------------------------------------------------
+   ADDITIONAL BADGES
+   --------------------------------------------------------------- */
 .badge-success { background: rgba(156,249,115,0.2); color: #195200; }
 .badge-success::before { background: #81dc5a; }
 .badge-info { background: var(--color-pale-mint); color: var(--color-dark-emerald); }
@@ -1302,7 +1334,9 @@ img { max-width: 100%; display: block; }
 .badge-neutral { background: var(--color-surface-container); color: var(--color-medium-gray); }
 .badge-neutral::before { background: var(--color-light-gray); }
 
-/* ─── HERO BANNER ────────────────────────────────── */
+/* ---------------------------------------------------------------
+   HERO BANNER
+   --------------------------------------------------------------- */
 .hero-banner {
   border-radius: var(--radius-md);
   padding: var(--space-md);
@@ -1315,7 +1349,9 @@ img { max-width: 100%; display: block; }
   border: 1px solid var(--color-border-muted);
 }
 
-/* ─── LEGACY UTILITIES (Kept for compatibility) ──── */
+/* ---------------------------------------------------------------
+   LEGACY UTILITIES
+   --------------------------------------------------------------- */
 .flex { display: flex; }
 .flex-col { display: flex; flex-direction: column; }
 .items-center { align-items: center; }
@@ -1348,11 +1384,9 @@ img { max-width: 100%; display: block; }
   50% { opacity: .5; }
 }
 
-/* ═══════════════════════════════════════════════════════
-   AGRONOMY MODULE
-   ═══════════════════════════════════════════════════════ */
-
-/* ─── FARM SELECTOR VIEW (Tingkat 1) ─────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - FARM SELECTOR VIEW
+   --------------------------------------------------------------- */
 .agro-selector-grid {
   display: grid;
   grid-template-columns: 1fr 1.75fr;
@@ -1582,7 +1616,9 @@ img { max-width: 100%; display: block; }
   font-size: 14px;
 }
 
-/* ─── GIS DASHBOARD VIEW (Tingkat 2) ─────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - GIS DASHBOARD VIEW
+   --------------------------------------------------------------- */
 .agro-breadcrumb {
   display: flex;
   align-items: center;
@@ -1622,7 +1658,7 @@ img { max-width: 100%; display: block; }
 
 .agro-dashboard-grid {
   display: grid;
-  grid-template-columns: 3fr 7fr; /* 30% Data, 70% Map */
+  grid-template-columns: 3fr 7fr;
   gap: 0;
   min-height: calc(100vh - 130px);
   border: 1px solid var(--color-border-muted);
@@ -1631,7 +1667,9 @@ img { max-width: 100%; display: block; }
   background: var(--color-surface-white);
 }
 
-/* ─── PANELS (Left & Right) ──────────────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - SIDE PANELS
+   --------------------------------------------------------------- */
 .agro-panel {
   background: var(--color-surface-white);
   padding: 16px 20px;
@@ -1688,7 +1726,9 @@ img { max-width: 100%; display: block; }
   margin: 4px 0;
 }
 
-/* ─── CHART WRAPPERS ─────────────────────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - CHART WRAPPERS
+   --------------------------------------------------------------- */
 .agro-chart-wrapper {
   height: 220px;
   margin-bottom: 6px;
@@ -1706,7 +1746,9 @@ img { max-width: 100%; display: block; }
   padding: 4px 0;
 }
 
-/* ─── STATS BOX ──────────────────────────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - STATS BOX
+   --------------------------------------------------------------- */
 .agro-stats-box {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
@@ -1736,7 +1778,9 @@ img { max-width: 100%; display: block; }
   color: var(--color-text-main);
 }
 
-/* ─── EXPORT BUTTONS ─────────────────────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - EXPORT BUTTONS
+   --------------------------------------------------------------- */
 .agro-btn-export {
   display: flex;
   align-items: center;
@@ -1767,7 +1811,9 @@ img { max-width: 100%; display: block; }
   margin-left: auto;
 }
 
-/* ─── ANOMALY SECTION ────────────────────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - ANOMALY SECTION
+   --------------------------------------------------------------- */
 .agro-anomaly-header {
   display: flex;
   align-items: center;
@@ -1847,7 +1893,9 @@ img { max-width: 100%; display: block; }
   text-align: center;
 }
 
-/* ─── TOGGLE SWITCH ──────────────────────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - TOGGLE SWITCH
+   --------------------------------------------------------------- */
 .agro-toggle-wrap {
   display: flex;
   align-items: center;
@@ -1903,7 +1951,9 @@ img { max-width: 100%; display: block; }
   font-weight: 500;
 }
 
-/* ─── MAP SECTION (Center - 3-Row Layout) ─────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - MAP SECTION
+   --------------------------------------------------------------- */
 .agro-map-section {
   position: relative;
   display: flex;
@@ -1923,7 +1973,6 @@ img { max-width: 100%; display: block; }
   background: var(--color-surface-white);
 }
 
-/* Baris 1: Layer Parameter Tag Pills */
 .agro-map-header-row1 {
   display: flex;
   align-items: center;
@@ -1993,7 +2042,6 @@ img { max-width: 100%; display: block; }
   box-shadow: 0 1px 3px rgba(17, 106, 58, 0.2);
 }
 
-/* Baris 2: Periode Timeline Pills & Transparansi */
 .agro-map-header-row2 {
   display: flex;
   align-items: center;
@@ -2098,7 +2146,6 @@ img { max-width: 100%; display: block; }
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
-/* Baris 3: Viewport Peta */
 .agro-map-viewport {
   flex: 1;
   width: 100%;
@@ -2115,7 +2162,9 @@ img { max-width: 100%; display: block; }
   display: block;
 }
 
-/* ─── LOADING OVERLAY ────────────────────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - LOADING OVERLAY
+   --------------------------------------------------------------- */
 .agro-loading-overlay {
   position: absolute;
   inset: 0;
@@ -2152,7 +2201,9 @@ img { max-width: 100%; display: block; }
   to { transform: rotate(360deg); }
 }
 
-/* ─── KPI STRIP ──────────────────────────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - KPI STRIP
+   --------------------------------------------------------------- */
 .agro-kpi-strip {
   display: flex;
   gap: 10px;
@@ -2199,7 +2250,9 @@ img { max-width: 100%; display: block; }
   color: #dc3545;
 }
 
-/* ─── CARBON BOX ─────────────────────────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - CARBON BOX
+   --------------------------------------------------------------- */
 .agro-carbon-box {
   padding: 12px 0;
 }
@@ -2249,7 +2302,9 @@ img { max-width: 100%; display: block; }
   font-style: italic;
 }
 
-/* ─── ERROR MESSAGE ──────────────────────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - ERROR MESSAGE
+   --------------------------------------------------------------- */
 .agro-error {
   background: #fef2f2;
   color: #b91c1c;
@@ -2260,7 +2315,9 @@ img { max-width: 100%; display: block; }
   margin-bottom: 16px;
 }
 
-/* ─── RESPONSIVE ─────────────────────────────────────── */
+/* ---------------------------------------------------------------
+   AGRONOMY - RESPONSIVE
+   --------------------------------------------------------------- */
 @media (max-width: 1100px) {
   .agro-selector-grid {
     grid-template-columns: 1fr;
@@ -2279,10 +2336,9 @@ img { max-width: 100%; display: block; }
   }
 }
 
-/* ─── SDG ASSESSMENT (AssessmentFlowPage) ───────────────
-   Desain konsisten dengan program lain: palet hijau tua + netral,
-   uppercase kecil, card putih radius ringan, tanpa pelangi/warna mencolok.
-   ========================================================== */
+/* ---------------------------------------------------------------
+   SDG ASSESSMENT
+   --------------------------------------------------------------- */
 .text-muted { color: var(--color-text-muted); }
 
 .breadcrumb {
@@ -2472,10 +2528,9 @@ img { max-width: 100%; display: block; }
   flex-shrink: 0;
 }
 
-/* ─── ASSESSMENT PAGE — SPACING & BREATHING ROOM ───────
-   Jarak antar kartu konsisten (24px), padding kartu lebih lega,
-   border tabel dirapikan agar tidak terkesan mepet.
-   ========================================================== */
+/* ---------------------------------------------------------------
+   SDG ASSESSMENT - SPACING
+   --------------------------------------------------------------- */
 .step-body > * + * { margin-top: var(--space-md); }
 
 .assessment-page .stat-card {
@@ -2523,8 +2578,6 @@ img { max-width: 100%; display: block; }
   z-index: 5;
 }
 
-/* tabel hasil SDG: hapus garis vertikal antar sel agar tidak mepet,
-   perbesar padding baris */
 .assessment-page .data-table tbody td {
   border-right: none;
   padding: 14px 16px;
@@ -2549,7 +2602,9 @@ img { max-width: 100%; display: block; }
   padding: 8px 14px;
 }
 
-/* Semua badge status SDG berukuran sama persis, teks di tengah */
+/* ---------------------------------------------------------------
+   STATUS BADGES
+   --------------------------------------------------------------- */
 .status-badge {
   display: inline-flex;
   align-items: center;

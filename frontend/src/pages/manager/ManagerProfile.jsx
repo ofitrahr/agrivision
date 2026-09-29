@@ -117,7 +117,7 @@ const ManagerProfile = () => {
                             )}
                         </div>
 
-                        {/* Input Data Profile */}
+                        {/* Profile Data Input */}
                         <div style={{ flex: 1, minWidth: '300px', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
                             <div>
                                 <label className="form-label">Nama Perusahaan <span style={{color: 'var(--color-error)'}}>*</span></label>

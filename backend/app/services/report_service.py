@@ -27,7 +27,6 @@ class ReportService:
     def generated_excel_raw_data(report_data):
         excel_buffer = io.BytesIO()
         with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-            # Sheet 1: Ringkasan Dokumen Laporan
             meta_rows = [
                 {'Atribut': 'Judul Dokumen', 'Nilai': report_data.get('header_title', report_data.get('title', '-'))},
                 {'Atribut': 'Cakupan Lahan', 'Nilai': report_data.get('farm_name', '-')},
@@ -38,7 +37,6 @@ class ReportService:
             ]
             pd.DataFrame(meta_rows).to_excel(writer, index=False, sheet_name='Ringkasan Laporan')
 
-            # Sheet 2: Direktori / Daftar Lahan Terpilih
             if report_data.get('selected_farms'):
                 farms_rows = []
                 for idx, f in enumerate(report_data['selected_farms'], 1):
@@ -52,11 +50,9 @@ class ReportService:
                     })
                 pd.DataFrame(farms_rows).to_excel(writer, index=False, sheet_name='Daftar Lahan')
 
-            # Sheet 3: Seluruh Indikator & Metrik Operasional
             if report_data.get('raw_data'):
                 pd.DataFrame(report_data['raw_data']).to_excel(writer, index=False, sheet_name='Metrik Operasional')
 
-            # Sheet 4: Data Petani Binaan
             if report_data.get('social', {}).get('farmers_list'):
                 farmers_rows = []
                 for idx, farmer in enumerate(report_data['social']['farmers_list'], 1):
@@ -69,7 +65,6 @@ class ReportService:
                     })
                 pd.DataFrame(farmers_rows).to_excel(writer, index=False, sheet_name='Petani Binaan')
 
-            # Sheet 5: Batch Produksi & Traceability
             if report_data.get('traceability', {}).get('batches'):
                 batch_rows = []
                 for idx, b in enumerate(report_data['traceability']['batches'], 1):

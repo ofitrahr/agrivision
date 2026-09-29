@@ -18,7 +18,6 @@ class BiomassService:
 
     @classmethod
     def carbon_factors(cls):
-        """Faktor konversi AGB -> karbon dari metadata dataset (BGB = rasio x AGB)."""
         try:
             meta = cls().meta
         except FileNotFoundError:

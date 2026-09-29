@@ -22,8 +22,6 @@ class SOCService:
     def calibrate_oc(cls, oc_gkg):
         return oc_gkg * cls.CALIBRATION_GAIN if cls.CALIBRATION_ENABLED else oc_gkg
 
-    # Urutan wajib sama persis dengan best_model_features_ann_sentinel2_era5.json
-    # dan feature_names_in_ pada scaler - input ONNX bersifat posisional.
     FEATURE_ORDER = [
         'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B11', 'B12',
         'BSI', 'CMR', 'EVI2', 'GNDVI', 'IRECI', 'MCARI', 'NDI45', 'NDMI', 'NDTI', 'NDVI', 'SAVI', 'SBI',
@@ -58,7 +56,6 @@ class SOCService:
         return cls.oc_percent_to_stock(oc_gkg * cls.OC_GKG_TO_PERCENT)
 
     def predict_soc_batch(self, samples_props_list):
-        """Keluaran model: kandungan OC dalam g/kg."""
         if not samples_props_list:
             return []
 

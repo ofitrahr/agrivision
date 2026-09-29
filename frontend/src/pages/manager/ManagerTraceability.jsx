@@ -44,6 +44,9 @@ const ManagerTraceability = () => {
     return JSON.stringify(formData) !== JSON.stringify(savedFormData);
   }, [formData, savedFormData]);
 
+  // ---------------------------------------------------------------
+  // PROFILE & SDG LOADING
+  // ---------------------------------------------------------------
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -54,13 +57,11 @@ const ManagerTraceability = () => {
           setFormData(d);
           setSavedFormData({ ...d });
           setOriginStoryCount(d.origin_story?.length || 0);
-          // Fix #3: Load status dari API agar tombol publish/unpublish akurat saat reload
           if (d.status) {
             setStatus(d.status);
           } else {
             setStatus('draft');
           }
-          // Extract project_id dari response jika ada
           if (d.project_id) {
             setProjectId(d.project_id);
           }
@@ -81,7 +82,6 @@ const ManagerTraceability = () => {
       try {
         const res = await api.get(`/assessment/projects/${projectId}/project-sdgs`);
         if (res.data.success && res.data.data) {
-          // Filter hanya SDGs yang selected (specific untuk project ini)
           const selectedSdgs = (res.data.data.sdgs || []).filter(sdg => sdg.selected);
           setSdgs(selectedSdgs);
         }
@@ -92,6 +92,9 @@ const ManagerTraceability = () => {
     fetchSdgs();
   }, [projectId]);
 
+  // ---------------------------------------------------------------
+  // FORM EDITING & HERO IMAGE UPLOAD
+  // ---------------------------------------------------------------
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (field === 'origin_story') setOriginStoryCount(value.length);
@@ -145,6 +148,9 @@ const ManagerTraceability = () => {
     }
   };
 
+  // ---------------------------------------------------------------
+  // SAVE & PUBLISH
+  // ---------------------------------------------------------------
   const handleSaveDraft = async () => {
     setShowSaveConfirmModal(true);
   };
@@ -181,6 +187,9 @@ const ManagerTraceability = () => {
     }
   };
 
+  // ---------------------------------------------------------------
+  // QR CODE
+  // ---------------------------------------------------------------
   const handleGenerateQR = async () => {
     if (!projectId) {
       showAlert('error', 'Project ID tidak ditemukan. Silakan refresh halaman.');
@@ -225,6 +234,9 @@ const ManagerTraceability = () => {
     showAlert('success', 'Link copied to clipboard!');
   };
 
+  // ---------------------------------------------------------------
+  // PREVIEW
+  // ---------------------------------------------------------------
   const handlePreview = async () => {
     setPreviewLoading(true);
     try {
@@ -693,7 +705,6 @@ const ManagerTraceability = () => {
       {/* Preview Modal */}
       {showPreviewModal && previewData && (() => {
         const { project, profile, sdgs: previewSdgs } = previewData;
-        // Gabungkan formData (data yang sedang diedit) dengan data dari DB
         const heroImage = formData.hero_image_url || profile.hero_image_url || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200';
         const previewTitle = formData.title || profile.title || project?.name || 'Untitled';
         const previewTagline = formData.tagline || profile.tagline || '';

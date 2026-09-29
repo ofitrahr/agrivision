@@ -1,16 +1,3 @@
-"""
-Seed System Assessment Kontribusi Project terhadap SDGs.
-
-Hardcoded dari analisis 302 indikator SDG (aslinya dari soal.md).
-Tidak memerlukan file external - semua data sudah terintegrasi.
-
-Menanam:
-- SdgMaster (17 goal) + konfigurasi threshold
-- SdgIndicator (302 metadata indikator)
-- Questionnaire berisi 105 pertanyaan APPLICABLE
-
-Idempoten: dapat dijalankan berulang tanpa duplikasi.
-"""
 import re
 from decimal import Decimal
 
@@ -27,6 +14,9 @@ from app.db.models import (
 )
 from app.services.assessment_service import SDG_CATALOG, seed_sdg_masters
 
+# ---------------------------------------------------------------
+# QUESTIONNAIRE CONFIGURATION
+# ---------------------------------------------------------------
 QUESTIONNAIRE_NAME = "SDG Agricultural Contribution Assessment"
 QUESTIONNAIRE_VERSION = "2.0"
 DEFAULT_ANSWERS = [
@@ -37,11 +27,9 @@ DEFAULT_ANSWERS = [
     ("Sudah diterapkan dan dipantau", 100),
 ]
 
-# ---------------------------------------------------------------------------
-# HARDCODED DATA - 302 indikator SDG (105 APPLICABLE + 197 NOT_APPLICABLE)
-# Format: (goal, goal_name, target_code, target_name, indicator_code,
-#          indicator_name, classification, assessment_status, question_text, purpose)
-# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------
+# SDG INDICATOR DATA
+# ---------------------------------------------------------------
 SOAL_DATA = [
     ('01', 'Tanpa Kemiskinan', '1.1', 'Pada tahun 2030, mengentaskan kemiskinan ekstrim bagi semua orang yang saat ini berpendapatan kurang dari 1,25 dolar Amerika per hari.', '1.1.1*', 'Tingkat kemiskinan ekstrem', 'Nasional/Global', 'APPLICABLE', 'Apakah project memiliki program atau kegiatan yang ditujukan untuk meningkatkan pendapatan dan mengurangi kerentanan ekonomi petani atau penerima manfaat yang berada dalam kondisi paling rentan?', 'Menilai kontribusi project terhadap upaya pengentasan kemiskinan melalui peningkatan pendapatan kelompok rentan yang terlibat.'),
     ('01', 'Tanpa Kemiskinan', '1.2', 'Pada tahun 2030, mengurangi setidaknya setengah proporsi laki-laki, perempuan dan anak-anak dari semua usia, yang hidup dalam kemiskinan di semua dimensi, sesuai dengan definisi nasional.', '1.2.1*', 'Persentase penduduk yang hidup di bawah garis kemiskinan nasional, menurut jenis kelamin dan kelompok umur', 'Nasional/Global', 'APPLICABLE', 'Apakah project memiliki kegiatan yang bertujuan meningkatkan pendapatan petani atau anggota rumah tangganya sehingga membantu kelompok yang terlibat keluar dari kondisi di bawah garis kemiskinan?', 'Menilai kontribusi project dalam meningkatkan pendapatan kelompok yang terlibat sebagai upaya mengurangi kemiskinan.'),
@@ -351,6 +339,9 @@ SOAL_DATA = [
 app = create_app()
 
 
+# ---------------------------------------------------------------
+# QUESTIONNAIRE SEEDING
+# ---------------------------------------------------------------
 def _goal_section_name(goal_number, goal_name):
     return f"SDG {str(goal_number).zfill(2)} - {goal_name}"
 
@@ -360,7 +351,6 @@ def normalize_text(s):
 
 
 def seed_questionnaire_from(docs):
-    """Tanam indikator & pertanyaan. Idempoten. Return ringkasan."""
     counters = {"indicators": 0, "questions": 0, "mappings": 0, "goals": 0}
 
     questionnaire = Questionnaire.query.filter_by(name=QUESTIONNAIRE_NAME).first()
@@ -505,6 +495,9 @@ def seed_questionnaire_from(docs):
     return counters
 
 
+# ---------------------------------------------------------------
+# MAIN RUNNER
+# ---------------------------------------------------------------
 def run():
     with app.app_context():
         seed_sdg_masters()

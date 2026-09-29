@@ -3,6 +3,10 @@ import { initReactI18next } from 'react-i18next';
 import { getStoredSettings } from './settingsHelper';
 
 const resources = {
+
+  // ---------------------------------------------------------------
+  // INDONESIAN DICTIONARY
+  // ---------------------------------------------------------------
   id: {
     translation: {
       welcome: 'Selamat datang di Agrivision',
@@ -127,6 +131,10 @@ const resources = {
       },
     },
   },
+
+  // ---------------------------------------------------------------
+  // ENGLISH DICTIONARY
+  // ---------------------------------------------------------------
   en: {
     translation: {
       welcome: 'Welcome to Agrivision',
@@ -253,6 +261,9 @@ const resources = {
   },
 };
 
+// ---------------------------------------------------------------
+// I18N INITIALIZATION
+// ---------------------------------------------------------------
 i18n
   .use(initReactI18next)
   .init({
@@ -264,7 +275,6 @@ i18n
     },
   });
 
-// Terapkan bahasa setiap kali preferensi berubah (simpan manual atau sinkron dari server)
 window.addEventListener('settingsUpdated', () => {
   const { language } = getStoredSettings();
   if (language !== i18n.language) i18n.changeLanguage(language);

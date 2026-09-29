@@ -20,12 +20,10 @@ const ManagerFarmers = () => {
     const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
     const fileInputRef = useRef(null);
     
-    // Modal states
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [farmerToDelete, setFarmerToDelete] = useState(null);
 
-    // Form data state
     const [formData, setFormData] = useState({ 
         name: '', phone: '', photo: null,
         gender: 'Laki-laki', birth_year: '', join_year: '', farm_info: '',
@@ -171,7 +169,7 @@ const ManagerFarmers = () => {
                 </div>
             </div>
 
-            {/* Grid Petani */}
+            {/* Farmer Grid */}
             {farmers.length === 0 ? (
                 <div className="stat-card" style={{ padding: 48, textAlign: 'center' }}>
                     <p style={{ color: '#6C757D', fontSize: 16, margin: 0 }}>Belum ada data petani yang didaftarkan.</p>
@@ -247,7 +245,7 @@ const ManagerFarmers = () => {
                 </div>
             )}
 
-            {/* MODAL EDIT / TAMBAH PEKERJA */}
+            {/* EDIT / ADD WORKER MODAL */}
             {editModalOpen && (
                 <div style={{
                     position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.4)',
@@ -456,7 +454,7 @@ const ManagerFarmers = () => {
                 </div>
             )}
 
-            {/* MODAL HAPUS PEKERJA */}
+            {/* DELETE WORKER MODAL */}
             {deleteModalOpen && (
                 <div style={{
                     position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.4)',

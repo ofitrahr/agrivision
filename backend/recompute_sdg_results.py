@@ -1,11 +1,3 @@
-"""Hitung ulang AssessmentSdgResult untuk semua assessment completed.
-
-Dipakai setelah perbaikan formula skor (rata-rata tertimbang jawaban, skala
-0-100 tanpa pengali ganda) agar data historis konsisten dengan engine baru.
-
-Usage:
-    python recompute_sdg_results.py
-"""
 import sys
 
 from app import create_app

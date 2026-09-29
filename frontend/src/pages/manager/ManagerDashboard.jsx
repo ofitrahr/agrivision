@@ -76,14 +76,12 @@ const FarmCardSkeleton = () => (
   </div>
 );
 
-// 'YYYY-MM' -> 'Agu 2026'
 const formatPeriod = (period) => {
   const [year, month] = (period || '').split('-').map(Number);
   if (!year || !month) return period || '';
   return new Date(year, month - 1).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
 };
 
-// Status kesehatan dari NDVI periode terakhir vs ambang batas di Settings
 const FarmHealthStatus = ({ ndvi, threshold }) => {
   if (!ndvi) {
     return <span className="badge badge-neutral">Belum ada data observasi</span>;
@@ -106,7 +104,6 @@ const FarmHealthStatus = ({ ndvi, threshold }) => {
 };
 
 const FarmCard = ({ farm, ndviThreshold, onManage, onAgronomy }) => {
-  // Komoditas terluas + jumlah sisanya
   const cropNames = farm.crops?.length > 0
     ? [...farm.crops].sort((a, b) => (b.area_ha || 0) - (a.area_ha || 0)).map(c => c.crop_type).filter(Boolean)
     : (farm.crop_variety || '').split(',').map(c => c.trim()).filter(Boolean);
@@ -164,7 +161,6 @@ const FarmCard = ({ farm, ndviThreshold, onManage, onAgronomy }) => {
   );
 };
 
-// 85836000 -> { value: '85,8', unit: 'juta' }
 const formatCompactIdr = (value) => {
   const num = Number(value);
   const scales = [[1e12, 'triliun'], [1e9, 'miliar'], [1e6, 'juta']];
@@ -182,7 +178,6 @@ const ManagerDashboard = () => {
   const [ndviThreshold, setNdviThreshold] = useState(() => getStoredSettings().ndviThreshold);
   const navigate = useNavigate();
 
-  // Ikuti perubahan ambang batas NDVI dari Settings
   useEffect(() => {
     const handleUpdate = () => setNdviThreshold(getStoredSettings().ndviThreshold);
     window.addEventListener('settingsUpdated', handleUpdate);
@@ -222,7 +217,6 @@ const ManagerDashboard = () => {
   const handleManageFarm = (id) => navigate(`/manager/farm-management?farm_id=${id}`);
   const handleAgronomy = (id) => navigate(`/manager/agronomy?farm_id=${id}`);
 
-  // Semua nilai murni dari backend — tidak ada fallback hardcode
   const totalFarms = stats?.total_farms ?? null;
   const totalFarmers = stats?.total_farmers ?? null;
   const totalAreaHa = stats?.total_area_ha ?? null;
@@ -257,7 +251,7 @@ const ManagerDashboard = () => {
             Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
           ) : (
             <>
-              {/* Kartu 1: Stok Karbon Biomassa — dari layer AGB (bukan serapan: butuh ≥2 periode survei) */}
+              {/* Card 1: Biomass Carbon Stock */}
               <StatCard
                 title="STOK KARBON BIOMASSA"
                 headerUnit="(TON CO2e)"
@@ -272,7 +266,7 @@ const ManagerDashboard = () => {
                 icon={TreePine}
               />
 
-              {/* Kartu 2: Nilai Ekonomi — data dari FinancialRecord.estimated_revenue */}
+              {/* Card 2: Economic Value */}
               <StatCard
                 title="ESTIMASI NILAI EKONOMI (IDR)"
                 value={revenueDisplay ? revenueDisplay.value : '-'}
@@ -282,7 +276,7 @@ const ManagerDashboard = () => {
                 silhouetteColor="var(--color-dark-amber)"
               />
 
-              {/* Kartu 3: Lahan & Petani — data dari Farm.count + Farmer.count */}
+              {/* Card 3: Farms & Farmers */}
               <StatCard
                 title="LAHAN & PETANI"
                 value={totalFarms !== null ? totalFarms : '-'}
@@ -292,7 +286,7 @@ const ManagerDashboard = () => {
                 icon={Users}
               />
 
-              {/* Kartu 4: Luas Lahan & Komoditas — data dari Farm.total_area_ha + Farm.crop_variety */}
+              {/* Card 4: Farm Area & Commodities */}
               <StatCard
                 title="TOTAL LUAS LAHAN"
                 headerUnit={`(${areaDisplay ? areaDisplay.unit.toUpperCase() : 'HA'})`}
@@ -306,7 +300,7 @@ const ManagerDashboard = () => {
         </div>
       </section>
 
-      {/* DAFTAR LAHAN PROYEK */}
+      {/* PROJECT FARM LIST */}
       <section aria-label="Daftar Lahan Proyek">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>

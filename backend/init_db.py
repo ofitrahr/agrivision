@@ -35,7 +35,6 @@ def setup_database():
 
         db.create_all()
 
-        # VIEW agregasi Company SDG untuk arsitektur traceability baru (plan.md #8)
         db.session.execute(text("""
             CREATE OR REPLACE VIEW company_sdg_summary AS
             SELECT DISTINCT

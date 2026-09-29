@@ -7,6 +7,10 @@ from flask import Blueprint, jsonify, request
 
 admin_bp = Blueprint('admin_bp', __name__)
 
+# ---------------------------------------------------------------
+# DASHBOARD
+# ---------------------------------------------------------------
+
 @admin_bp.route('/dashboard/stats', methods=['GET'])
 @token_required
 @role_required('super_admin')
@@ -14,6 +18,10 @@ def dashboard_stats(current_user):
     result = get_dashboard_stats()
     return jsonify(result), 200
 
+
+# ---------------------------------------------------------------
+# COMPANY MANAGEMENT
+# ---------------------------------------------------------------
 
 @admin_bp.route('/companies', methods=['GET'])
 @token_required
@@ -97,9 +105,9 @@ def delete_company(current_user, company_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# ==========================================
-# SAAS / SUBSCRIPTION MODULE MANAGEMENT
-# ==========================================
+# ---------------------------------------------------------------
+# PROJECT PERMISSIONS (SUBSCRIPTION MODULES)
+# ---------------------------------------------------------------
 
 @admin_bp.route('/projects/<project_id>/permissions', methods=['GET', 'PUT'])
 @token_required
@@ -160,9 +168,9 @@ def manage_project_permissions(current_user, project_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# ==========================================
-# USER MANAGEMENT UNTUK PERUSAHAAN KLIEN
-# ==========================================
+# ---------------------------------------------------------------
+# COMPANY USER MANAGEMENT
+# ---------------------------------------------------------------
 
 
 @admin_bp.route('/companies/<company_id>/users', methods=['GET'])
@@ -242,6 +250,10 @@ def remove_user(current_user, user_id):
     status_code = 200 if result.get('success') else 400
     return jsonify(result), status_code
 
+# ---------------------------------------------------------------
+# FARM MANAGEMENT
+# ---------------------------------------------------------------
+
 @admin_bp.route('/farms', methods=['POST'])
 @token_required
 @role_required('super_admin')
@@ -255,8 +267,6 @@ def create_farm(current_user):
         if geometry.get('type') not in ('Polygon', 'MultiPolygon'):
             raise Exception("Tipe geometri tidak didukung. Harap gunakan Polygon atau MultiPolygon.")
 
-        # Lubang (inner ring) ikut terbaca; ST_MakeValid + ST_UnaryUnion merapikan poligon yang
-        # tidak valid atau saling tumpang tindih; ST_Force2D membuang koordinat Z bila ada.
         boundary_expr = func.ST_UnaryUnion(func.ST_CollectionExtract(func.ST_MakeValid(
             func.ST_Force2D(func.ST_SetSRID(func.ST_GeomFromGeoJSON(json.dumps(geometry)), 4326))
         ), 3))
@@ -297,6 +307,10 @@ def create_farm(current_user):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 400
 
+
+# ---------------------------------------------------------------
+# PROJECT MANAGEMENT
+# ---------------------------------------------------------------
 
 @admin_bp.route('/companies/<company_id>/projects', methods=['GET'])
 @token_required
@@ -360,6 +374,10 @@ def remove_project(current_user, project_id):
         )
     return jsonify(result), status_code
 
+# ---------------------------------------------------------------
+# FARM LIST
+# ---------------------------------------------------------------
+
 @admin_bp.route('/farms', methods=['GET'])
 @token_required
 @role_required('super_admin')
@@ -384,9 +402,9 @@ def admin_get_farms(current_user):
 
 
 
-# ==========================================
-# TRACEABILITY - SDG ASSESSMENT (COMPANY LEVEL)
-# ==========================================
+# ---------------------------------------------------------------
+# COMPANY SDG ASSESSMENT
+# ---------------------------------------------------------------
 
 @admin_bp.route('/companies/<company_id>/sdgs', methods=['GET'])
 @token_required
@@ -424,6 +442,10 @@ def api_remove_company_sdg_verification(current_user, company_id):
     return jsonify(result), status_code
 
 
+# ---------------------------------------------------------------
+# PROJECT TRACEABILITY
+# ---------------------------------------------------------------
+
 @admin_bp.route('/traceability/<project_id>', methods=['GET'])
 @token_required
 @role_required('super_admin')
@@ -440,6 +462,10 @@ def api_save_project_traceability(current_user, project_id):
     result, status_code = save_project_traceability(project_id, data)
     return jsonify(result), status_code
 
+
+# ---------------------------------------------------------------
+# FARM DELETION, MAP AND OBSERVATION
+# ---------------------------------------------------------------
 
 @admin_bp.route('/farms/<farm_id>', methods=['DELETE'])
 @token_required
@@ -526,6 +552,10 @@ def run_farm_observation(current_user, farm_id):
         return jsonify({'success': False, 'message': str(e)}), 400
 
 
+# ---------------------------------------------------------------
+# ACTIVITY LOGS
+# ---------------------------------------------------------------
+
 @admin_bp.route('/activities', methods=['GET'])
 @token_required
 @role_required('super_admin')
@@ -566,7 +596,9 @@ def get_admin_activities(current_user):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-# ======================== RECENT ACTIVITIES ========================
+# ---------------------------------------------------------------
+# RECENT ACTIVITIES (CMS)
+# ---------------------------------------------------------------
 
 @admin_bp.route('/recent-activities', methods=['GET'])
 @token_required
@@ -753,6 +785,10 @@ def delete_recent_activity(current_user, activity_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
+# ---------------------------------------------------------------
+# GIS DATA UPLOAD
+# ---------------------------------------------------------------
+
 @admin_bp.route('/gis/upload', methods=['POST'])
 @token_required
 @role_required('super_admin')
@@ -781,7 +817,6 @@ def upload_gis_data(current_user):
     if not farm:
         return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
 
-    # Ambil boundary untuk safety bounds
     def parse_boundary_bbox(f):
         if not f.boundary: return None
         try:
@@ -810,27 +845,24 @@ def upload_gis_data(current_user):
         else:
             return jsonify({'success': False, 'message': 'Hanya mendukung file .csv dan .json'}), 400
 
-        # Helper
         def random_point(box):
             return random.uniform(box[0], box[1]), random.uniform(box[2], box[3])
 
         ANOMALY_THRESH = {'ndvi': 0.4, 'soc': 30.0, 'biomass': 80.0, 'yield': 1.2, 'soilnpk': 100.0}
         UNITS = {'ndvi': 'index', 'soc': 'Ton C/Ha', 'biomass': 'Kg C/Ha', 'yield': 'Ton/Ha', 'soilnpk': 'kg NPK/Ha'}
 
-        # Hapus data yang ada untuk farm_id & period ini agar tidak duplikat
         GisLayer.query.filter_by(farm_id=farm_id, period=period).delete()
         db.session.commit()
 
         layers_to_add = []
 
-        # Ambil max 500 titik per upload agar DB tidak over
         sampled_rows = random.sample(rows, min(500, len(rows))) if len(rows) > 500 else rows
 
         for row in sampled_rows:
             try:
                 ndvi_val = float(row.get('NDVI', 0))
                 oc_val   = float(row.get('OC', 0))
-                lat, lon = random_point(bbox) # Sementara assign ke dalam bbox farm
+                lat, lon = random_point(bbox)
 
                 param_values = {
                     'ndvi':    ndvi_val,

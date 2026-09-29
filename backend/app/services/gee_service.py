@@ -112,7 +112,6 @@ class GEEService:
     def get_farm_pixel_samples_from_gee(cls, geometry, scale=10, max_cloud=20, start_date=None, end_date=None):
         import math
         cls.initialize()
-        # GeoJSON Polygon maupun MultiPolygon; semua bagian MultiPolygon ikut disampel.
         aoi = ee.Geometry(geometry)
 
         area_m2 = aoi.area().getInfo()
@@ -120,7 +119,6 @@ class GEEService:
         if is_small_farm:
             scale = max(3, math.floor(math.sqrt(area_m2 / 80)))
             logger.info(f"Lahan sempit ({area_m2/10000:.2f} Ha). Menggunakan micro-scale: {scale}m.")
-        # Lahan besar tetap scale native 10m - numPixels di bawah yang membatasi jumlah titik.
 
         s2_base = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED').filterBounds(aoi)
         if start_date and end_date:
@@ -133,8 +131,6 @@ class GEEService:
                 f"Coba pilih periode/bulan lain."
             )
 
-        # Tutupan awan tidak difilter kaku: ambil citra paling sedikit awannya di periode ini,
-        # supaya bulan basah tetap menghasilkan data walau semua citranya berawan.
         s2_image = s2_base.sort('CLOUDY_PIXEL_PERCENTAGE', True).first()
 
         cloud_pct = round(float(s2_image.get('CLOUDY_PIXEL_PERCENTAGE').getInfo()), 2)
@@ -153,9 +149,6 @@ class GEEService:
 
         s2_selected = s2_image.select(cls.DEFAULT_12_BANDS)
 
-        # DEM tidak di-clip: kernel 3x3 slope/aspect butuh tetangga di luar AOI, kalau
-        # di-clip seluruh slope/aspect/TWI jadi NULL di lahan sempit dan dropNulls=True
-        # membuang semua titik sampelnya.
         dem = ee.Image('USGS/SRTMGL1_003')
         elevation = dem.select('elevation')
         slope = ee.Terrain.slope(elevation).rename('slope')
@@ -167,8 +160,6 @@ class GEEService:
         topo_image = elevation.addBands([slope, aspect, twi])
         combined = s2_selected.addBands(topo_image)
 
-        # Buffer hanya untuk lahan sempit agar tetap dapat piksel. Di lahan besar buffer ikut
-        # menyampel jalan di sekitar batas dan menyusutkan lubang (kolam/jalan di dalam lahan).
         if is_small_farm:
             sample_region = aoi.buffer(max(10, int(scale * 1.5)))
         else:
@@ -181,8 +172,6 @@ class GEEService:
         )
         feats = samples_fc.getInfo().get('features', [])
 
-        # ERA5-Land beresolusi ~11 km sehingga seluruh lahan jatuh di satu sel:
-        # diambil sekali lalu disalin ke tiap titik, bukan di-sample per piksel.
         era5 = cls.get_era5_features(aoi, start_date, end_date)
 
         pixel_data = []
@@ -197,7 +186,6 @@ class GEEService:
                     'properties': {**_sanitize_properties(props), **era5}
                 })
 
-        # Fallback jika lahan terlalu sempit untuk scale 10m sehingga 0 piksel terambil
         if not pixel_data:
             centroid = aoi.centroid()
             sampled_centroid = combined.reduceRegion(reducer=ee.Reducer.mean(), geometry=aoi, scale=scale).getInfo() or {}

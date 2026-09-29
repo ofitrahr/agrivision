@@ -9,8 +9,9 @@ import api from '../../shared/api/axios';
 import { getSdgMeta } from '../../shared/constants/sdg';
 import { fmtDate } from '../../shared/utils/date';
 
-// Morfologi status (plan revisi #13). Warna yang dijaga netral & profesional,
-// mengikuti palet aplikasi (hijau tua sebagian besar), bukan pelangi.
+// ---------------------------------------------------------------
+// STATUS BADGE
+// ---------------------------------------------------------------
 const STATUS_MAP = {
   FULFILLED: { text: 'Terpenuhi', bg: '#116c4a', icon: CheckCircle2 },
   CONTRIBUTING: { text: 'Berkontribusi', bg: '#B45309', icon: Clock3 },
@@ -28,6 +29,9 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// ---------------------------------------------------------------
+// SUB-COMPONENTS
+// ---------------------------------------------------------------
 const Field = ({ icon, label, value }) => (
   <div>
     <div className="form-label" style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -52,7 +56,6 @@ const statusText = (status) => ({
   cancelled: 'Dibatalkan',
 }[status] || status || '-');
 
-// penanda status visual hasil (tanpa warna SDG). uniform green bar + tick threshold.
 const ProgressBar = ({ score, threshold, assessed }) => (
   <div>
     <div style={{ position: 'relative', height: 10, background: '#EDF0F2', borderRadius: 9999 }}>
@@ -75,6 +78,9 @@ const ProgressBar = ({ score, threshold, assessed }) => (
   </div>
 );
 
+// ---------------------------------------------------------------
+// ASSESSMENT FLOW PAGE
+// ---------------------------------------------------------------
 const AssessmentFlowPage = ({ role = 'manager' }) => {
   const navigate = useNavigate();
   const [companies, setCompanies] = useState([]);
@@ -92,7 +98,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
   const [expandedGoals, setExpandedGoals] = useState([]);
   const [answersDetail, setAnswersDetail] = useState(null);
   const [showAnswers, setShowAnswers] = useState(false);
-  const [step, setStep] = useState('project'); // project | form | result
+  const [step, setStep] = useState('project');
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -316,7 +322,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
         </div>
       )}
 
-      {/* ---------- STEP: PILIH PROJECT ---------- */}
+      {/* ---------- STEP: SELECT PROJECT ---------- */}
       {step === 'project' && (
         <div className="stat-card">
           <div className="card-header" style={{ paddingBottom: 16 }}>
@@ -485,7 +491,7 @@ const AssessmentFlowPage = ({ role = 'manager' }) => {
         </div>
       )}
 
-      {/* ---------- STEP: HASIL ASSESSMENT ---------- */}
+      {/* ---------- STEP: ASSESSMENT RESULT ---------- */}
       {step === 'result' && (() => {
         const { rows, assessed, assessedCount } = buildResultRows();
         const fulfilledCount = assessed.filter(r => r.status === 'FULFILLED').length;

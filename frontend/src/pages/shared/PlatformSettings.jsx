@@ -55,7 +55,6 @@ const ToggleRow = ({ label, desc, checked, onChange }) => (
     </SettingRow>
 );
 
-// Hanya key yang dikenal backend yang dikirim/disimpan
 const pickKnownSettings = (source) =>
     Object.fromEntries(Object.keys(DEFAULT_SETTINGS).map(key => [key, source[key] ?? DEFAULT_SETTINGS[key]]));
 
@@ -64,10 +63,9 @@ const PlatformSettings = () => {
     const [activeTab, setActiveTab] = useState('units');
     const [settings, setSettings] = useState(getStoredSettings);
     const [saving, setSaving] = useState(false);
-    const [saveStatus, setSaveStatus] = useState(null); // null | 'success' | 'local'
+    const [saveStatus, setSaveStatus] = useState(null);
     const bannerTimer = useRef(null);
 
-    // Ikuti perubahan dari luar halaman, misalnya sinkronisasi server saat login
     useEffect(() => {
         const handleUpdate = () => setSettings(getStoredSettings());
         window.addEventListener('settingsUpdated', handleUpdate);
@@ -91,11 +89,9 @@ const PlatformSettings = () => {
         const payload = pickKnownSettings(settings);
         setSaving(true);
 
-        // 1) Simpan lokal + dispatch 'settingsUpdated' agar UI langsung berubah, termasuk saat offline
         storeSettings(payload);
         i18n.changeLanguage(payload.language);
 
-        // 2) Sinkron ke server
         try {
             const res = await api.put('/auth/settings', payload);
             const saved = res.data?.data;
@@ -123,7 +119,7 @@ const PlatformSettings = () => {
                 </p>
             </div>
 
-            {/* Banner hasil simpan */}
+            {/* Save Result Banner */}
             {saveStatus && (
                 <div role="status" style={{
                     padding: '12px 18px',
@@ -147,7 +143,7 @@ const PlatformSettings = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '24px', alignItems: 'start' }}>
 
-                {/* Kiri: Sidebar Tab Preferences */}
+                {/* Left: Preferences Tab Sidebar */}
                 <div style={{
                     background: '#ffffff',
                     borderRadius: '12px',
@@ -195,7 +191,7 @@ const PlatformSettings = () => {
                     </div>
                 </div>
 
-                {/* Kanan: Konten Tab */}
+                {/* Right: Tab Content */}
                 <div style={{
                     background: '#ffffff',
                     borderRadius: '12px',
@@ -276,7 +272,7 @@ const PlatformSettings = () => {
                                 </select>
                             </SettingRow>
 
-                            {/* Ambang Batas Peringatan NDVI */}
+                            {/* NDVI Warning Threshold */}
                             <div style={{ padding: '20px 0', borderBottom: '1px solid #f1f5f9' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                                     <div style={labelStyle}>{t('settings.units.ndviThreshold')}</div>
@@ -352,7 +348,7 @@ const PlatformSettings = () => {
                                 onChange={(v) => handleChange('includeLocationMetadata', v)}
                             />
 
-                            {/* Kartu info keamanan */}
+                            {/* Security Info Card */}
                             <div style={{
                                 marginTop: '24px',
                                 padding: '18px 20px',
@@ -376,7 +372,7 @@ const PlatformSettings = () => {
                         </div>
                     )}
 
-                    {/* Tombol Simpan (semua tab) */}
+                    {/* Save Button (All Tabs) */}
                     <div style={{ marginTop: '28px' }}>
                         <button
                             onClick={handleSave}

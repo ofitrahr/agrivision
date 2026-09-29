@@ -50,7 +50,7 @@ const MapCanvasToolbar = ({
         </div>
       )}
 
-      {/* Baris 1: Layer Parameter Tag Pills */}
+      {/* Row 1: Layer Parameter Tag Pills */}
       <div className="agro-map-header-row1">
         <div className="agro-header-row-label">
           <span>Layer Parameter:</span>
@@ -73,7 +73,7 @@ const MapCanvasToolbar = ({
         </div>
       </div>
 
-      {/* Baris 2: Periode Timeline Pills & Transparansi */}
+      {/* Row 2: Period Timeline Pills & Opacity */}
       <div className="agro-map-header-row2">
         <div className="agro-period-pills-group">
           <div className="agro-header-row-label">
@@ -116,7 +116,7 @@ const MapCanvasToolbar = ({
         </div>
       </div>
 
-      {/* Baris 3: Viewport Peta Bersih */}
+      {/* Row 3: Clean Map Viewport */}
       <div className="agro-map-viewport">
         <iframe
           ref={iframeRef}

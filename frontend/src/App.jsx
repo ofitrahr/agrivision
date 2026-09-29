@@ -40,6 +40,7 @@ function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/signals" element={<SignalsPage />} />
           <Route path="/mrv" element={<MRVPage />} />
@@ -48,12 +49,12 @@ function App() {
           <Route path="/trace/:projectRef" element={<TraceabilityDashboard />} />
           <Route path="/login" element={<Login />} />
 
-          {/* Rute Bersama (Authenticated) */}
+          {/* Shared Routes (Authenticated) */}
           <Route element={<ProtectedRoute allowedRoles={['super_admin', 'manager', 'board']} />}>
               <Route path="/settings" element={<PlatformSettings />} />
           </Route>
 
-          {/* Rute Super Admin */}
+          {/* Super Admin Routes */}
           <Route element={<ProtectedRoute allowedRoles={['super_admin']} />}>
               <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -70,7 +71,7 @@ function App() {
               <Route path="/admin/profile" element={<UserProfile />} />
           </Route>
 
-          {/* Rute Manager Klien */}
+          {/* Client Manager Routes */}
           <Route element={<ProtectedRoute allowedRoles={['manager']} />}>
               <Route path="/manager" element={<Navigate to="/manager/dashboard" replace />} />
               <Route path="/manager/dashboard" element={<ManagerDashboard />} />
@@ -86,7 +87,7 @@ function App() {
               <Route path="/manager/profile-user" element={<UserProfile />} />
           </Route>
 
-          {/* Rute Board */}
+          {/* Board Routes */}
           <Route element={<ProtectedRoute allowedRoles={['board']} />}>
               <Route path="/board/dashboard" element={<BoardDashboard />} />
               <Route path="/board/settings" element={<PlatformSettings />} />

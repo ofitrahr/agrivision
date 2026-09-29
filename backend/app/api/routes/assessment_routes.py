@@ -22,15 +22,10 @@ ASSESS_ROLES = ['super_admin', 'manager']
 
 
 # ---------------------------------------------------------------
-# PUBLIC TRACEABILITY (no auth required - accessed via QR code)
+# PUBLIC TRACEABILITY (QR CODE ACCESS)
 # ---------------------------------------------------------------
 @assessment_bp.route('/trace/<profile_id>', methods=['GET'])
 def api_public_traceability(profile_id):
-    """Public endpoint for traceability dashboard (accessed via QR code with profile ID).
-
-    Menggunakan ProjectTraceabilityProfile ID (bukan project name) untuk menghindari duplikasi.
-    Enforce: Profile harus status='published' untuk accessible publik.
-    """
     try:
         profile_uuid = uuid.UUID(profile_id)
     except ValueError:
@@ -40,7 +35,6 @@ def api_public_traceability(profile_id):
     if not profile:
         return jsonify({"success": False, "message": "Profile traceability tidak ditemukan"}), 404
 
-    # ✅ ENFORCE: Check publish status
     if profile.status != 'published':
         return jsonify({
             "success": False,
@@ -61,7 +55,6 @@ def api_public_traceability(profile_id):
             "image_url": sdg.image_url,
         })
 
-    # Collect unique farmers from all farms in this project
     farmers_data = []
     seen_farmer_ids = set()
     for farm in project.farms:
@@ -81,20 +74,17 @@ def api_public_traceability(profile_id):
     female_count = sum(1 for f in farmers_data if f.get('gender') and f['gender'].lower() in ['perempuan', 'female', 'f', 'wanita'])
     male_count = total_farmers - female_count
 
-    # Collect unique commodities from farm crops
     commodities = set()
     for farm in project.farms:
         for crop in farm.crops:
             if crop.crop_type:
                 commodities.add(crop.crop_type.strip())
 
-    # Collect unique farm locations
     locations = set()
     for farm in project.farms:
         if farm.location:
             locations.add(farm.location.strip())
 
-    # Fallback ke project-level jika farm tidak punya data
     commodity_str = ', '.join(sorted(commodities)) if commodities else (project.commodity or '')
     location_str = ', '.join(sorted(locations)) if locations else (project.location or '')
 
@@ -177,7 +167,7 @@ def api_list_sdgs(current_user):
 
 
 # ---------------------------------------------------------------
-# SDG INDICATOR (metadata 302 indikator, plan revisi #19.2)
+# SDG INDICATORS
 # ---------------------------------------------------------------
 @assessment_bp.route('/indicators', methods=['GET'])
 @token_required
@@ -238,7 +228,7 @@ def api_save_project_traceability(current_user, project_id):
 
 
 # ---------------------------------------------------------------
-# PROJECT SDG SELECTION (checklist admin/traceability)
+# PROJECT SDG SELECTION
 # ---------------------------------------------------------------
 @assessment_bp.route('/projects/<project_id>/project-sdgs', methods=['GET'])
 @token_required

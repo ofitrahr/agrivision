@@ -80,7 +80,6 @@ const TraceabilityDashboard = () => {
   const heroImage = profile?.hero_image_url || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200';
   const description = profile?.origin_story || profile?.description || '';
 
-  // Narrative asli dari backend (project_traceability_profiles.social_narrative dst.)
   const socialNarrative = profile?.social_narrative || '';
   const economicNarrative = profile?.economic_narrative || '';
   const environmentalNarrative = profile?.environmental_narrative || '';

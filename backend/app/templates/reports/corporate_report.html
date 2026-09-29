@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <title>{{ data.title | default('Agrivision Report') }}</title>
     <style>
-        /* Konfigurasi Halaman & Margin Cetak PDF A4 */
+        /* ---------------------------------------------------------------
+           PAGE SETUP
+           --------------------------------------------------------------- */
         @page {
             size: A4;
             margin: 1.6cm 1.5cm 1.5cm 1.5cm;
@@ -24,7 +26,6 @@
             }
         }
 
-        /* Halaman Pertama (Cover) Bersih Tanpa Footer */
         @page :first {
             @bottom-left { content: ""; }
             @bottom-right { content: ""; }
@@ -44,14 +45,13 @@
             background: #ffffff;
         }
 
-        /* Rule Pindah Halaman Antar Bab */
         .chapter-page {
             page-break-before: always;
         }
 
-        /* ============================================================ */
-        /* GAYA HALAMAN SAMPUL (COVER PAGE)                             */
-        /* ============================================================ */
+        /* ---------------------------------------------------------------
+           COVER PAGE
+           --------------------------------------------------------------- */
         .cover-container {
             padding-top: 45px;
             padding-bottom: 20px;
@@ -117,7 +117,6 @@
             max-width: 90%;
         }
 
-        /* Kotak Metadata Cover */
         .cover-meta-box {
             border: 1px solid #e5e7eb;
             border-radius: 4px;
@@ -147,7 +146,6 @@
             color: #053b26;
         }
 
-        /* Tabel Direktori Cakupan Lahan di Cover */
         .cover-scope-section {
             margin-top: 10px;
             margin-bottom: 28px;
@@ -201,9 +199,9 @@
             line-height: 1.5;
         }
 
-        /* ============================================================ */
-        /* GAYA HALAMAN ISI BAB (CONTENT PAGES)                         */
-        /* ============================================================ */
+        /* ---------------------------------------------------------------
+           CONTENT PAGES
+           --------------------------------------------------------------- */
         .page-header {
             margin-bottom: 16px;
         }
@@ -234,7 +232,6 @@
             margin: 12px 0 24px 0;
         }
 
-        /* Judul Bab */
         .chapter-title-bar {
             font-size: 11pt;
             font-weight: 800;
@@ -244,7 +241,9 @@
             margin-bottom: 22px;
         }
 
-        /* 3 KPI Cards dengan Spacing yang Lega */
+        /* ---------------------------------------------------------------
+           KPI CARDS
+           --------------------------------------------------------------- */
         .kpi-group-box {
             border: 1px solid #e5e7eb;
             border-radius: 4px;
@@ -285,7 +284,6 @@
             line-height: 1.4;
         }
 
-        /* Heading Sub-Section */
         .section-heading {
             font-size: 10.5pt;
             font-weight: 800;
@@ -294,7 +292,9 @@
             letter-spacing: -0.2px;
         }
 
-        /* Tabel Data dengan Padding Longgar & Rapi */
+        /* ---------------------------------------------------------------
+           DATA TABLES
+           --------------------------------------------------------------- */
         table.data-table {
             width: 100%;
             border-collapse: collapse;
@@ -334,11 +334,8 @@
 </head>
 <body>
 
-    <!-- ============================================================ -->
-    <!-- HALAMAN 1: COVER / SAMPUL RESMI DOKUMEN                      -->
-    <!-- ============================================================ -->
+    <!-- ============ REPORT COVER ============ -->
     <div class="cover-container">
-        <!-- Logo Ukuran Besar -->
         <div class="cover-logo-wrapper">
             {% if data.logo_base64 %}
                 <img src="{{ data.logo_base64 }}" alt="Agrivision Logo" class="cover-logo-img" />
@@ -349,7 +346,6 @@
 
         <div class="cover-divider-thick"></div>
 
-        <!-- Judul Laporan (English) -->
         <div class="cover-title-area">
             <h1 class="cover-doc-title">{{ data.header_title | default('Comprehensive Operational Report') }}</h1>
             <div class="cover-doc-desc">
@@ -357,7 +353,6 @@
             </div>
         </div>
 
-        <!-- Kotak Metadata Lahan (English Labels) -->
         <div class="cover-meta-box">
             <table class="cover-meta-table" cellpadding="0" cellspacing="0">
                 <tr>
@@ -383,7 +378,6 @@
             </table>
         </div>
 
-        <!-- Direktori Cakupan Lahan -->
         {% if data.selected_farms and data.selected_farms | length > 0 %}
         <div class="cover-scope-section">
             <div class="cover-scope-title">FARMLAND SCOPE & ASSET DIRECTORY</div>
@@ -416,7 +410,6 @@
         </div>
         {% endif %}
 
-        <!-- Footer Tanggal Cover (WIB) -->
         <div class="cover-footer-note">
             Generated automatically via Agrivision Platform • Issue Date: {{ data.generated_at }}
         </div>
@@ -424,12 +417,9 @@
 
     {% set ns = namespace(chapter_num=1) %}
 
-    <!-- ============================================================ -->
-    <!-- CHAPTER 1: SOIL HEALTH & NUTRIENTS                           -->
-    <!-- ============================================================ -->
+    <!-- ============ CHAPTER 1: SOIL HEALTH & NUTRIENTS ============ -->
     {% if data.show_agronomy %}
     <div class="chapter-page">
-        <!-- HEADER HALAMAN -->
         <div class="page-header">
             <div class="logo-row">
                 {% if data.logo_base64 %}
@@ -443,12 +433,10 @@
         </div>
         <div class="header-divider"></div>
 
-        <!-- JUDUL BAB (ENGLISH) -->
         <div class="chapter-title-bar">
             {{ "%02d" | format(ns.chapter_num) }} • SOIL HEALTH & NUTRIENTS
         </div>
 
-        <!-- 3 KPI CARDS -->
         <div class="kpi-group-box">
             <table class="kpi-table" cellpadding="0" cellspacing="0">
                 <tr>
@@ -471,7 +459,6 @@
             </table>
         </div>
 
-        <!-- TABEL INDIKATOR TANAH (NPK DALAM MG/KG) -->
         <div class="section-heading">Soil Health & Nutrient Indicators</div>
         <table class="data-table" cellpadding="0" cellspacing="0">
             <thead>
@@ -523,12 +510,9 @@
     {% set ns.chapter_num = ns.chapter_num + 1 %}
     {% endif %}
 
-    <!-- ============================================================ -->
-    <!-- CHAPTER 2: CARBON BALANCE & ENVIRONMENTAL SUSTAINABILITY     -->
-    <!-- ============================================================ -->
+    <!-- ============ CHAPTER 2: CARBON BALANCE & ENVIRONMENTAL SUSTAINABILITY ============ -->
     {% if data.show_carbon %}
     <div class="chapter-page">
-        <!-- HEADER HALAMAN -->
         <div class="page-header">
             <div class="logo-row">
                 {% if data.logo_base64 %}
@@ -542,12 +526,10 @@
         </div>
         <div class="header-divider"></div>
 
-        <!-- JUDUL BAB (ENGLISH) -->
         <div class="chapter-title-bar">
             {{ "%02d" | format(ns.chapter_num) }} • CARBON BALANCE & ENVIRONMENTAL SUSTAINABILITY
         </div>
 
-        <!-- 3 KPI CARDS -->
         <div class="kpi-group-box">
             <table class="kpi-table" cellpadding="0" cellspacing="0">
                 <tr>
@@ -570,7 +552,6 @@
             </table>
         </div>
 
-        <!-- TABEL RINCIAN CADANGAN KARBON MURNI GIS (TABEL ESG DICORET DIHAPUS) -->
         <div class="section-heading">Carbon Stock & Storage Accounting Breakdown</div>
         <table class="data-table" cellpadding="0" cellspacing="0">
             <thead>
@@ -607,12 +588,9 @@
     {% set ns.chapter_num = ns.chapter_num + 1 %}
     {% endif %}
 
-    <!-- ============================================================ -->
-    <!-- CHAPTER 3: PRODUCTIVITY & FARM FINANCIAL PERFORMANCE         -->
-    <!-- ============================================================ -->
+    <!-- ============ CHAPTER 3: PRODUCTIVITY & FARM FINANCIAL PERFORMANCE ============ -->
     {% if data.show_finance %}
     <div class="chapter-page">
-        <!-- HEADER HALAMAN -->
         <div class="page-header">
             <div class="logo-row">
                 {% if data.logo_base64 %}
@@ -626,12 +604,10 @@
         </div>
         <div class="header-divider"></div>
 
-        <!-- JUDUL BAB (ENGLISH) -->
         <div class="chapter-title-bar">
             {{ "%02d" | format(ns.chapter_num) }} • PRODUCTIVITY & FARM FINANCIAL PERFORMANCE
         </div>
 
-        <!-- 3 KPI CARDS -->
         <div class="kpi-group-box">
             <table class="kpi-table" cellpadding="0" cellspacing="0">
                 <tr>
@@ -654,7 +630,6 @@
             </table>
         </div>
 
-        <!-- TABEL KEUANGAN (HANYA POS DAN NILAI NOMINAL RIIL) -->
         <div class="section-heading">Financial Position & Operating Performance</div>
         <table class="data-table" cellpadding="0" cellspacing="0">
             <thead>
@@ -682,12 +657,9 @@
     {% set ns.chapter_num = ns.chapter_num + 1 %}
     {% endif %}
 
-    <!-- ============================================================ -->
-    <!-- CHAPTER 4: FARMER PARTNERS & SOCIAL EMPOWERMENT              -->
-    <!-- ============================================================ -->
+    <!-- ============ CHAPTER 4: FARMER PARTNERS & SOCIAL EMPOWERMENT ============ -->
     {% if data.show_social %}
     <div class="chapter-page">
-        <!-- HEADER HALAMAN -->
         <div class="page-header">
             <div class="logo-row">
                 {% if data.logo_base64 %}
@@ -701,12 +673,10 @@
         </div>
         <div class="header-divider"></div>
 
-        <!-- JUDUL BAB (ENGLISH) -->
         <div class="chapter-title-bar">
             {{ "%02d" | format(ns.chapter_num) }} • FARMER PARTNERS & SOCIAL EMPOWERMENT
         </div>
 
-        <!-- 3 KPI CARDS -->
         <div class="kpi-group-box">
             <table class="kpi-table" cellpadding="0" cellspacing="0">
                 <tr>
@@ -729,7 +699,6 @@
             </table>
         </div>
 
-        <!-- TABEL REGISTER PETANI BINAAN (MURNI MODEL FARMER) -->
         <div class="section-heading">Registered Farmer Partner Roster</div>
         <table class="data-table" cellpadding="0" cellspacing="0">
             <thead>
@@ -755,12 +724,9 @@
     {% set ns.chapter_num = ns.chapter_num + 1 %}
     {% endif %}
 
-    <!-- ============================================================ -->
-    <!-- CHAPTER 5: TRACEABILITY & SUPPLY INTEGRITY                   -->
-    <!-- ============================================================ -->
+    <!-- ============ CHAPTER 5: TRACEABILITY & SUPPLY INTEGRITY ============ -->
     {% if data.show_traceability %}
     <div class="chapter-page">
-        <!-- HEADER HALAMAN -->
         <div class="page-header">
             <div class="logo-row">
                 {% if data.logo_base64 %}
@@ -774,12 +740,10 @@
         </div>
         <div class="header-divider"></div>
 
-        <!-- JUDUL BAB (ENGLISH) -->
         <div class="chapter-title-bar">
             {{ "%02d" | format(ns.chapter_num) }} • TRACEABILITY & SUPPLY INTEGRITY
         </div>
 
-        <!-- 3 KPI CARDS METADATA TRACEABILITY -->
         <div class="kpi-group-box">
             <table class="kpi-table" cellpadding="0" cellspacing="0">
                 <tr>
@@ -802,7 +766,6 @@
             </table>
         </div>
 
-        <!-- TABEL PARAMETER KETERTELUSURAN -->
         <div class="section-heading">Supply Chain Traceability Parameters</div>
         <table class="data-table" cellpadding="0" cellspacing="0">
             <thead>
@@ -831,7 +794,6 @@
             </tbody>
         </table>
 
-        <!-- TABEL BATCH PRODUKSI RIIL DARI DATABASE -->
         {% if data.traceability.batches %}
         <div class="section-heading">Registered Production Batches</div>
         <table class="data-table" cellpadding="0" cellspacing="0">

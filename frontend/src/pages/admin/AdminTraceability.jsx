@@ -54,13 +54,15 @@ const AdminTraceability = () => {
   const dropdownRef = useRef(null);
   const { user } = useContext(AuthContext);
 
-  // URL file: MinIO mengembalikan absolute URL, penyimpanan lokal relative (/static/...)
   const absoluteFileUrl = (url) => {
     if (!url) return '#';
     if (/^https?:\/\//i.test(url)) return url;
     return `${BASE_URL}${url}`;
   };
 
+  // ---------------------------------------------------------------
+  // DATA LOADING
+  // ---------------------------------------------------------------
   const loadProjectSdg = async (projectId) => {
     setLoading(true);
     setFeedback(null);
@@ -140,6 +142,9 @@ const AdminTraceability = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // ---------------------------------------------------------------
+  // COMPANY & PROJECT SELECTION
+  // ---------------------------------------------------------------
   const handleSelectCompany = async (companyId) => {
     setSelectedCompanyId(companyId);
     setCompany(companies.find(c => c.id === companyId) || null);
@@ -181,6 +186,9 @@ const AdminTraceability = () => {
     loadProjectSdg(projectId);
   };
 
+  // ---------------------------------------------------------------
+  // SDG SELECTION & ASSESSMENT SOURCE
+  // ---------------------------------------------------------------
   const handleToggleSdg = (sdgId) => {
     if (!canEdit) return;
     setSelectedSdgs(prev =>
@@ -231,6 +239,9 @@ const AdminTraceability = () => {
     setFeedback({ type: 'success', text: `Rekomendasi diterapkan: ${ids.length} SDG tercentang.` });
   };
 
+  // ---------------------------------------------------------------
+  // EVIDENCE UPLOAD
+  // ---------------------------------------------------------------
   const handleUploadEvidence = async (fileList) => {
     const files = Array.from(fileList || []);
     if (!files.length || !selectedProjectId) return;
@@ -274,6 +285,9 @@ const AdminTraceability = () => {
     }
   };
 
+  // ---------------------------------------------------------------
+  // SAVE ASSESSMENT
+  // ---------------------------------------------------------------
   const handleSave = async () => {
     if (!selectedProjectId) return;
     setConfirmOpen(false);
@@ -298,6 +312,9 @@ const AdminTraceability = () => {
     }
   };
 
+  // ---------------------------------------------------------------
+  // PAGE RENDER
+  // ---------------------------------------------------------------
   const filteredCompanies = companies.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -590,7 +607,7 @@ const AdminTraceability = () => {
             </div>
           )}
 
-          {/* Sumber assessment (questionnaire ke-N) yang dipilih admin */}
+          {/* Assessment source (Nth questionnaire) selected by admin */}
           {latestAssessment && (
             <div className="stat-card" style={{ padding: 20, marginBottom: 20, border: '1px solid #E9ECEF' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -821,7 +838,7 @@ const AdminTraceability = () => {
                 </h4>
               </div>
 
-              {/* Assessor (locked: username superadmin) */}
+              {/* Assessor (locked: superadmin username) */}
               <div style={{ marginBottom: 24 }}>
                 <label style={{
                   display: 'flex', alignItems: 'center', gap: 4,
@@ -980,7 +997,7 @@ const AdminTraceability = () => {
         </div>
       )}
 
-      {/* Modal Konfirmasi Simpan (pengaman sebelum finalisasi) */}
+      {/* Save Confirmation Modal (safeguard before finalization) */}
       {confirmOpen && (
         <div
           onClick={() => !saving && setConfirmOpen(false)}

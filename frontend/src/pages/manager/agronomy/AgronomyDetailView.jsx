@@ -14,7 +14,6 @@ const MONTH_NAMES_ID = [
   'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
 ];
 
-// 5 bulan berurutan berakhir di bulan berjalan, dipakai sebelum daftar periode asli dari API tersedia
 const buildFallbackPeriods = () => {
   const now = new Date();
   const periods = [];
@@ -79,17 +78,15 @@ const AgronomyDetailView = ({
     }
   }, []);
 
-  // Periode yang sedang aktif pada time slider (dipakai untuk fetch statistik & notifikasi ke parent)
   const activePeriodId = periods[currentPeriodIdx]?.id ?? periods[periods.length - 1]?.id ?? null;
 
   useEffect(() => {
     if (!farm?.id || periods.length === 0) return;
 
-    // When selectedLayer is soilnpk, we fetch based on activeSubLayer
     let fetchLayer = selectedLayer;
     if (selectedLayer === 'soilnpk') {
       fetchLayer = activeSubLayer;
-      onLayerChange(activeSubLayer); // Keep map in sync
+      onLayerChange(activeSubLayer);
     } else if (['nitrogen', 'phosphorus', 'potassium'].includes(selectedLayer)) {
       fetchLayer = selectedLayer;
     }
@@ -97,9 +94,6 @@ const AgronomyDetailView = ({
     fetchStats(farm.id, fetchLayer, activePeriodId);
   }, [farm?.id, selectedLayer, currentPeriodIdx, fetchStats, periods, activeSubLayer, onLayerChange, activePeriodId]);
 
-  // Beri tahu parent (ManagerAgronomy) setiap kali periode berganti, supaya peta Folium
-  // ikut dimuat ulang untuk bulan yang dipilih. Sengaja dipisah dari effect di atas agar
-  // pergantian layer saja (tanpa ganti periode) tidak memicu fetch peta yang duplikat.
   useEffect(() => {
     if (!activePeriodId || !onPeriodChange || activePeriodId === selectedPeriod) return;
     onPeriodChange(activePeriodId);
@@ -107,7 +101,7 @@ const AgronomyDetailView = ({
 
   const handleSubLayerChange = (layer) => {
     setActiveSubLayer(layer);
-    onLayerChange(layer); // Tell parent to load map for new sublayer
+    onLayerChange(layer);
   };
 
   const handleParentLayerChange = (layer) => {
@@ -118,7 +112,6 @@ const AgronomyDetailView = ({
     }
   };
 
-  // Determine which panel to render
   const renderLeftPanel = () => {
     const actualLayer = ['nitrogen', 'phosphorus', 'potassium'].includes(selectedLayer)
       ? 'soilnpk' : selectedLayer;

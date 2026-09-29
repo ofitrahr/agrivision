@@ -1,13 +1,3 @@
-"""
-Traceability Assessment Service (Arsitektur Baru)
-
-Flow (plan.md #9, #26):
-Admin interview Manager -> Questionnaire -> Answers -> Answer Score
-    -> Question-SDG Weight -> SDG Score -> Threshold -> Assessment SDG Result
-    -> Project SDG (is_met) -> Company SDG Summary (agregasi).
-
-Menjaga paralel dengan arsitektur lama; tidak menghapus tabel lain.
-"""
 from datetime import datetime
 from decimal import Decimal
 
@@ -32,9 +22,8 @@ from app.db.models import (
 from app.services.upload_service import save_file_locally
 
 # ---------------------------------------------------------------
-# SDG MASTER
+# SDG CATALOG
 # ---------------------------------------------------------------
-# Katalog lengkap 17 SDG (goal_number, name, description) sebagai satu sumber.
 SDG_CATALOG = [
     (1, "No Poverty", "Menghapus kemiskinan dalam segala bentuknya di mana-mana"),
     (2, "Zero Hunger", "Menghapus kelaparan, mencapai ketahanan pangan dan gizi yang lebih baik, dan mendukung pertanian berkelanjutan"),
@@ -57,7 +46,7 @@ SDG_CATALOG = [
 
 
 # ---------------------------------------------------------------
-# STATUS SDG (plan revisi #13) -- dihitung engine, bukan input manual.
+# SDG STATUS EVALUATION
 # ---------------------------------------------------------------
 NOT_ASSESSED = 'NOT_ASSESSED'
 LOW_CONTRIBUTION = 'LOW_CONTRIBUTION'
@@ -66,10 +55,6 @@ FULFILLED = 'FULFILLED'
 
 
 def get_threshold_config(sdg_master):
-    """Ambil konfigurasi threshold untuk sebuah goal (plan revisi #14, #15, #44).
-
-    Threshold bersifat configurable dan BOLEH berbeda antar goal.
-    """
     return {
         'fulfilled_score': float(sdg_master.fulfilled_score),
         'minimum_applicable_questions': int(sdg_master.minimum_applicable_questions),
@@ -79,14 +64,6 @@ def get_threshold_config(sdg_master):
 
 
 def evaluate_sdg_status(score, applicable_count, answered_count, qualified_count, config):
-    """Evaluasi status SDG (plan revisi #12, #13) berbasis config, tanpa hardcode.
-
-    Config:
-      fulfilled_score            -> ambang skor untuk FULFILLED (>=
-      minimum_applicable_questions -> minimal jumlah pertanyaan applicable
-      minimum_question_score     -> ambang skor per pertanyaan utk dihitung "qualified"
-      minimum_question_coverage  -> % minim. pertanyaan yg mencapai minimum_question_score
-    """
     if applicable_count <= 0:
         return NOT_ASSESSED
 
@@ -102,19 +79,15 @@ def evaluate_sdg_status(score, applicable_count, answered_count, qualified_count
     if fulfilled:
         return FULFILLED
 
-    # Jika basis penilaian tipis (hanya 1 applicable question), score tinggi
-    # cukup menghasilkan CONTRIBUTING, BUKAN FULFILLED (plan revisi #12, #13).
     if score < 40:
         return LOW_CONTRIBUTION
     return CONTRIBUTING
 
 
+# ---------------------------------------------------------------
+# SDG MASTERS AND INDICATORS
+# ---------------------------------------------------------------
 def seed_sdg_masters(threshold=70.00):
-    """Pastikan SDG Master (goal_number 1..17) tersedia & lengkap. (plan revisi #19.1)
-
-    Idempoten: goal yang belum ada dibuat, goal yang sudah ada dilengkapi
-    description-nya tanpa mengubah threshold/data lain.
-    """
     created = 0
     updated = 0
     for num, name, description in SDG_CATALOG:
@@ -158,7 +131,6 @@ def list_sdg_masters(active_only=True):
 
 
 def list_sdg_indicators(applicable_only=False, goal_number=None):
-    """Daftar indikator SDG (metadata). Opsional filter hanya yang APPLICABLE."""
     q = SdgIndicator.query.join(SdgMaster).order_by(
         SdgMaster.goal_number, SdgIndicator.indicator_code
     )
@@ -204,7 +176,6 @@ def get_project_traceability_data(project_id):
         return {"success": False, "message": "Project tidak ditemukan"}, 404
     profile = ProjectTraceabilityProfile.query.filter_by(project_id=project_id).first()
 
-    # Project SDG hasil assessment terakhir yang completed
     project_sdgs = []
     if profile:
         rows = ProjectSdg.query.filter_by(project_traceability_id=profile.id).all()
@@ -282,7 +253,7 @@ def save_project_traceability_profile(project_id, data):
 
 
 # ---------------------------------------------------------------
-# QUESTIONNAIRE
+# QUESTIONNAIRES
 # ---------------------------------------------------------------
 def get_active_questionnaire():
     q = Questionnaire.query.filter_by(is_active=True).order_by(Questionnaire.created_at.desc()).first()
@@ -370,7 +341,7 @@ def serialize_questionnaire(questionnaire_id):
 
 
 # ---------------------------------------------------------------
-# ASSESSMENT
+# ASSESSMENTS
 # ---------------------------------------------------------------
 ALLOWED_STATUS = ['draft', 'in_progress', 'completed', 'cancelled']
 
@@ -403,12 +374,6 @@ def serialize_assessment(assessment):
 
 
 def serialize_sdg_results(assessment_id):
-    """SDG result + breakdown kontribusi per pertanyaan.
-
-    Setiap hasil menyertakan `contributions`: daftar pertanyaan yang memetakan
-    ke SDG tersebut beserta score jawaban, weight, dan kontribusinya terhadap
-    skor SDG (0-100). Digunakan UI utk menampilkan faktor yang memengaruhi score.
-    """
     assessment = TraceAssessment.query.get(assessment_id)
     rows = AssessmentSdgResult.query.filter_by(assessment_id=assessment_id).all()
     results = []
@@ -453,8 +418,6 @@ def serialize_sdg_results(assessment_id):
             "qualified_question_count": qualified,
             "coverage_percentage": coverage_pct,
             "is_met": r.is_met,
-            # Kriteria FULFILLED dievaluasi ulang dari data tersimpan agar UI
-            # bisa menjelaskan kondisi mana yang belum terpenuhi.
             "criteria": {
                 "min_score": {
                     "label": f"Skor >= {float(r.threshold):.0f}%",
@@ -502,7 +465,6 @@ def serialize_answers(assessment_id, questionnaire_id):
 
 
 def start_assessment(project_id, questionnaire_id, current_user, data=None):
-    """Mulai assessment baru (status draft -> in_progress). (plan.md #23)"""
     project = Project.query.get(project_id)
     if not project:
         return {"success": False, "message": "Project tidak ditemukan"}, 404
@@ -567,11 +529,6 @@ def get_assessment_detail(assessment_id):
 
 
 def submit_answers(assessment_id, current_user, data):
-    """Simpan jawaban & kalkulasi SDG. (plan revisi #21, #25, #33)
-
-    Semua pertanyaan bertipe SINGLE_CHOICE; score awal adalah snapshot dari
-    opsi terpilih (0-100) agar hasil historis tidak berubah.
-    """
     assessment = TraceAssessment.query.get(assessment_id)
     if not assessment:
         return {"success": False, "message": "Assessment tidak ditemukan"}, 404
@@ -585,7 +542,6 @@ def submit_answers(assessment_id, current_user, data):
 
     question_map = {str(q.id): q for q in questionnaire.questions if q.is_active}
 
-    # Hapus jawaban lama (re-submit)
     AssessmentAnswer.query.filter_by(assessment_id=assessment_id).delete()
 
     saved_count = 0
@@ -610,7 +566,7 @@ def submit_answers(assessment_id, current_user, data):
             score = 0
             answer_text = item['answer_text']
         else:
-            continue  # soal belum dijawab
+            continue
 
         answer = AssessmentAnswer(
             assessment_id=assessment_id,
@@ -623,14 +579,12 @@ def submit_answers(assessment_id, current_user, data):
         db.session.add(answer)
         saved_count += 1
 
-    # Validasi submission: semua question wajib harus dijawab (plan #25)
     required_ids = {str(q.id) for q in questionnaire.questions if q.is_active and q.is_required}
     answered_ids = {item.get('question_id') for item in answers}
     missing = required_ids - answered_ids
     if data.get('status') == 'completed' and missing:
         return {"success": False, "message": f"Masih ada {len(missing)} pertanyaan wajib yang belum dijawab"}, 400
 
-    # update status
     assessment.status = data.get('status', 'in_progress')
     if assessment.status == 'completed':
         assessment.completed_at = datetime.utcnow()
@@ -654,21 +608,13 @@ def submit_answers(assessment_id, current_user, data):
     }, 200
 
 
+# ---------------------------------------------------------------
+# SDG SCORING
+# ---------------------------------------------------------------
 def _calculate_sdg(assessment):
-    """Kalkulasi kontribusi SDG + status (plan revisi #16, #33).
-
-    Untuk setiap goal: score = rata-rata jawaban (equal weight) pertanyaan yang
-    memetakan ke goal tsb. Status (NOT_ASSESSED/LOW_CONTRIBUTION/CONTRIBUTING/
-    FULFILLED) dihitung menggunakan threshold configurable per goal.
-
-    Fungsi ini HANYA menulis AssessmentSdgResult. Penentuan SDG Project
-    (ProjectSdg) dilakukan oleh Admin pada halaman Traceability.
-    """
-    # delete hasil lama
     AssessmentSdgResult.query.filter_by(assessment_id=assessment.id).delete()
 
     answers = {a.question_id: a for a in assessment.answers}
-    # kumpulkan pertanyaan ikut serta per SDG
     questions = [q for q in assessment.questionnaire.questions if q.is_active and q.sdg_id]
 
     sdg_agg = {}
@@ -679,8 +625,6 @@ def _calculate_sdg(assessment):
         sdg_master = SdgMaster.query.get(sdg_id)
         config = get_threshold_config(sdg_master)
 
-        # Skor opsi sudah skala 0-100; skor goal = rata-rata tertimbang dari
-        # jawaban TERISI (bobot pertanyaan tak terjawab tidak ikut pembagi).
         weighted_sum = Decimal(0)
         answered_weight = Decimal(0)
         qualified = 0
@@ -716,8 +660,6 @@ def _calculate_sdg(assessment):
             calculated_at=datetime.utcnow(),
         ))
 
-    # Goal tanpa pertanyaan APPLICABLE -> NOT_ASSESSED (plan revisi #13).
-    # Pastikan setiap SDG hadir dgn status eksplisit, bukan absen.
     with_questions = set(sdg_agg.keys())
     for sdg_master in SdgMaster.query.all():
         if sdg_master.id in with_questions:
@@ -740,6 +682,9 @@ def _calculate_sdg(assessment):
     return True
 
 
+# ---------------------------------------------------------------
+# ASSESSMENT STATUS AND DELETION
+# ---------------------------------------------------------------
 def change_assessment_status(assessment_id, status):
     if status not in ALLOWED_STATUS:
         return {"success": False, "message": f"Status harus salah satu dari {ALLOWED_STATUS}"}, 400
@@ -764,16 +709,12 @@ def delete_assessment(assessment_id):
         return {"success": False, "message": "Assessment tidak ditemukan"}, 404
     profile_id = assessment.project_traceability_id
 
-    # Bug fix: hapus HANYA ProjectSdg yang result-nya berasal dari assessment
-    # ini -- bukan seluruh SDG project (ProjectSdg milik profile tetap utuh).
     result_ids = [r.id for r in AssessmentSdgResult.query.filter_by(assessment_id=assessment.id).all()]
     if result_ids:
         ProjectSdg.query.filter(
             ProjectSdg.assessment_sdg_result_id.in_(result_ids)
         ).delete(synchronize_session=False)
 
-    # Lepaskan tautan sumber di verification bila menunjuk assessment ini;
-    # fallback otomatis kembali ke assessment completed terbaru tersisa.
     ProjectSdgVerification.query.filter_by(source_assessment_id=assessment.id).update(
         {"source_assessment_id": None}, synchronize_session=False
     )
@@ -784,7 +725,7 @@ def delete_assessment(assessment_id):
 
 
 # ---------------------------------------------------------------
-# COMPANY SDG SUMMARY (plan.md #8, #36)
+# COMPANY SDG SUMMARY
 # ---------------------------------------------------------------
 def get_company_sdg_summary(company_id):
     projects = Project.query.filter_by(company_id=company_id).all()
@@ -814,7 +755,7 @@ def get_company_sdg_summary(company_id):
 
 
 # ---------------------------------------------------------------
-# PROJECT SDG SELECTION (admin/traceability, per project)
+# PROJECT SDG SELECTION
 # ---------------------------------------------------------------
 def _serialize_project_verification(verification):
     evidences = []
@@ -832,7 +773,6 @@ def _serialize_project_verification(verification):
         "assessment_date": verification.assessment_date.isoformat() if verification and verification.assessment_date else None,
         "source_assessment_id": str(verification.source_assessment_id) if verification and verification.source_assessment_id else None,
         "evidences": evidences,
-        # Status simpan untuk UI (Google Classroom-style): "saved" | "unsaved"
         "save_state": getattr(verification, 'save_state', 'unsaved') if verification else 'unsaved',
     }
 
@@ -853,7 +793,6 @@ def _get_latest_completed_assessment(profile):
 
 
 def _list_completed_assessments(profile):
-    """Semua assessment completed milik profile, urut terbaru -> lama."""
     if not profile:
         return []
     return TraceAssessment.query.filter_by(
@@ -863,7 +802,6 @@ def _list_completed_assessments(profile):
 
 
 def _serialize_completed_assessment(assessment, result_rows=None):
-    """Ringkasan assessment completed utk dropdown pemilihan sumber SDG."""
     if result_rows is None:
         result_rows = AssessmentSdgResult.query.filter_by(assessment_id=assessment.id).all()
     return {
@@ -878,12 +816,6 @@ def _serialize_completed_assessment(assessment, result_rows=None):
 
 
 def _resolve_source_assessment(profile, verification, requested_assessment_id=None):
-    """Tentukan assessment sumber (questionnaire ke-N) untuk SDG project.
-
-    Prioritas: assessment_id yang diminta admin (validasi milik project ini &
-    completed) -> assessment tersimpan di verification -> assessment terbaru.
-    Return (assessment, error_message).
-    """
     completed = _list_completed_assessments(profile)
 
     if requested_assessment_id:
@@ -907,9 +839,6 @@ def _resolve_source_assessment(profile, verification, requested_assessment_id=No
 
 
 def get_project_sdg_selection(project_id):
-    """Data halaman admin/traceability (project-level):
-    katalog SDG + status terpilih + verifikasi + daftar assessment completed
-    (dropdown pemilihan sumber/questionnaire ke-N) + hasil dari sumber terpilih."""
     project = Project.query.get(project_id)
     if not project:
         return {"success": False, "message": "Project tidak ditemukan"}, 404
@@ -921,11 +850,8 @@ def get_project_sdg_selection(project_id):
     selected_map = {ps.sdg_id: ps for ps in selected_rows}
     verification = ProjectSdgVerification.query.filter_by(project_traceability_id=profile.id).first() if profile else None
 
-    # Sumber hasil: assessment yang dipilih admin (persist di verification),
-    # fallback ke assessment terbaru bila belum pernah memilih.
     source, _err = _resolve_source_assessment(profile, verification)
 
-    # Hasil per-SDG dari assessment terpilih, panduan checklist admin.
     result_map = {}
     source_results = []
     if source:
@@ -993,7 +919,6 @@ def get_project_sdg_selection(project_id):
 
 
 def save_project_sdg_selection(project_id, data, current_user=None):
-    """Simpan checklist SDG project + lock assessor (username admin) + save state."""
     project = Project.query.get(project_id)
     if not project:
         return {"success": False, "message": "Project tidak ditemukan"}, 404
@@ -1004,7 +929,6 @@ def save_project_sdg_selection(project_id, data, current_user=None):
         db.session.add(profile)
         db.session.flush()
 
-    # Assessment sumber (questionnaire ke-N) yang dipilih admin.
     source_assessment, err = _resolve_source_assessment(
         profile, None, requested_assessment_id=data.get('assessment_id')
     )
@@ -1034,7 +958,6 @@ def save_project_sdg_selection(project_id, data, current_user=None):
             )
             db.session.add(ps)
         elif ps.assessment_sdg_result_id != result_map.get(sdg_id):
-            # Re-link ke hasil dari assessment sumber yang dipilih admin
             ps.assessment_sdg_result_id = result_map.get(sdg_id)
 
     removed_query = ProjectSdg.query.filter(ProjectSdg.project_traceability_id == profile.id)
@@ -1044,7 +967,6 @@ def save_project_sdg_selection(project_id, data, current_user=None):
         db.session.delete(r)
 
     verification = _get_or_create_project_verification(profile)
-    # Assessor dikunci dari akun superadmin yang sedang login (tidak bisa diedit admin)
     if current_user is not None:
         verification.assessed_by = (getattr(current_user, 'full_name', None)
                                     or getattr(current_user, 'username', None)
@@ -1066,8 +988,10 @@ def save_project_sdg_selection(project_id, data, current_user=None):
     }, 200
 
 
+# ---------------------------------------------------------------
+# PROJECT SDG EVIDENCE
+# ---------------------------------------------------------------
 def upload_project_sdg_evidence(project_id, file):
-    """Upload bukti pendukung (APPEND — multi dokumen, tidak menimpa)."""
     project = Project.query.get(project_id)
     if not project:
         return {"success": False, "message": "Project tidak ditemukan"}, 404
@@ -1097,7 +1021,6 @@ def upload_project_sdg_evidence(project_id, file):
         uploaded_at=datetime.utcnow(),
     )
     db.session.add(evidence)
-    # Evidence baru = ada perubahan yang belum difinalisasi
     verification.save_state = 'unsaved'
     db.session.commit()
 
@@ -1109,7 +1032,6 @@ def upload_project_sdg_evidence(project_id, file):
 
 
 def delete_project_sdg_evidence_file(project_id, evidence_id):
-    """Hapus SATU file bukti berdasarkan id (bukan semua)."""
     project = Project.query.get(project_id)
     if not project:
         return {"success": False, "message": "Project tidak ditemukan"}, 404
@@ -1137,18 +1059,9 @@ def delete_project_sdg_evidence_file(project_id, evidence_id):
 
 
 # ---------------------------------------------------------------
-# QR CODE GENERATION (On-Demand, No DB Storage)
+# TRACEABILITY QR CODE
 # ---------------------------------------------------------------
 def generate_traceability_qr(project_id, base_url=None):
-    """Generate QR code untuk public traceability profile.
-
-    QR berisi link ke: /public/trace/{profile_id}
-    Bukan pakai project name (cegah duplikasi).
-
-    base_url diresolusi di route (origin request) agar link mengikuti domain deploy.
-
-    Return: base64 encoded image + link (tanpa disimpan ke DB/storage)
-    """
     import base64
     import os
     from io import BytesIO
@@ -1167,7 +1080,6 @@ def generate_traceability_qr(project_id, base_url=None):
     qr_link = f"{base_url}/trace/{str(profile.id)}"
 
     try:
-        # Generate QR code in-memory
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -1177,10 +1089,8 @@ def generate_traceability_qr(project_id, base_url=None):
         qr.add_data(qr_link)
         qr.make(fit=True)
 
-        # Create image
         img = qr.make_image(fill_color="black", back_color="white")
 
-        # Convert ke base64
         buffered = BytesIO()
         img.save(buffered, format="PNG")
         img_base64 = base64.b64encode(buffered.getvalue()).decode()

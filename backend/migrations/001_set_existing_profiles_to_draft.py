@@ -1,15 +1,8 @@
 #!/usr/bin/env python
-"""
-Migration: Set existing traceability profiles to draft status.
-
-Run manually: python backend/migrations/001_set_existing_profiles_to_draft.py
-"""
-
 import psycopg2
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
 
 DB_USER = os.getenv('DB_USER', 'postgres')
@@ -19,9 +12,7 @@ DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = os.getenv('DB_PORT', '5433')
 
 def run_migration():
-    """Set all existing profiles to 'draft' status."""
     try:
-        # Connect to database
         conn = psycopg2.connect(
             host=DB_HOST,
             port=DB_PORT,
@@ -31,7 +22,6 @@ def run_migration():
         )
         cursor = conn.cursor()
 
-        # SQL: Set existing profiles to 'draft' if status is NULL or not 'published'
         sql = """
         UPDATE project_traceability_profiles
         SET status = 'draft'
@@ -46,7 +36,6 @@ def run_migration():
         print(f"✅ Migration completed successfully!")
         print(f"   Updated {rows_updated} profile(s) to 'draft' status")
 
-        # Show updated records
         cursor.execute("""
         SELECT id, status, updated_at FROM project_traceability_profiles
         ORDER BY updated_at DESC LIMIT 5;

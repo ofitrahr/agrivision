@@ -11,7 +11,6 @@ from app.db.database import db
 
 
 def _setup_logging():
-    """Tanpa ini root logger tetap WARNING dan seluruh logger.info dibuang diam-diam."""
     level = getattr(logging, os.getenv('LOG_LEVEL', 'INFO').upper(), logging.INFO)
     root = logging.getLogger()
     root.setLevel(level)
@@ -26,7 +25,6 @@ def create_app():
     _setup_logging()
     app = Flask(__name__)
 
-    #Load Konfigurasi database  
     app.config.from_object(Config)
 
     CORS(app, origins=app.config['CORS_ORIGINS'], supports_credentials=True)

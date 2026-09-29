@@ -8,7 +8,6 @@ const NdviPanel = ({ statsData, statsLoading, farm }) => {
   const { t } = useTranslation();
   const [ndviThreshold, setNdviThreshold] = useState(() => getStoredSettings().ndviThreshold);
 
-  // Ikuti perubahan ambang batas dari halaman Settings
   useEffect(() => {
     const handleUpdate = () => setNdviThreshold(getStoredSettings().ndviThreshold);
     window.addEventListener('settingsUpdated', handleUpdate);
@@ -28,7 +27,7 @@ const NdviPanel = ({ statsData, statsLoading, farm }) => {
     <div className="agro-panel agro-panel-left">
       <h2 style={{ fontSize: 16, marginTop: 0, marginBottom: 16, color: '#116a3a' }}>Index Kesehatan Tanaman (NDVI)</h2>
 
-      {/* Status vegetasi terhadap ambang batas NDVI dari Settings */}
+      {/* Vegetation status against the NDVI threshold */}
       {hasMean && (
         <div className="agro-panel-section">
           {isStressed ? (

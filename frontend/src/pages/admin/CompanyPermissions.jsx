@@ -12,7 +12,6 @@ const CompanyPermissions = () => {
     const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
     const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
     const closeAlert = () => {
-        // Setelah sukses simpan, kembali ke daftar klien
         if (alertState.type === 'success') navigate('/admin/companies');
         setAlertState(prev => ({ ...prev, isOpen: false }));
     };
@@ -61,7 +60,6 @@ const CompanyPermissions = () => {
         />
     );
 
-    // Gagal fetch membuat permissions null, jadi modal juga dirender di sini
     if (loading || !permissions) return (
         <div style={{ padding: '30px' }}>
             Memuat konfigurasi...

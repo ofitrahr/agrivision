@@ -12,7 +12,6 @@ COMPANY_NAME = "PT Uji coba"
 LOCATION = "Purwakarta, Jawa Barat"
 GEOJSON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'seed_data', 'purwakarta')
 
-# Area_Eksisting_Clean.json (17 poligon) + Areal_Penambahan.geojson digabung jadi satu lahan.
 FARM_NAME = "Lahan Uji Coba"
 FARM_GEOJSON = "area_eksisting_dan_penambahan.geojson"
 FARMERS = [
@@ -26,7 +25,6 @@ def get_password_hash(password):
 
 
 def load_boundary(filepath):
-    """Semua feature Polygon/MultiPolygon di file digabung jadi satu MultiPolygon GeoJSON."""
     with open(filepath, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
@@ -44,16 +42,12 @@ def load_boundary(filepath):
 
 
 def to_boundary(geojson_geom):
-    # Sama dengan create_farm di admin_routes: lubang ikut terbaca, poligon tidak valid dirapikan,
-    # bagian yang bersentuhan dilebur, dan koordinat Z dibuang.
     return func.ST_UnaryUnion(func.ST_CollectionExtract(func.ST_MakeValid(
         func.ST_Force2D(func.ST_SetSRID(func.ST_GeomFromGeoJSON(json.dumps(geojson_geom)), 4326))
     ), 3))
 
 
 def seed_super_admin():
-    # Company terpisah dari Purwakarta supaya seed ulang Purwakarta (delete cascade)
-    # tidak ikut menghapus superadmin.
     if User.query.filter_by(username="superadmin").first():
         print("Superadmin sudah ada, dilewati.")
         return

@@ -18,6 +18,9 @@ from app.db.models import (
 from app.services.upload_service import save_file_locally
 
 
+# ---------------------------------------------------------------
+# DASHBOARD
+# ---------------------------------------------------------------
 def get_dashboard_stats():
     total_companies = Company.query.count() 
     active_companies = Company.query.filter_by(is_active= True).count()
@@ -40,6 +43,9 @@ def get_dashboard_stats():
         }
     }
 
+# ---------------------------------------------------------------
+# COMPANIES
+# ---------------------------------------------------------------
 def get_all_companies():
     companies = Company.query.order_by(Company.created_at.desc()).all()
 
@@ -69,7 +75,7 @@ def create_company(data):
             branding_color = data.get('branding_color', '#2D6A4F')
         )
         db.session.add(new_company)
-        db.session.flush() # Menyimpan sementara untuk mendapatkan new_company.id
+        db.session.flush()
 
         db.session.commit()
         return {"success": True, "messages": "Company berhasil dibuat", "data": {"id": str(new_company.id)}}
@@ -104,8 +110,10 @@ def update_company(company_id, data):
         return {"success": False, "message": f"Gagal mengupdate company: {str(e)}"}
     
 
+# ---------------------------------------------------------------
+# USERS
+# ---------------------------------------------------------------
 def get_company_users(company_id):
-    # Mengambil semua user yang terdaftar di project-project milik company ini
     users = User.query.join(Project).filter(Project.company_id == company_id).all()
     
     result = []
@@ -129,17 +137,14 @@ def create_company_user(company_id, data):
         if not company:
             return {"success": False, "message": "Company tidak ditemukan"}
             
-        # 1. Pastikan project_id dikirim dari frontend
         project_id = data.get('project_id')
         if not project_id:
             return {"success": False, "message": "Pilih Project terlebih dahulu untuk user ini"}
             
-        # 2. Cek apakah project valid dan milik company ini
         project = Project.query.filter_by(id=project_id, company_id=company_id).first()
         if not project:
             return {"success": False, "message": "Project tidak valid atau bukan milik company ini"}
             
-        # 3. Cek batasan kuota user per company
         current_users_count = User.query.join(Project).filter(Project.company_id == company_id).count()
         if current_users_count >= company.max_users:
             return {"success": False, "message": f"Kuota penuh. Maksimal {company.max_users} user."}
@@ -159,7 +164,6 @@ def create_company_user(company_id, data):
         salt = bcrypt.gensalt()
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
             
-        # 4. Simpan ke Database dengan project_id
         new_user = User(
             project_id=project_id, 
             username=data.get('username'),
@@ -229,6 +233,9 @@ def delete_user(user_id):
         db.session.rollback()
         return {"success": False, "message": f"Gagal menghapus user: {str(e)}"}
 
+# ---------------------------------------------------------------
+# PROJECTS
+# ---------------------------------------------------------------
 def get_company_projects(company_id):
     project = Project.query.filter_by(company_id = company_id).order_by(Project.created_at.desc()).all()
     result = []
@@ -310,10 +317,9 @@ def delete_project(project_id):
         return {"success": False, "message": f"Gagal menghapus project: {str(e)}"}, 500
 
 
-# ==========================================
-# TRACEABILITY - SDG ASSESSMENT (COMPANY LEVEL)
-# ==========================================
-
+# ---------------------------------------------------------------
+# COMPANY SDG ASSESSMENT
+# ---------------------------------------------------------------
 def _get_or_create_verification(company):
     verification = CompanySdgVerification.query.filter_by(company_id=company.id).first()
     if not verification:
@@ -476,6 +482,9 @@ def delete_company_sdg_verification(company_id):
         db.session.rollback()
         return {"success": False, "message": str(e)}, 500
 
+# ---------------------------------------------------------------
+# PROJECT TRACEABILITY
+# ---------------------------------------------------------------
 def get_project_traceability_data(project_id):
     try:
         project = Project.query.get(project_id)

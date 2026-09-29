@@ -1,17 +1,4 @@
 #!/usr/bin/env python
-"""Jalankan analisis satelit untuk periode yang punya catatan panen.
-
-Tanggal panen dibaca dari Rekap_Data_Periodik_2025-2026.xlsx, lalu dipetakan ke
-periode bulanan karena pipeline observasi bekerja per bulan. Menganalisis persis
-bulan-bulan berpanen membuat kalibrasi yield punya pijakan di setiap periode.
-
-  python scripts/analyze_by_harvest_date.py --list
-  python scripts/analyze_by_harvest_date.py --dry-run
-  python scripts/analyze_by_harvest_date.py --skip-existing
-  python scripts/analyze_by_harvest_date.py --periods 2026-03,2026-04
-  python scripts/analyze_by_harvest_date.py --farms "Blok 3,Blok 1"
-"""
-
 import argparse
 import os
 import sys

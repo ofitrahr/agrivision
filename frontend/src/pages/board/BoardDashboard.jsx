@@ -170,7 +170,7 @@ const BoardDashboard = () => {
                 </Card>
             )}
 
-            {/* Metrik Utama (Cards) */}
+            {/* Main Metrics (Cards) */}
             <div className="stats-grid">
                 {loading ? (
                     Array.from({ length: 4 }).map((_, i) => (
@@ -209,10 +209,10 @@ const BoardDashboard = () => {
                 )}
             </div>
 
-            {/* Analitik Grafik Ekologi & Sosial */}
+            {/* Ecological & Social Analytics Charts */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 'var(--gutter)', marginBottom: 'var(--space-lg)' }}>
                 
-                {/* Chart 1: Ekologi (Distribusi Lahan) */}
+                {/* Chart 1: Ecological (Land Distribution) */}
                 <Card title="Biodiversity (Ekologi)">
                     {loading ? (
                         <div className="skeleton-text" style={{ width: '100%', height: '280px' }}></div>
@@ -238,7 +238,7 @@ const BoardDashboard = () => {
                     )}
                 </Card>
 
-                {/* Chart 2: Sosial (Demografi Pekerja) */}
+                {/* Chart 2: Social (Worker Demographics) */}
                 <Card title="Demografi Gender Pekerja (Sosial)">
                     {loading ? (
                         <div className="skeleton-text" style={{ width: '100%', height: '280px' }}></div>
@@ -265,7 +265,7 @@ const BoardDashboard = () => {
                     )}
                 </Card>
 
-                {/* Chart 3: Sosial (Demografi Usia Pekerja) */}
+                {/* Chart 3: Social (Worker Age Demographics) */}
                 <Card title="Demografi Usia Pekerja (Sosial)">
                     {loading ? (
                         <div className="skeleton-text" style={{ width: '100%', height: '280px' }}></div>
@@ -294,7 +294,7 @@ const BoardDashboard = () => {
 
             </div>
 
-            {/* Grafik Ekonomi */}
+            {/* Economic Chart */}
             <Card title="Tren Pendapatan & Biaya Bulanan (Ekonomi)" style={{ marginBottom: 'var(--space-xl)' }}>
                 {loading ? (
                     <div className="skeleton-text" style={{ width: '100%', height: '320px' }}></div>

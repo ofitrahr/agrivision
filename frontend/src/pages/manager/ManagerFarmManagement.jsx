@@ -47,12 +47,11 @@ const ManagerFarmManagement = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [viewMode, setViewMode] = useState('list'); // 'list' | 'edit'
+  const [viewMode, setViewMode] = useState('list');
   const [farmList, setFarmList] = useState([]);
   const [selectedFarmId, setSelectedFarmId] = useState(null);
   const [allFarmers, setAllFarmers] = useState([]);
 
-  // Edit Form State
   const [farmName, setFarmName] = useState('');
   const [farmLocation, setFarmLocation] = useState('');
   const [totalAreaHa, setTotalAreaHa] = useState('');
@@ -61,7 +60,7 @@ const ManagerFarmManagement = () => {
   const [establishedYear, setEstablishedYear] = useState('');
   const [agroforestrySystem, setAgroforestrySystem] = useState('');
   const [selectedFarmerIds, setSelectedFarmerIds] = useState([]);
-  const [crops, setCrops] = useState([]); // [{ id?, crop_type: string, area_ha: number | string }]
+  const [crops, setCrops] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -150,7 +149,6 @@ const ManagerFarmManagement = () => {
   };
 
   const closeAlert = () => {
-    // Setelah sukses simpan, kembali ke daftar lahan
     if (alertState.type === 'success') handleBackToList();
     setAlertState(prev => ({ ...prev, isOpen: false }));
   };
@@ -225,9 +223,10 @@ const ManagerFarmManagement = () => {
     }
   };
 
-  // LIST VIEW (Daftar Lahan Perusahaan)
+  // ---------------------------------------------------------------
+  // FARM LIST VIEW
+  // ---------------------------------------------------------------
   if (viewMode === 'list') {
-    // Sistem agroforestri yang sama di semua lahan cukup ditampilkan sekali di header
     const sharedSystem = farmList.length > 0 && farmList.every(f => f.agroforestry_system === farmList[0].agroforestry_system)
       ? farmList[0].agroforestry_system
       : null;
@@ -258,7 +257,6 @@ const ManagerFarmManagement = () => {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
             {farmList.map((f) => {
-              // Tampilkan 3 tanaman terluas, sisanya diringkas
               const sortedCrops = [...(f.crops || [])]
                 .filter(c => c && c.crop_type)
                 .sort((a, b) => (parseFloat(b.area_ha) || 0) - (parseFloat(a.area_ha) || 0));
@@ -325,7 +323,9 @@ const ManagerFarmManagement = () => {
     );
   }
 
-  // EDIT VIEW (Edit Ringkasan Lahan, Penugasan Petani, Jenis Tanaman)
+  // ---------------------------------------------------------------
+  // FARM EDIT VIEW
+  // ---------------------------------------------------------------
   const currentFarmObject = farmList.find(f => f.id === selectedFarmId);
 
   return (
@@ -358,7 +358,7 @@ const ManagerFarmManagement = () => {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginBottom: '24px' }}>
           
-          {/* Section 1: Edit Ringkasan Lahan */}
+          {/* Section 1: Edit Farm Summary */}
           <div className="agro-card">
             <h2 className="agro-card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
               <Activity size={18} />
@@ -450,7 +450,7 @@ const ManagerFarmManagement = () => {
             </div>
           </div>
 
-          {/* Section 2: Penugasan Petani */}
+          {/* Section 2: Farmer Assignment */}
           <div className="agro-card">
             <h2 className="agro-card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
               <Users size={18} />
@@ -510,7 +510,7 @@ const ManagerFarmManagement = () => {
             </div>
           </div>
 
-          {/* Section 3: Jenis Tanaman & Alokasi Luas Komoditas */}
+          {/* Section 3: Crop Types & Commodity Area Allocation */}
           <div className="agro-card">
             <h2 className="agro-card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '18px' }}>
               <Leaf size={18} />
@@ -520,7 +520,7 @@ const ManagerFarmManagement = () => {
               Tentukan jenis tanaman dan luas masing-masing di lahan ini.
             </p>
 
-            {/* Ringkasan Status Luas (Tanpa Bar) */}
+            {/* Area Status Summary */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px', fontSize: '13px' }}>
               <span style={{ color: 'var(--color-text-main)' }}>
                 Total terpakai: <strong style={{ color: isOverAllocated ? '#dc2626' : 'var(--color-text-main)' }}>{totalAllocatedCropArea.toFixed(2)} Ha</strong> dari <strong>{parsedTotalFarmArea.toFixed(2)} Ha</strong>
@@ -550,7 +550,7 @@ const ManagerFarmManagement = () => {
               </div>
             )}
 
-            {/* Daftar Baris Tanaman Langsung */}
+            {/* Crop Row List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
               {crops.length === 0 ? (
                 <div style={{
@@ -628,7 +628,7 @@ const ManagerFarmManagement = () => {
               )}
             </div>
 
-            {/* Tombol Tambah Baris Tanaman Baru */}
+            {/* Add New Crop Row Button */}
             <button
               type="button"
               className="agro-btn-export"

@@ -1,10 +1,4 @@
 #!/usr/bin/env python
-"""
-Migration 005: Kolom users.preferences (JSON) untuk sinkronisasi Platform Settings.
-
-Run manual:  python migrations/005_add_user_preferences.py
-"""
-
 import os
 import sys
 
@@ -16,7 +10,6 @@ from app.core.config import Config  # noqa: E402
 
 def run_migration():
     try:
-        # Pakai DB yang sama dengan aplikasi (DATABASE_URL)
         dsn = Config.SQLALCHEMY_DATABASE_URI.replace('postgresql+psycopg2://', 'postgresql://')
         conn = psycopg2.connect(dsn)
         cur = conn.cursor()

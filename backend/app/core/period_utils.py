@@ -17,7 +17,6 @@ def current_period_id():
 
 
 def parse_period_id(period_id):
-    """'2026-01' -> (2026, 1)."""
     year_str, month_str = str(period_id).split('-')
     year, month = int(year_str), int(month_str)
     if not (1 <= month <= 12):

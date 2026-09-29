@@ -55,7 +55,6 @@ const LandingPage = () => {
     }
   };
 
-  // For stats counter
   useEffect(() => {
     const counters = document.querySelectorAll('.stat-number');
     const animateCounters = () => {

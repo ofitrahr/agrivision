@@ -1,20 +1,8 @@
 #!/usr/bin/env python
-"""
-Migration 002: Add sustainability narrative columns to profile_traceability_profiles.
-
-Menambah kolom narrative untuk Sustainability Impact:
-- social_narrative
-- economic_narrative
-- environmental_narrative
-
-Run manual:  py -3.13 migrations/002_add_narrative_columns.py
-"""
-
 import psycopg2
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
 
 DB_USER = os.getenv('DB_USER', 'postgres')
@@ -25,7 +13,6 @@ DB_PORT = os.getenv('DB_PORT', '5433')
 
 
 def run_migration():
-    """Add narrative columns to project_traceability_profiles."""
     try:
         conn = psycopg2.connect(
             host=DB_HOST,
@@ -36,7 +23,6 @@ def run_migration():
         )
         cur = conn.cursor()
 
-        # Idempotent: ADD COLUMN IF NOT EXISTS
         columns = [
             "social_narrative",
             "economic_narrative",
@@ -52,7 +38,6 @@ def run_migration():
 
         conn.commit()
 
-        # Verify
         cur.execute("""
             SELECT COLUMN_NAME
             FROM information_schema.columns

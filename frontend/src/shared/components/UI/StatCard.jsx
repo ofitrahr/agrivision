@@ -59,7 +59,7 @@ const StatCard = ({
   subtext,
   badgeText,
   badgeType = 'success',
-  variant = 'white', // 'white' | 'dark'
+  variant = 'white',
   icon: IconProp,
   silhouette: SilhouetteProp,
   silhouetteColor,

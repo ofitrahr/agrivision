@@ -11,7 +11,7 @@ const CompanyList = () => {
     const [alertState, setAlertState] = useState({ isOpen: false, type: 'info', message: '' });
     const showAlert = (type, message) => setAlertState({ isOpen: true, type, message });
     const closeAlert = () => setAlertState(prev => ({ ...prev, isOpen: false }));
-    const [modalMode, setModalMode] = useState('add'); // 'add' atau 'edit'
+    const [modalMode, setModalMode] = useState('add');
     
     const initialForm = {
         name: '', description: '', address: '', subscription_plan: 'Basic',
@@ -77,7 +77,7 @@ const CompanyList = () => {
                 await api.put(`/admin/companies/${selectedId}`, formData);
             }
             setIsModalOpen(false);
-            fetchCompanies(); // Refresh data
+            fetchCompanies();
             showAlert('success', modalMode === 'add'
                 ? `Company "${formData.name}" berhasil ditambahkan.`
                 : `Company "${formData.name}" berhasil diperbarui.`);
@@ -180,7 +180,7 @@ const CompanyList = () => {
                 </table>
             </div>
 
-            {/* Modal Tambah/Edit */}
+            {/* Add/Edit Modal */}
             {isModalOpen && (
                 <div className="modal-overlay">
                     <div className="modal-content">

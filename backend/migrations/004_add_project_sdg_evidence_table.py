@@ -1,22 +1,8 @@
 #!/usr/bin/env python
-"""
-Migration 004: Tabel project_sdg_evidence (multi-file bukti pendukung).
-
-Sebelumnya evidence hanya 1 file (kolom evidence_file_url di
-project_sdg_verifications) dan upload baru SELALU menimpa file lama.
-Kini bukti disimpan sebagai list (append), satu baris per file.
-
-Backfill: baris verification yang masih punya evidence_file_url lama
-dimigrasi menjadi 1 baris evidence, lalu kolom lama dikosongkan.
-
-Run manual:  python migrations/004_add_project_sdg_evidence_table.py
-"""
-
 import psycopg2
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
 
 DB_USER = os.getenv('DB_USER', 'postgres')
@@ -27,7 +13,6 @@ DB_PORT = os.getenv('DB_PORT', '5433')
 
 
 def run_migration():
-    """Buat tabel project_sdg_evidence + backfill evidence lama."""
     try:
         conn = psycopg2.connect(
             host=DB_HOST,
@@ -38,7 +23,6 @@ def run_migration():
         )
         cur = conn.cursor()
 
-        # 1. Tabel evidence (idempotent)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS project_sdg_evidence (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -53,7 +37,6 @@ def run_migration():
         conn.commit()
         print("   ✅ Tabel 'project_sdg_evidence' siap/ada")
 
-        # 2. Index (idempotent)
         cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_project_sdg_evidence_verification
             ON project_sdg_evidence(verification_id);
@@ -61,7 +44,6 @@ def run_migration():
         conn.commit()
         print("   ✅ Index verification_id siap/ada")
 
-        # 3. Kolom save_state di verification (idempotent)
         cur.execute("""
             ALTER TABLE project_sdg_verifications
             ADD COLUMN IF NOT EXISTS save_state VARCHAR(20) NOT NULL DEFAULT 'unsaved';
@@ -69,7 +51,6 @@ def run_migration():
         conn.commit()
         print("   ✅ Kolom 'save_state' siap/ada")
 
-        # 4. Backfill: evidence tunggal lama -> 1 baris evidence (hanya yang belum dimigrasi)
         cur.execute("""
             INSERT INTO project_sdg_evidence (verification_id, file_url, file_type, uploaded_at)
             SELECT v.id, v.evidence_file_url, v.evidence_file_type, COALESCE(v.assessment_date, NOW())
@@ -83,7 +64,6 @@ def run_migration():
         conn.commit()
         print(f"   ✅ Backfill: {backfilled} evidence lama dimigrasi ke tabel baru")
 
-        # 5. Kosongkan kolom lama agar tidak dobel sumber
         cur.execute("""
             UPDATE project_sdg_verifications
             SET evidence_file_url = NULL, evidence_file_type = NULL
@@ -93,7 +73,6 @@ def run_migration():
         conn.commit()
         print(f"   ✅ Kolom lama dikosongkan pada {cleared} verification")
 
-        # Verify
         cur.execute("""
             SELECT COLUMN_NAME
             FROM information_schema.columns

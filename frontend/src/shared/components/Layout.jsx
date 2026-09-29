@@ -5,12 +5,18 @@ import { useTranslation } from 'react-i18next';
 import api from '../api/axios';
 import { getStoredSettings, syncSettingsFromServer } from '../utils/settingsHelper';
 
+// ---------------------------------------------------------------
+// SIDEBAR
+// ---------------------------------------------------------------
 const Sidebar = ({ role, user, onToggleSidebar }) => {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
   const { t } = useTranslation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  // ---------------------------------------------------------------
+  // SUPER ADMIN MENU
+  // ---------------------------------------------------------------
   const adminSections = [
     {
       label: t('section.mainMenu'),
@@ -24,6 +30,9 @@ const Sidebar = ({ role, user, onToggleSidebar }) => {
     },
   ];
 
+  // ---------------------------------------------------------------
+  // MANAGER MENU
+  // ---------------------------------------------------------------
   const managerSections = [
     {
       label: t('section.fieldOps'),
@@ -43,6 +52,9 @@ const Sidebar = ({ role, user, onToggleSidebar }) => {
     },
   ];
 
+  // ---------------------------------------------------------------
+  // BOARD MENU
+  // ---------------------------------------------------------------
   const boardSections = [
     {
       label: t('section.mainMenu'),
@@ -167,6 +179,9 @@ const Sidebar = ({ role, user, onToggleSidebar }) => {
   );
 };
 
+// ---------------------------------------------------------------
+// HEADER
+// ---------------------------------------------------------------
 const ROLE_NOTIF_ENDPOINTS = {
   super_admin: '/admin/activities?limit=5',
   manager: '/manager/activities?limit=5',
@@ -182,7 +197,6 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
   const [notifError, setNotifError] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Lonceng mati jika notifInApp dimatikan di Settings
   const notifEndpoint = notifInApp ? ROLE_NOTIF_ENDPOINTS[user?.role] : undefined;
 
   useEffect(() => {
@@ -205,7 +219,6 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
     }
   };
 
-  // Muat sekali saat mount supaya titik di tombol lonceng sudah akurat sebelum dropdown dibuka
   useEffect(() => {
     if (!notifEndpoint) return;
     api.get(notifEndpoint)
@@ -281,7 +294,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
         <div className="topnav-actions" style={{ position: 'relative' }}>
 
 
-          {/* Tombol Notifikasi */}
+          {/* Notification Button */}
           {user?.role !== 'board' && notifInApp && (
             <button
               ref={notifButtonRef}
@@ -301,7 +314,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
             </button>
           )}
 
-          {/* Tombol Histori Aktivitas */}
+          {/* Activity History Button */}
           {user?.role !== 'board' &&
             <button
               className="topnav-icon-btn"
@@ -313,7 +326,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
             </button>
           }
 
-          {/* Tombol Pengaturan */}
+          {/* Settings Button */}
           <button
             className="topnav-icon-btn"
             title={t('header.settings')}
@@ -323,7 +336,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
             <span className="material-symbols-outlined">settings</span>
           </button>
 
-          {/* Avatar User -> Ke Profil */}
+          {/* User Avatar -> Profile */}
           <div
             className="topnav-avatar"
             onClick={() => navigate(profilePath)}
@@ -332,7 +345,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
           >
             {(user?.full_name || user?.user || user?.username || 'U').charAt(0).toUpperCase()}
           </div>
-          {/* Dropdown Notifikasi */}
+          {/* Notification Dropdown */}
           { user?.role !== 'board' && notifInApp && showNotifications && (
             <div ref={notifDropdownRef} style={{
               position: 'absolute', top: '48px', right: '0', width: '320px',
@@ -392,11 +405,13 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
   );
 };
 
+// ---------------------------------------------------------------
+// LAYOUT
+// ---------------------------------------------------------------
 const Layout = () => {
   const { user } = useContext(AuthContext);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Tarik preferensi akun dari server (fallback ke localStorage jika offline)
   useEffect(() => {
     if (user) syncSettingsFromServer();
   }, [user]);

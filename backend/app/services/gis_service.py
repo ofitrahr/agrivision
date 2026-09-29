@@ -6,7 +6,6 @@ from folium.plugins import Draw
 
 
 class GISService:
-    # Ramp gradasi per layer (rendah -> tinggi), ujung-ujungnya mengikuti warna tematik lama.
     LAYER_RAMPS = {
         'ndvi': ['#a50026', '#f46d43', '#fee08b', '#a6d96a', '#1a9850'],
         'soc': ['#f6e8c3', '#dfc27d', '#bf812d', '#8c510a', '#543005'],
@@ -37,6 +36,9 @@ class GISService:
         'soilnpk': 'index',
     }
 
+    # ---------------------------------------------------------------
+    # COLOR SCALE HELPERS
+    # ---------------------------------------------------------------
     @staticmethod
     def _percentile(sorted_vals, p):
         if not sorted_vals:
@@ -51,7 +53,6 @@ class GISService:
 
     @staticmethod
     def _compute_stretch(sorted_vals):
-        """Rentang warna per lahan pakai persentil 2-98 agar outlier tidak meratakan gradasi."""
         if not sorted_vals:
             return 0.0, 1.0
         lo = GISService._percentile(sorted_vals, 0.02)
@@ -94,7 +95,6 @@ class GISService:
 
     @staticmethod
     def _value_fmt(lo, hi):
-        """Jumlah desimal menyesuaikan rentang layer (yield kopi ~0.15 Ton/Ha butuh 3 desimal)."""
         if lo is None or hi is None:
             return lambda v: f"{v:.2f}"
         if abs(hi - lo) < 0.5:
@@ -103,6 +103,9 @@ class GISService:
             return lambda v: f"{v:.2f}"
         return lambda v: f"{v:.0f}"
 
+    # ---------------------------------------------------------------
+    # MANAGER MAP
+    # ---------------------------------------------------------------
     @staticmethod
     def generate_manager_map(farm_boundary_geojson=None, existing_blocks_geojson=None, thumbnail=False):
         m = folium.Map(
@@ -178,6 +181,9 @@ class GISService:
 
         return m.get_root().render()
 
+    # ---------------------------------------------------------------
+    # AGRONOMY MAP
+    # ---------------------------------------------------------------
     @staticmethod
     def _get_color_for_value(value, layer_type):
         if layer_type == 'ndvi':
@@ -193,14 +199,12 @@ class GISService:
                 return '#cd853f'
             return '#deb887'
         elif layer_type == 'biomass':
-            # Sebaran riil AGB Kadatuan: median 21.6, p90 67.8, maks 127.4 Mg/ha
             if value > 65:
                 return '#006d2c'
             elif value > 25:
                 return '#74c476'
             return '#edf8e9'
         elif layer_type == 'yield':
-            # Skala ceri kopi arabika Kadatuan (Ton/Ha per periode panen)
             if value > 0.25:
                 return '#15803d'
             elif value > 0.15:
@@ -209,22 +213,18 @@ class GISService:
                 return '#eab308'
             return '#ef4444'
         elif layer_type == 'nitrogen':
-            # Rentang riil model NPK Kadatuan: 0.45% - 0.86%
             if value > 0.75: return '#14532d'
             elif value > 0.55: return '#22c55e'
             return '#eab308'
         elif layer_type == 'phosphorus':
-            # Rentang riil model NPK Kadatuan: 7 - 370 mg/kg
             if value > 150: return '#991b1b'
             elif value > 50: return '#ea580c'
             return '#fed7aa'
         elif layer_type == 'potassium':
-            # Rentang riil model NPK Kadatuan: 115 - 165 mg/kg
             if value > 150: return '#4c1d95'
             elif value > 130: return '#8b5cf6'
             return '#93c5fd'
         elif layer_type == 'soilnpk':
-            # Indeks komposit 0-100 (NPKService.composite_index)
             if value > 66: return '#065f46'
             elif value > 33: return '#0d9488'
             return '#99f6e4'
@@ -308,7 +308,6 @@ class GISService:
                         pts_list = [Point(p['lon'], p['lat']) for p in sample_points]
                         pts_multi = MultiPoint(pts_list)
 
-                        # Buat voronoi diagram (ini akan menutupi semua ruang secara penuh tanpa ada celah antar titik)
                         vd = voronoi_diagram(pts_multi, envelope=boundary_poly)
                         polys = list(vd.geoms) if hasattr(vd, 'geoms') else []
 
@@ -334,7 +333,6 @@ class GISService:
                                         else matching_poly.intersection(boundary_poly)
                                     )
                                     if not clipped_geom.is_empty:
-                                        # join mitre: sudut tetap tajam, tidak menambah ~8 titik per sudut seperti join round.
                                         smoothed_geom = clipped_geom.buffer(0.000005, join_style='mitre')
                                         features.append({
                                             'type': 'Feature',
@@ -346,7 +344,6 @@ class GISService:
                                             },
                                         })
 
-                            # Satu layer untuk semua sel: folium merender template sekali, bukan per sel.
                             folium.GeoJson(
                                 {'type': 'FeatureCollection', 'features': features},
                                 style_function=lambda f: {
@@ -361,7 +358,6 @@ class GISService:
 
                     except Exception as e:
                         print("Error clipping geometry:", str(e))
-                        # Fallback ke bentuk lingkaran jika gagal
                         for point in sample_points:
                             val = float(point['value']) if point.get('value') is not None else 0.0
                             val_display = val_fmt(val)

@@ -6,6 +6,10 @@ from geoalchemy2 import Geometry
 from sqlalchemy.dialects.postgresql import UUID
 
 
+# ---------------------------------------------------------------
+# COMPANIES, PROJECTS AND USERS
+# ---------------------------------------------------------------
+
 class Company(db.Model):
     __tablename__ = 'companies'
 
@@ -23,7 +27,6 @@ class Company(db.Model):
     branding_color = db.Column(db.String(7), default='#2D6A4F')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    # Relationships 
     projects = db.relationship('Project', backref='company', cascade='all, delete-orphan')
     farmers = db.relationship('Farmer', backref='company', cascade='all, delete-orphan')
     trace_templates = db.relationship('TraceTemplate', backref='company', cascade='all, delete-orphan')
@@ -47,7 +50,6 @@ class Project(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
     farms = db.relationship('Farm', backref='project', cascade='all, delete-orphan')
     users = db.relationship('User', backref='project', cascade='all, delete-orphan')
     permissions = db.relationship('ProjectPermission', backref='project', uselist=False, cascade='all, delete-orphan')
@@ -88,6 +90,10 @@ class ProjectPermission(db.Model):
     can_access_soilnpk = db.Column(db.Boolean, nullable=False, default=False)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+# ---------------------------------------------------------------
+# LEGACY TRACEABILITY AND COMPANY SDGS
+# ---------------------------------------------------------------
+
 class ProjectTraceability(db.Model):
     __tablename__ = 'project_traceabilities'
 
@@ -113,7 +119,6 @@ class Sdg(db.Model):
     icon = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    # Relationships
     company_sdgs = db.relationship('CompanySdg', backref='sdg', cascade='all, delete-orphan')
 
 class CompanySdg(db.Model):
@@ -142,6 +147,10 @@ class CompanySdgVerification(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+# ---------------------------------------------------------------
+# FARMS AND FARMERS
+# ---------------------------------------------------------------
+
 class Farm(db.Model):
     __tablename__ = 'farms'
     
@@ -153,13 +162,11 @@ class Farm(db.Model):
     total_area_ha = db.Column(db.Numeric(10, 2))
     altitude = db.Column(db.String(50))
     agroforestry_system = db.Column(db.String(100))
-    # GEOMETRY (bukan POLYGON) agar satu lahan bisa berupa Polygon maupun MultiPolygon.
     boundary = db.Column(Geometry(geometry_type='GEOMETRY', srid=4326))
     created_by = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id', ondelete='SET NULL'))
     status = db.Column(db.String(20), nullable=False, default='active')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    # Relationships
     gis_layers = db.relationship('GisLayer', backref='farm', cascade='all, delete-orphan')
     batches = db.relationship('Batch', backref='farm')
     
@@ -209,6 +216,10 @@ class Farmer(db.Model):
 
 
 
+# ---------------------------------------------------------------
+# GIS AND SENSOR DATA
+# ---------------------------------------------------------------
+
 class GisLayer(db.Model):
     __tablename__ = 'gis_layers'
     
@@ -235,6 +246,10 @@ class SensorData(db.Model):
     humidity = db.Column(db.Numeric(5, 2))
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
+# ---------------------------------------------------------------
+# BATCH TRACEABILITY
+# ---------------------------------------------------------------
+
 class TraceTemplate(db.Model):
     __tablename__ = 'trace_templates'
     
@@ -245,7 +260,6 @@ class TraceTemplate(db.Model):
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    # Relationships
     steps = db.relationship('TraceTemplateStep', backref='template', cascade='all, delete-orphan')
     batches = db.relationship('Batch', backref='template')
 
@@ -265,7 +279,6 @@ class TraceTemplateStep(db.Model):
     required_notes = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    # Relationships
     checkpoints = db.relationship('BatchCheckpoint', backref='step')
 
 class Batch(db.Model):
@@ -282,7 +295,6 @@ class Batch(db.Model):
     completed_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    # Relationships
     checkpoints = db.relationship('BatchCheckpoint', backref='batch', cascade='all, delete-orphan')
     qr_codes = db.relationship('QrCode', backref='batch', cascade='all, delete-orphan')
 
@@ -309,6 +321,10 @@ class QrCode(db.Model):
     scan_count = db.Column(db.Integer, nullable=False, default=0)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+# ---------------------------------------------------------------
+# AGRONOMY, HARVEST, FINANCE AND ESG RECORDS
+# ---------------------------------------------------------------
 
 class AgronomyActivity(db.Model):
     __tablename__ = 'agronomy_activities'
@@ -365,6 +381,10 @@ class EsgMetric(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+# ---------------------------------------------------------------
+# ACTIVITY LOGS
+# ---------------------------------------------------------------
+
 class ActivityLog(db.Model):
     __tablename__ = 'activity_logs'
     
@@ -379,17 +399,11 @@ class ActivityLog(db.Model):
 
 
 
-# =======================================================================
-# ARSITEKTUR TRACEABILITY BARU (Project-based Questionnaire -> SDG)
-# Digunakan paralel dengan arsitektur lama. Jangan dihapus.
-# =======================================================================
+# ---------------------------------------------------------------
+# PROJECT TRACEABILITY AND SDG ASSESSMENT
+# ---------------------------------------------------------------
 
 class SdgMaster(db.Model):
-    """SDG Master (plan revisi #19.1). Menyimpan threshold/konfigurasi per goal.
-
-    Threshold bersifat configurable & bisa berbeda antar goal (plan revisi, catatan
-    akhir). Status SDG dihitung oleh engine (bukan dipilih manual).
-    """
     __tablename__ = 'sdg_masters'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -397,7 +411,6 @@ class SdgMaster(db.Model):
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
     image_url = db.Column(db.Text)
-    # Threshold/methodology config (plan revisi #15, #44) -- configurable per goal
     fulfilled_score = db.Column(db.Numeric(5, 2), nullable=False, default=70.00)
     minimum_applicable_questions = db.Column(db.Integer, nullable=False, default=2)
     minimum_question_score = db.Column(db.Numeric(5, 2), nullable=False, default=50.00)
@@ -411,12 +424,6 @@ class SdgMaster(db.Model):
 
 
 class SdgIndicator(db.Model):
-    """Indikator SDG dari metadata (plan revisi #19.2).
-
-    `is_applicable` menandai apakah indikator dapat diterjemahkan menjadi
-    pertanyaan tingkat project (APPLICABLE) atau tidak (NOT_APPLICABLE).
-    Klasifikasi asli metadata tidak diubah.
-    """
     __tablename__ = 'sdg_indicators'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -439,7 +446,6 @@ class SdgIndicator(db.Model):
 
 
 class ProjectTraceabilityProfile(db.Model):
-    """project_traceability (plan.md #4). 1 project -> 1 traceability."""
     __tablename__ = 'project_traceability_profiles'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -461,7 +467,6 @@ class ProjectTraceabilityProfile(db.Model):
 
 
 class Questionnaire(db.Model):
-    """Questionnaire master (plan.md #10)."""
     __tablename__ = 'questionnaires'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -478,7 +483,6 @@ class Questionnaire(db.Model):
 
 
 class QuestionSection(db.Model):
-    """Question section / grouping (plan.md #12)."""
     __tablename__ = 'question_sections'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -491,12 +495,6 @@ class QuestionSection(db.Model):
 
 
 class Question(db.Model):
-    """Question (plan revisi #19.3).
-
-    Satu pertanyaan hanya mewakili SATU SDG Goal (`sdg_id`). Semua versi saat ini
-    bertipe SINGLE_CHOICE. `indicator_mappings` menghubungkan pertanyaan ke
-    indikator indikator dalam SDG yang sama.
-    """
     __tablename__ = 'questions'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -524,11 +522,6 @@ class Question(db.Model):
 
 
 class QuestionIndicator(db.Model):
-    """Question -> Indicator mapping (plan revisi #19.5).
-
-    PENTING: semua indikator yang dimapping harus berasal dari SDG yang sama
-    dengan `question.sdg_id`. Divalidasi pada layer service.
-    """
     __tablename__ = 'question_indicator_mappings'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -542,7 +535,6 @@ class QuestionIndicator(db.Model):
 
 
 class QuestionOption(db.Model):
-    """Question option / answer choice (plan revisi #19.4, #18)."""
     __tablename__ = 'question_options'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -554,7 +546,6 @@ class QuestionOption(db.Model):
 
 
 class TraceAssessment(db.Model):
-    """Assessment / satu pelaksanaan questionnaire utk satu project (plan.md #20-#23)."""
     __tablename__ = 'trace_assessments'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -577,12 +568,6 @@ class TraceAssessment(db.Model):
 
 
 class AssessmentAnswer(db.Model):
-    """Assessment answer (plan revisi #21).
-
-    `selected_option_id` = opsi SINGLE_CHOICE yang dipilih; `score` = snapshot
-    nilai opsi saat assessment diisi (agar hasil historis tidak berubah jika
-    skor opsi master diperbarui).
-    """
     __tablename__ = 'assessment_answers'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -599,12 +584,6 @@ class AssessmentAnswer(db.Model):
 
 
 class AssessmentSdgResult(db.Model):
-    """Result kalkulasi kontribusi SDG utk assessment (plan revisi #22, #13).
-
-    Status dihitung engine menggunakan threshold configurable per goal. Bukan
-    input manual. Menyimpan rincian pertanyaan yg applicable/terjawab/memenuhi
-    syarat minimal + coverage utk menjelaskan status.
-    """
     __tablename__ = 'assessment_sdg_results'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -628,7 +607,6 @@ class AssessmentSdgResult(db.Model):
 
 
 class ProjectSdg(db.Model):
-    """Project SDG terpenuhi (plan.md #7, #29). Ditentukan Admin via checklist."""
     __tablename__ = 'project_sdgs_new'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -643,7 +621,6 @@ class ProjectSdg(db.Model):
 
 
 class ProjectSdgVerification(db.Model):
-    """Verifikasi SDG per project (assessor + bukti). paralel company_sdg_verifications."""
     __tablename__ = 'project_sdg_verifications'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -652,9 +629,7 @@ class ProjectSdgVerification(db.Model):
     evidence_file_url = db.Column(db.Text)
     evidence_file_type = db.Column(db.String(20))
     assessment_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    # Assessment (questionnaire ke-N) yang dipilih Admin sebagai sumber SDG project
     source_assessment_id = db.Column(UUID(as_uuid=True), db.ForeignKey('trace_assessments.id', ondelete='SET NULL'))
-    # Status simpan ala Google Classroom: 'saved' | 'unsaved' (UI: tombol TERSIMPAN vs SIMPAN PERUBAHAN)
     save_state = db.Column(db.String(20), nullable=False, server_default='unsaved')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -663,11 +638,6 @@ class ProjectSdgVerification(db.Model):
 
 
 class ProjectSdgEvidence(db.Model):
-    """Bukti pendukung verifikasi SDG project — multi-file.
-
-    Admin dapat mengunggah beberapa dokumen (append, bukan replace).
-    `original_name` dipertahankan agar file mudah dikenali di UI.
-    """
     __tablename__ = 'project_sdg_evidence'
 
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -680,6 +650,10 @@ class ProjectSdgEvidence(db.Model):
     verification = db.relationship('ProjectSdgVerification', backref=db.backref('evidences', cascade='all, delete-orphan'))
 
 
+# ---------------------------------------------------------------
+# RECENT ACTIVITIES (CMS)
+# ---------------------------------------------------------------
+
 class RecentActivity(db.Model):
     __tablename__ = 'recent_activities'
 
@@ -691,6 +665,10 @@ class RecentActivity(db.Model):
     display_order = db.Column(db.Integer, nullable=False, default=0)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# ---------------------------------------------------------------
+# DOCUMENT REPORTS
+# ---------------------------------------------------------------
 
 class DocumentReport(db.Model):
     __tablename__ = 'document_reports'
@@ -707,6 +685,10 @@ class DocumentReport(db.Model):
     file_url = db.Column(db.Text)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
+
+# ---------------------------------------------------------------
+# LOGIN RATE LIMITING
+# ---------------------------------------------------------------
 
 class LoginAttempt(db.Model):
     __tablename__ = 'login_attempts'

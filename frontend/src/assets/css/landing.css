@@ -1,8 +1,6 @@
-/* ==========================================================================
-   AGRIVISION LANDING PAGE STYLES (Modern SaaS Hybrid & Visual Scaffolding)
-   ========================================================================= */
-
-/* --- GLOBAL LAYOUT & SPACING --- */
+/* ---------------------------------------------------------------
+   GLOBAL LAYOUT & SPACING
+   --------------------------------------------------------------- */
 body {
   background-color: var(--color-surface);
   color: var(--color-text-main);
@@ -15,7 +13,9 @@ body {
   margin: 0 auto;
 }
 
-/* --- WIDE FLOATING GLASS NAVBAR WITH CAPSULE MENU --- */
+/* ---------------------------------------------------------------
+   NAVBAR
+   --------------------------------------------------------------- */
 .navbar {
   position: fixed;
   top: 14px;
@@ -122,7 +122,9 @@ body {
   white-space: nowrap;
 }
 
-/* --- CAPSULE / MAGNETIC MENU --- */
+/* ---------------------------------------------------------------
+   CAPSULE MENU
+   --------------------------------------------------------------- */
 .nav-menu {
   display: flex !important;
   align-items: center;
@@ -220,7 +222,9 @@ body {
   transform: translateY(-1px) !important;
 }
 
-/* --- SPLIT HERO SYSTEM --- */
+/* ---------------------------------------------------------------
+   SPLIT HERO
+   --------------------------------------------------------------- */
 .hero-split {
   position: relative;
   background-color: var(--color-primary);
@@ -318,7 +322,9 @@ body {
   pointer-events: none;
 }
 
-/* --- ORGANIC WAVE SEPARATOR (BOTTOM) --- */
+/* ---------------------------------------------------------------
+   HERO WAVE SEPARATOR
+   --------------------------------------------------------------- */
 .hero-wave {
   position: absolute;
   bottom: -1px;
@@ -337,7 +343,9 @@ body {
   height: 100%;
 }
 
-/* --- VERTICAL SEAM CURVE (BETWEEN LEFT DESCRIPTION & RIGHT IMAGE) --- */
+/* ---------------------------------------------------------------
+   HERO SEAM CURVE
+   --------------------------------------------------------------- */
 .hero-vertical-seam {
   position: absolute;
   top: 0;
@@ -447,7 +455,9 @@ body {
   transform: translateY(-2px);
 }
 
-/* --- STATS COUNTER (Elevated Instrument Card) --- */
+/* ---------------------------------------------------------------
+   STATS COUNTER
+   --------------------------------------------------------------- */
 .stats-section {
   position: relative;
   z-index: 10;
@@ -525,7 +535,9 @@ body {
   line-height: 1.4;
 }
 
-/* --- WHO WE ARE (SCAFFOLD CARDS) --- */
+/* ---------------------------------------------------------------
+   WHO WE ARE
+   --------------------------------------------------------------- */
 .who-we-are {
   background-color: var(--color-surface);
 }
@@ -610,7 +622,9 @@ body {
   line-height: 1.65;
 }
 
-/* --- PRODUCT PREVIEW & PLACEHOLDER --- */
+/* ---------------------------------------------------------------
+   PRODUCT PREVIEW
+   --------------------------------------------------------------- */
 .product-preview {
   background-color: var(--color-surface-white);
   border: 1px solid var(--color-border-muted);
@@ -667,7 +681,9 @@ body {
   transform: translateY(-2px);
 }
 
-/* --- DASHBOARD MOCKUP --- */
+/* ---------------------------------------------------------------
+   DASHBOARD MOCKUP
+   --------------------------------------------------------------- */
 .dashboard-mockup {
   display: flex;
   height: 380px;
@@ -821,7 +837,9 @@ body {
   background-color: var(--color-main-gold);
 }
 
-/* --- HOW IT WORKS (STEPS) --- */
+/* ---------------------------------------------------------------
+   HOW IT WORKS
+   --------------------------------------------------------------- */
 .how-it-works {
   background-color: var(--color-surface);
 }
@@ -895,7 +913,9 @@ body {
   line-height: 1.65;
 }
 
-/* --- OUR TEAM --- */
+/* ---------------------------------------------------------------
+   OUR TEAM
+   --------------------------------------------------------------- */
 .our-team {
   background-color: var(--color-surface-white);
   border: 1px solid var(--color-border-muted);
@@ -933,7 +953,6 @@ body {
   transform: scale(1.04);
 }
 
-/* Overlay: default shows only bottom strip (name + role) */
 .team-overlay {
   position: absolute;
   bottom: 0;
@@ -954,7 +973,6 @@ body {
               background 0.45s ease;
 }
 
-/* Hover: expand to cover full card */
 .team-card:hover .team-overlay {
   height: 100%;
   background: #053b26;
@@ -963,7 +981,6 @@ body {
   padding: 28px 24px;
 }
 
-/* Decorative circles — visible only when hovered */
 .team-overlay::before {
   content: '';
   position: absolute;
@@ -1040,7 +1057,9 @@ body {
   max-height: 120px;
 }
 
-/* --- CURRENT ACTIVITIES (SLIDER) --- */
+/* ---------------------------------------------------------------
+   CURRENT ACTIVITIES SLIDER
+   --------------------------------------------------------------- */
 .activities-section {
   background-color: var(--color-surface-white);
   border: 1px solid var(--color-border-muted);
@@ -1169,7 +1188,9 @@ body {
   border-color: var(--color-primary);
 }
 
-/* --- PARTNERS --- */
+/* ---------------------------------------------------------------
+   PARTNERS
+   --------------------------------------------------------------- */
 .partners-section {
   background-color: var(--color-surface-white);
   border: 1px solid var(--color-border-muted);
@@ -1205,7 +1226,9 @@ body {
   opacity: 0.95;
 }
 
-/* --- CONNECT SECTION --- */
+/* ---------------------------------------------------------------
+   CONNECT SECTION
+   --------------------------------------------------------------- */
 .connect-section {
   background-color: var(--color-surface);
 }
@@ -1345,7 +1368,9 @@ body {
   transform: translateY(-2px);
 }
 
-/* --- HIGH-TRUST ENTERPRISE FOOTER (EDGE-TO-EDGE) --- */
+/* ---------------------------------------------------------------
+   FOOTER
+   --------------------------------------------------------------- */
 .footer {
   width: 100%;
   max-width: 100%;
@@ -1371,7 +1396,9 @@ body {
   margin: 0 auto;
 }
 
-/* 1. Integrated Pre-Footer CTA Banner */
+/* ---------------------------------------------------------------
+   FOOTER - CTA BANNER
+   --------------------------------------------------------------- */
 .footer-cta-banner {
   display: flex;
   justify-content: space-between;
@@ -1476,7 +1503,9 @@ body {
   transform: translateY(-2px);
 }
 
-/* 2. Main Footer Grid */
+/* ---------------------------------------------------------------
+   FOOTER - MAIN GRID
+   --------------------------------------------------------------- */
 .footer-main-grid {
   display: grid;
   grid-template-columns: 2.2fr 1.2fr 1.2fr 1.2fr;
@@ -1638,7 +1667,9 @@ body {
   display: inline-block;
 }
 
-/* 3. Bottom Bar */
+/* ---------------------------------------------------------------
+   FOOTER - BOTTOM BAR
+   --------------------------------------------------------------- */
 .footer-bottom-bar {
   display: flex;
   justify-content: space-between;
@@ -1650,7 +1681,9 @@ body {
   gap: 16px;
 }
 
-/* --- RESPONSIVE BREAKPOINTS --- */
+/* ---------------------------------------------------------------
+   RESPONSIVE BREAKPOINTS
+   --------------------------------------------------------------- */
 @media (max-width: 1024px) {
   .solutions-grid { grid-template-columns: repeat(2, 1fr); }
   .connect-grid { gap: 40px; }
@@ -1788,7 +1821,9 @@ body {
   100% { transform: translateX(-50%); }
 }
 
-/* --- SCROLL REVEAL UTILITIES --- */
+/* ---------------------------------------------------------------
+   SCROLL REVEAL
+   --------------------------------------------------------------- */
 .scroll-reveal {
   opacity: 0;
   transform: translateY(28px);
@@ -1809,9 +1844,9 @@ body {
   }
 }
 
-/* ==========================================================================
-   MULTI-PAGE PUBLIC LAYOUTS & COMPONENTS
-   ========================================================================== */
+/* ---------------------------------------------------------------
+   PUBLIC PAGES LAYOUT
+   --------------------------------------------------------------- */
 
 .page-wrapper {
   background-color: var(--color-surface);
@@ -1827,7 +1862,9 @@ body {
   flex-direction: column;
 }
 
-/* --- PAGE HEADER BANNER --- */
+/* ---------------------------------------------------------------
+   PAGE HEADER BANNER
+   --------------------------------------------------------------- */
 .page-header-banner {
   background-color: var(--color-primary);
   background-image: url('/assets/images/topography-pattern-dark.svg');
@@ -1867,7 +1904,9 @@ body {
   margin: 0 auto;
 }
 
-/* --- FIVE SIGNALS PREVIEW (HOME) --- */
+/* ---------------------------------------------------------------
+   FIVE SIGNALS PREVIEW
+   --------------------------------------------------------------- */
 .signals-preview-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -1954,7 +1993,9 @@ body {
   font-weight: 400;
 }
 
-/* --- FIVE SIGNALS FULL (SIGNALS PAGE) --- */
+/* ---------------------------------------------------------------
+   FIVE SIGNALS FULL
+   --------------------------------------------------------------- */
 .signals-grid-full {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -2101,7 +2142,9 @@ body {
   align-self: flex-start;
 }
 
-/* --- METHODOLOGY CARDS --- */
+/* ---------------------------------------------------------------
+   METHODOLOGY CARDS
+   --------------------------------------------------------------- */
 .methodology-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -2131,7 +2174,9 @@ body {
   line-height: 1.6;
 }
 
-/* --- MRV PILLARS GRID --- */
+/* ---------------------------------------------------------------
+   MRV PILLARS GRID
+   --------------------------------------------------------------- */
 .mrv-pillars-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -2220,7 +2265,9 @@ body {
   background-color: var(--color-main-green);
 }
 
-/* --- MRV STEPPER --- */
+/* ---------------------------------------------------------------
+   MRV STEPPER
+   --------------------------------------------------------------- */
 .mrv-stepper-wrapper {
   max-width: 900px;
   margin: 20px auto 0;
@@ -2269,7 +2316,9 @@ body {
   letter-spacing: 0.06em;
 }
 
-/* --- MRV LIFECYCLE 6 STAGES --- */
+/* ---------------------------------------------------------------
+   MRV LIFECYCLE
+   --------------------------------------------------------------- */
 .mrv-lifecycle-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -2357,7 +2406,9 @@ body {
   color: var(--color-main-green);
 }
 
-/* --- STANDARDS SECTION --- */
+/* ---------------------------------------------------------------
+   STANDARDS SECTION
+   --------------------------------------------------------------- */
 .standards-box {
   background-color: var(--color-primary-container);
   color: #ffffff;
@@ -2414,7 +2465,9 @@ body {
   line-height: 1.5;
 }
 
-/* --- ABOUT MISSION BOX --- */
+/* ---------------------------------------------------------------
+   ABOUT MISSION BOX
+   --------------------------------------------------------------- */
 .about-mission-box {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2447,7 +2500,9 @@ body {
   line-height: 1.7;
 }
 
-/* --- CONTACT PAGE --- */
+/* ---------------------------------------------------------------
+   CONTACT PAGE
+   --------------------------------------------------------------- */
 .contact-icon-box {
   width: 44px;
   height: 44px;
@@ -2495,7 +2550,9 @@ body {
   color: var(--color-text-muted);
 }
 
-/* --- CTA BANNER COMPONENT --- */
+/* ---------------------------------------------------------------
+   CTA BANNER
+   --------------------------------------------------------------- */
 .cta-banner-section {
   padding-top: 40px;
   padding-bottom: 80px;
@@ -2596,7 +2653,9 @@ body {
   transform: translateX(4px);
 }
 
-/* --- THE CHALLENGE SECTION --- */
+/* ---------------------------------------------------------------
+   CHALLENGE SECTION
+   --------------------------------------------------------------- */
 .challenge-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -2682,7 +2741,9 @@ body {
   color: var(--color-text-muted);
 }
 
-/* --- SCALABLE SOLUTIONS (PRICING SECTION) --- */
+/* ---------------------------------------------------------------
+   PRICING
+   --------------------------------------------------------------- */
 .pricing-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -2889,7 +2950,9 @@ body {
   transform: translateY(-2px);
 }
 
-/* --- CONTACT SPLIT & FLOATING FORM --- */
+/* ---------------------------------------------------------------
+   CONTACT SPLIT FORM
+   --------------------------------------------------------------- */
 .contact-layout-wrapper {
   position: relative;
   width: 100%;
@@ -2984,7 +3047,9 @@ body {
   margin: 0;
 }
 
-/* --- RESPONSIVE ADJUSTMENTS FOR NEW PAGES & SPLIT HERO --- */
+/* ---------------------------------------------------------------
+   RESPONSIVE - PUBLIC PAGES
+   --------------------------------------------------------------- */
 @media (max-width: 1024px) {
   .hero-split {
     grid-template-columns: 1fr;

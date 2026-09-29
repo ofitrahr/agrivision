@@ -1,3 +1,6 @@
+/* ---------------------------------------------------------------
+   LOGIN PAGE WRAPPER
+   --------------------------------------------------------------- */
 .login-page-wrapper {
   min-height: 100vh;
   display: flex;
@@ -10,7 +13,6 @@
   font-family: var(--font-body, 'Poppins', sans-serif);
 }
 
-/* Organic background decorations matching login.html */
 .login-page-wrapper::before {
   content: '';
   position: fixed;
@@ -37,7 +39,9 @@
   z-index: 0;
 }
 
-/* Card Container matching login.html prototype with tall spacious height */
+/* ---------------------------------------------------------------
+   LOGIN CARD
+   --------------------------------------------------------------- */
 .login-card-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -53,7 +57,9 @@
   z-index: 1;
 }
 
-/* Left Panel - Branding (Solid dark green per AGENTS.md rules) */
+/* ---------------------------------------------------------------
+   LEFT PANEL - BRANDING
+   --------------------------------------------------------------- */
 .login-left-panel {
   background: #053b26;
   padding: 56px 48px;
@@ -145,7 +151,9 @@
   color: #9cf973;
 }
 
-/* Right Panel - Form */
+/* ---------------------------------------------------------------
+   RIGHT PANEL - LOGIN FORM
+   --------------------------------------------------------------- */
 .login-right-panel {
   padding: 40px 48px;
   display: flex;
@@ -221,6 +229,9 @@
   gap: 8px;
 }
 
+/* ---------------------------------------------------------------
+   RESPONSIVE
+   --------------------------------------------------------------- */
 @media (max-width: 768px) {
   .login-card-container {
     grid-template-columns: 1fr;

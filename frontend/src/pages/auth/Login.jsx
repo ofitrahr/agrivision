@@ -52,7 +52,7 @@ const Login = () => {
   return (
     <div className="login-page-wrapper">
       <div className="login-card-container">
-        {/* Panel Kiri - Branding & Info */}
+        {/* Left Panel - Branding & Info */}
         <div className="login-left-panel">
           <div className="login-brand-header">
             <img
@@ -94,7 +94,7 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Panel Kanan - Form Login */}
+        {/* Right Panel - Login Form */}
         <div className="login-right-panel">
           <div className="login-right-header">
             <h1 className="login-title-right">Masuk ke Dashboard</h1>

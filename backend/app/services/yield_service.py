@@ -31,7 +31,6 @@ class YieldService:
         return [float(round(y, 3)) for y in yield_preds]
 
     def resolve_baseline(self, farm_id, period):
-        """Urutan: panen lahan ini -> panen kebun bulan yang sama -> rata-rata kebun -> default."""
         farm = Farm.query.get(farm_id)
         project_id = farm.project_id if farm else None
 

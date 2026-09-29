@@ -1,9 +1,3 @@
-"""Pembaca rekap panen Kadatuan dari Excel.
-
-Dipakai bersama oleh seed.py dan scripts/analyze_by_harvest_date.py agar tidak ada
-dua sumber kebenaran untuk angka panen yang sama.
-"""
-
 import os
 
 DEFAULT_XLSX = os.path.join(
@@ -15,7 +9,6 @@ STOP_MARKER = 'jumlah'
 
 
 def read_harvest_events(path=None):
-    """[(tanggal, kg, catatan)] dari tabel per-kejadian panen."""
     import openpyxl
     from datetime import datetime
 
@@ -48,7 +41,6 @@ def read_harvest_events(path=None):
 
 
 def monthly_harvest(path=None):
-    """[(YYYY-MM, kg)] terurut, hasil agregasi tabel per-kejadian."""
     totals = {}
     for tanggal, kg, _ in read_harvest_events(path):
         totals[f"{tanggal.year:04d}-{tanggal.month:02d}"] = totals.get(
