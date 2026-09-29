@@ -945,22 +945,35 @@ const GIS = () => {
                                     </div>
                                 </div>
 
-                                {/* 5. Yield Estimate (Active - NDVI calibrated with harvest data) */}
+                                {/* 5. Yield Estimate (NDVI calibrated with farm production data) */}
                                 <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                                         <span style={{ fontSize: '11px', fontWeight: '700', color: '#166534' }}>Estimasi Yield</span>
-                                        <span style={{
-                                            fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '10px',
-                                            background: analysisResult.yield_prediction >= 0.08 ? '#dcfce7' : '#fee2e2',
-                                            color: analysisResult.yield_prediction >= 0.08 ? '#15803d' : '#991b1b'
-                                        }}>
-                                            {analysisResult.yield_prediction >= 0.15 ? 'Optimal' : analysisResult.yield_prediction >= 0.08 ? 'Normal' : 'Rendah'}
-                                        </span>
+                                        {analysisResult.yield_prediction == null ? (
+                                            <span style={{
+                                                fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '10px',
+                                                background: '#f3f4f6', color: '#6b7280'
+                                            }}>
+                                                Tidak ada data
+                                            </span>
+                                        ) : (
+                                            <span style={{
+                                                fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '10px',
+                                                background: analysisResult.yield_prediction >= 0.08 ? '#dcfce7' : '#fee2e2',
+                                                color: analysisResult.yield_prediction >= 0.08 ? '#15803d' : '#991b1b'
+                                            }}>
+                                                {analysisResult.yield_prediction >= 0.15 ? 'Optimal' : analysisResult.yield_prediction >= 0.08 ? 'Normal' : 'Rendah'}
+                                            </span>
+                                        )}
                                     </div>
                                     <div style={{ fontSize: '20px', fontWeight: '800', color: '#15803d', margin: '2px 0' }}>
                                         {analysisResult.yield_prediction ?? '-'} <span style={{ fontSize: '11px', fontWeight: '500' }}>{analysisResult.yield_unit || 'Ton/Ha'}</span>
                                     </div>
-                                    <div style={{ fontSize: '10px', color: '#166534' }}>Terkalibrasi Data Panen &amp; NDVI</div>
+                                    <div style={{ fontSize: '10px', color: '#166534' }}>
+                                        {analysisResult.yield_prediction == null
+                                            ? 'Belum ada Total Produksi di Catatan Keuangan periode ini'
+                                            : 'Terkalibrasi Total Produksi & NDVI'}
+                                    </div>
                                 </div>
                             </div>
                         </div>

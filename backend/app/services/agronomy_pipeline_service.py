@@ -84,10 +84,11 @@ class AgronomyPipelineService:
             f"{'x%.4f' % SOCService.CALIBRATION_GAIN if SOCService.CALIBRATION_ENABLED else 'nonaktif'})"
         )
         yield_source = f"Sentinel-2 NDVI Calibrated Yield Model ({yield_service.last_source})"
+        yield_by_pixel = yield_predictions or [None] * len(pixel_samples)
 
         layer_rows = []
         for p, soc_val, npk_val, ndvi_val, yield_val in zip(
-            pixel_samples, predictions, npk_predictions, ndvi_arr, yield_predictions
+            pixel_samples, predictions, npk_predictions, ndvi_arr, yield_by_pixel
         ):
             base = {
                 'farm_id': farm.id,
@@ -99,8 +100,9 @@ class AgronomyPipelineService:
             layer_rows.append({**base, 'parameter_type': 'ndvi', 'numerical_value': round(float(ndvi_val), 4),
                                'unit': "index", 'is_anomaly': bool(ndvi_val < 0.40),
                                'source': "GEE Sentinel-2 (NDVI Band Ratio)"})
-            layer_rows.append({**base, 'parameter_type': 'yield', 'numerical_value': round(yield_val, 3),
-                               'unit': "Ton/Ha", 'is_anomaly': bool(yield_val < 0.05), 'source': yield_source})
+            if yield_val is not None:
+                layer_rows.append({**base, 'parameter_type': 'yield', 'numerical_value': round(yield_val, 3),
+                                   'unit': "Ton/Ha", 'is_anomaly': bool(yield_val < 0.05), 'source': yield_source})
 
             for nutrient in ('nitrogen', 'phosphorus', 'potassium'):
                 val = npk_val[nutrient]
@@ -123,7 +125,8 @@ class AgronomyPipelineService:
         k_mean = float(np.mean([v['potassium'] for v in npk_predictions]))
 
         ndvi_mean = float(np.mean(ndvi_arr))
-        yield_mean = float(np.mean(yield_predictions)) if yield_predictions else 0.0
+        yield_mean = float(np.mean(yield_predictions)) if yield_predictions else None
+        yield_log = f"{yield_mean:.3f} Ton/Ha" if yield_mean is not None else "tidak dihitung (belum ada Total Produksi)"
 
         mean_val = float(np.mean(predictions))
         min_val = float(np.min(predictions))
@@ -145,7 +148,7 @@ class AgronomyPipelineService:
         logger.info(
             f"Analisis spasial lahan '{farm.name}' selesai! "
             f"Piksel: {len(predictions)}, Mean SOC: {mean_val:.2f}, Min: {min_val:.2f}, Max: {max_val:.2f}, Std: {std_val:.2f}, "
-            f"Mean NDVI: {ndvi_mean:.2f}, Mean Yield: {yield_mean:.3f} Ton/Ha, "
+            f"Mean NDVI: {ndvi_mean:.2f}, Mean Yield: {yield_log}, "
             f"Mean N: {n_mean:.2f}%, Mean P: {p_mean:.2f} mg/kg, Mean K: {k_mean:.2f} mg/kg"
         )
 
@@ -168,7 +171,7 @@ class AgronomyPipelineService:
             "soc_depth_cm": SOCService.SAMPLING_DEPTH_CM,
             "ndvi_prediction": round(ndvi_mean, 2),
             "biomass_prediction": None,
-            "yield_prediction": round(yield_mean, 3),
+            "yield_prediction": round(yield_mean, 3) if yield_mean is not None else None,
             "yield_unit": "Ton/Ha",
             "yield_baseline_source": yield_service.last_source,
             "npk_prediction": {
