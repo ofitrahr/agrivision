@@ -57,9 +57,6 @@ class SOCService:
     def oc_gkg_to_stock(cls, oc_gkg):
         return cls.oc_percent_to_stock(oc_gkg * cls.OC_GKG_TO_PERCENT)
 
-    def predict_soc_stock_batch(self, samples_props_list):
-        return [self.oc_gkg_to_stock(self.calibrate_oc(v)) for v in self.predict_soc_batch(samples_props_list)]
-
     def predict_soc_batch(self, samples_props_list):
         """Keluaran model: kandungan OC dalam g/kg."""
         if not samples_props_list:
@@ -111,8 +108,3 @@ class SOCService:
         outputs = self.session.run(None, {self.input_name: scaled_matrix})
         soc_preds = outputs[0].flatten()
         return [float(max(0.0, val)) for val in soc_preds]
-
-    def predict_soc(self, topo_data, band_data):
-        merged = {**topo_data, **band_data}
-        preds = self.predict_soc_batch([merged])
-        return preds[0] if preds else 0.0

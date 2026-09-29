@@ -8,7 +8,7 @@ class ReportService:
     @staticmethod
     def generated_pdf_report(report_data):
         try:
-            from weasyprint import HTML, CSS
+            from weasyprint import HTML
         except (ImportError, OSError) as e:
             raise RuntimeError(
                 "WeasyPrint tidak tersedia di sistem ini. "

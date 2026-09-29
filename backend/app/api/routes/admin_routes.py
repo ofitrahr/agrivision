@@ -242,22 +242,6 @@ def remove_user(current_user, user_id):
     status_code = 200 if result.get('success') else 400
     return jsonify(result), status_code
 
-@admin_bp.route('/gis/map', methods=['GET'])
-@token_required
-@role_required('super_admin')
-def get_global_map(current_user):
-    try:
-        map_html = GISService.generate_global_map()
-        return jsonify({
-            'success': True,
-            'data': {
-                'html': map_html
-            }
-        }), 200
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
 @admin_bp.route('/farms', methods=['POST'])
 @token_required
 @role_required('super_admin')

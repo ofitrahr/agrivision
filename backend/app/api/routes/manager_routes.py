@@ -1278,7 +1278,7 @@ def get_available_periods(current_user):
 @token_required
 @role_required('manager')
 def get_farm_observation_summary(current_user, farm_id):
-    from app.db.models import GisLayer, EsgMetric
+    from app.db.models import GisLayer
     import statistics
 
     project_id = current_user.project_id
@@ -1426,7 +1426,7 @@ def get_farm_observation_summary(current_user, farm_id):
 @token_required
 @role_required('manager')
 def download_report(current_user, report_id):
-    from app.db.models import DocumentReport, GisLayer, FinancialRecord, Farmer, SensorData, EsgMetric
+    from app.db.models import DocumentReport, GisLayer, FinancialRecord, Farmer, SensorData
     report = DocumentReport.query.filter_by(id=report_id).first()
     if not report:
         return jsonify({'success': False, 'message': 'Laporan tidak ditemukan'}), 404
@@ -1509,13 +1509,10 @@ def download_report(current_user, report_id):
     plant_health = round(raw_ndvi * 100) if raw_ndvi > 0 else 0
     if plant_health >= 75:
         health_status = 'Optimal'
-        health_badge_class = 'badge-success'
     elif plant_health >= 60:
         health_status = 'Cukup / Waspada'
-        health_badge_class = 'badge-warning'
     else:
         health_status = 'Kritis'
-        health_badge_class = 'badge-danger'
 
     n_val = get_avg_gis_layer('nitrogen')
     p_val = get_avg_gis_layer('phosphorus')
