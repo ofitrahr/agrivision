@@ -205,12 +205,18 @@ def update_user(user_id, data):
         user = User.query.get(user_id)
         if not user:
             return {"success": False, "message": "User tidak ditemukan"}
-            
+        if user.role == 'super_admin':
+            return {"success": False, "message": "Akun super admin tidak bisa diubah dari manajemen user perusahaan"}
+
+        role = data.get('role', user.role)
+        if role not in ['manager', 'board']:
+            return {"success": False, "message": "Role harus 'manager' atau 'board'"}
+
         user.username = data.get('username', user.username)
         user.full_name = data.get('full_name', user.full_name)
         user.phone = data.get('phone', user.phone)
-        user.role = data.get('role', user.role)
-        
+        user.role = role
+
         if 'project_id' in data:
             user.project_id = data['project_id']
             

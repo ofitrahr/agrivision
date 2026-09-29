@@ -97,31 +97,9 @@ def seed_super_admin():
     if User.query.filter_by(username="superadmin").first():
         print("Superadmin already seeded.")
         return
-    company = Company(name="Agrivision Master", description="Induk Sistem")
-    db.session.add(company)
-    db.session.commit()
-
-    project = Project(name="Default Project", description="Proyek Utama", company_id=company.id)
-    db.session.add(project)
-    db.session.commit()
-
-    perm = ProjectPermission(
-        project_id=project.id,
-        module_gis=True,
-        module_traceability=True,
-        module_agronomy=True,
-        module_board_reports=True,
-        can_access_ndvi=True,
-        can_access_soc=True,
-        can_access_yield=True,
-        can_access_biomass=True,
-        can_access_soilnpk=True
-    )
-    db.session.add(perm)
-    db.session.commit()
 
     admin = User(
-        project_id=project.id,
+        project_id=None,
         username="superadmin",
         password_hash=get_password_hash("password123"),
         full_name="Super Administrator",
