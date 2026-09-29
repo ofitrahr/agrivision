@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASS:-password}
       POSTGRES_DB: ${DB_NAME:-agrivision}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -21,7 +21,7 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-password_sangat_kuat_32karakter}
     ports:
       - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9001:9001"
     volumes:
       - minio_data:/data
     restart: unless-stopped
@@ -46,7 +46,7 @@ services:
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-agrivision-uploads}
       - GEE_SERVICE_ACCOUNT_B64=${GEE_SERVICE_ACCOUNT_B64}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       - db
       - minio
