@@ -8,6 +8,7 @@ body {
 }
 
 .landing-section {
+  width: 100%;
   padding: 120px 48px;
   max-width: 1400px;
   margin: 0 auto;
@@ -569,6 +570,7 @@ body {
 }
 
 .section-title.text-center {
+  text-align: center;
   margin-bottom: 12px;
 }
 
@@ -626,6 +628,7 @@ body {
    PRODUCT PREVIEW
    --------------------------------------------------------------- */
 .product-preview {
+  max-width: 1200px;
   background-color: var(--color-surface-white);
   border: 1px solid var(--color-border-muted);
   border-radius: var(--radius-xl);
@@ -917,6 +920,7 @@ body {
    OUR TEAM
    --------------------------------------------------------------- */
 .our-team {
+  max-width: 1200px;
   background-color: var(--color-surface-white);
   border: 1px solid var(--color-border-muted);
   border-radius: var(--radius-xl);
@@ -1192,6 +1196,7 @@ body {
    PARTNERS
    --------------------------------------------------------------- */
 .partners-section {
+  max-width: 1200px;
   background-color: var(--color-surface-white);
   border: 1px solid var(--color-border-muted);
   border-radius: var(--radius-xl);
@@ -1207,14 +1212,17 @@ body {
 
 .partners-track {
   display: flex;
-  gap: 80px;
+  align-items: center;
+  gap: 72px;
   padding: 15px 0;
   animation: partnerScroll 30s linear infinite;
   width: max-content;
 }
 
 .partners-track img {
-  height: 80px;
+  height: 52px;
+  width: auto;
+  max-width: 180px;
   object-fit: contain;
   filter: grayscale(100%);
   opacity: 0.55;
@@ -1699,6 +1707,7 @@ body {
   .hero { padding: 130px 20px 70px; min-height: auto; }
   .landing-section { padding: 60px 20px; }
   .landing-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .stat-item::after { display: none; }
   .steps-grid { grid-template-columns: 1fr; }
   .preview-grid { grid-template-columns: 1fr; gap: 32px; }
   .connect-grid { grid-template-columns: 1fr; gap: 32px; }
@@ -1764,6 +1773,7 @@ body {
   .product-preview,
   .our-team,
   .partners-section {
+    width: auto;
     margin: 20px 16px;
     border-radius: var(--radius-md);
   }
@@ -2185,7 +2195,7 @@ body {
    --------------------------------------------------------------- */
 .mrv-pillars-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   gap: 28px;
   max-width: 1200px;
   margin: 0 auto 48px;
@@ -2662,56 +2672,49 @@ body {
 /* ---------------------------------------------------------------
    CHALLENGE SECTION
    --------------------------------------------------------------- */
-.challenge-grid {
+.section-header-split {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
-  gap: 28px;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 48px;
+  align-items: end;
+  max-width: 1200px;
+  margin: 0 auto 56px;
+}
+
+.section-header-split .section-intro {
+  margin-top: 0;
+}
+
+.challenge-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   max-width: 1200px;
   margin: 0 auto;
+  border-top: 2px solid var(--color-primary);
 }
 
-.challenge-card {
-  background-color: var(--color-surface-white);
-  border: 1px solid var(--color-border-muted);
-  border-radius: var(--radius-xl);
-  padding: 36px 28px;
-  box-shadow: var(--shadow-elevated);
-  transition: all var(--transition);
-  display: flex;
-  flex-direction: column;
+.challenge-item {
+  padding: 28px 32px 8px 0;
 }
 
-.challenge-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--color-main-green);
+.challenge-item + .challenge-item {
+  padding-left: 32px;
+  border-left: 1px solid var(--color-border-muted);
 }
 
-.challenge-icon-box {
-  width: 52px;
-  height: 52px;
-  border-radius: var(--radius-md);
-  background-color: var(--color-whisper-green);
-  color: var(--color-main-green);
+.challenge-item-top {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.challenge-badge {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  gap: 10px;
+  margin-bottom: 18px;
   color: var(--color-main-green);
-  background-color: var(--color-whisper-green);
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  align-self: flex-start;
-  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.challenge-card h3 {
+.challenge-item h3 {
   font-size: 20px;
   font-weight: 700;
   color: var(--color-primary);
@@ -2719,32 +2722,152 @@ body {
   letter-spacing: -0.01em;
 }
 
-.challenge-card p {
-  font-size: 14px;
+.challenge-item p {
+  font-size: 14.5px;
   color: var(--color-text-muted);
-  line-height: 1.6;
-  flex: 1;
+  line-height: 1.65;
 }
 
-.challenge-stat-highlight {
-  background-color: var(--color-surface-container);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
-  margin-top: 20px;
-  border: 1px solid var(--color-border-muted);
+/* ---------------------------------------------------------------
+   FIVE SIGNALS ROWS
+   --------------------------------------------------------------- */
+.signal-rows {
+  list-style: none;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.highlight-number {
-  display: block;
+.signal-row {
+  display: grid;
+  grid-template-columns: 48px 1.1fr 1.6fr 1fr;
+  gap: 32px;
+  align-items: start;
+  padding: 28px 0;
+  border-top: 1px solid var(--color-border-muted);
+}
+
+.signal-row:last-child {
+  border-bottom: 1px solid var(--color-border-muted);
+}
+
+.signal-row-num {
   font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-main-green);
+  padding-top: 2px;
+}
+
+.signal-row-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.signal-row-icon {
+  display: flex;
+  color: var(--color-main-green);
+}
+
+.signal-row-title h3 {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--color-primary);
 }
 
-.highlight-desc {
-  font-size: 12px;
+.signal-row-desc {
+  font-size: 14px;
   color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+.signal-row-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ---------------------------------------------------------------
+   MRV FLOW (DARK PANEL)
+   --------------------------------------------------------------- */
+.mrv-flow-panel {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 64px 56px;
+  border-radius: var(--radius-xl);
+  background-color: var(--color-primary);
+  background-image: url('/assets/images/topography-pattern-dark.svg');
+  background-size: cover;
+  color: #ffffff;
+}
+
+.mrv-flow-panel .section-label {
+  color: var(--color-main-gold);
+}
+
+.mrv-flow-panel .section-title {
+  color: #ffffff;
+}
+
+.mrv-flow-panel .section-intro {
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 560px;
+}
+
+.mrv-flow {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  margin: 48px 0 40px;
+}
+
+.mrv-flow-marker {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.mrv-flow-num {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-main-gold);
+  color: var(--color-main-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.mrv-flow-line {
+  flex: 1;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.mrv-flow-step:last-child .mrv-flow-line {
+  display: none;
+}
+
+.mrv-flow-step h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 10px;
+}
+
+.mrv-flow-step p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.65;
 }
 
 /* ---------------------------------------------------------------
@@ -3091,7 +3214,17 @@ body {
   .standards-box { grid-template-columns: 1fr; gap: 32px; }
   .about-mission-box { grid-template-columns: 1fr; }
   .pricing-grid { grid-template-columns: 1fr; max-width: 500px; }
-  .challenge-grid { grid-template-columns: 1fr; max-width: 500px; }
+  .section-header-split { grid-template-columns: 1fr; gap: 16px; margin-bottom: 40px; }
+  .challenge-list { grid-template-columns: 1fr; border-top: none; }
+  .challenge-item,
+  .challenge-item + .challenge-item { padding: 24px 0; border-left: none; border-top: 1px solid var(--color-border-muted); }
+  .challenge-item:first-child { border-top: 2px solid var(--color-primary); }
+  .signal-row { grid-template-columns: 36px 1fr; gap: 10px 12px; padding: 22px 0; }
+  .signal-row-desc,
+  .signal-row-metric { grid-column: 2; }
+  .mrv-flow { grid-template-columns: 1fr; gap: 28px; }
+  .mrv-flow-line { display: none; }
+  .mrv-flow-marker { margin-bottom: 14px; }
 }
 
 @media (max-width: 768px) {
@@ -3123,6 +3256,7 @@ body {
   .mrv-stepper-line { display: none; }
   .stepper-node { flex-direction: row; gap: 12px; }
   .cta-banner-box { padding: 40px 20px; }
+  .mrv-flow-panel { padding: 40px 24px; border-radius: var(--radius-md); }
   .cta-banner-box h2 { font-size: 26px; }
 }
 

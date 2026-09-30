@@ -135,6 +135,45 @@ const LandingPage = () => {
     }
   ];
 
+  const challenges = [
+    {
+      icon: <TrendingDown size={20} />,
+      tag: 'Soil degradation',
+      title: 'Degraded Land & Climate Risk',
+      desc: 'Indonesian farmers lose significant agricultural productivity every year from degraded farmland and inefficient input management.'
+    },
+    {
+      icon: <ShieldAlert size={20} />,
+      tag: 'EUDR & Scope 3',
+      title: 'No Verifiable ESG Infrastructure',
+      desc: 'Agribusiness enterprises struggle to meet stringent ESG disclosure and export compliance standards (such as EUDR) due to a lack of verifiable data tools.'
+    },
+    {
+      icon: <Coins size={20} />,
+      tag: 'Carbon finance',
+      title: 'Missing Soil Carbon Baseline',
+      desc: 'A lack of scalable soil carbon measurement infrastructure prevents regenerative agriculture projects from unlocking international climate finance.'
+    }
+  ];
+
+  const mrvSteps = [
+    {
+      icon: <Gauge size={22} strokeWidth={1.75} />,
+      title: 'Measurement',
+      desc: 'Quantifying soil carbon, biomass, and crop condition via Sentinel-2 satellite and ground sampling.'
+    },
+    {
+      icon: <FileSpreadsheet size={22} strokeWidth={1.75} />,
+      title: 'Reporting',
+      desc: 'Standard-aligned disclosures and carbon calculations ready for compliance and ESG audit.'
+    },
+    {
+      icon: <CheckCheck size={22} strokeWidth={1.75} />,
+      title: 'Verification',
+      desc: 'Verifiable digital audit trail connecting farm plots to certification bodies and commodity buyers.'
+    }
+  ];
+
   return (
     <div className="page-wrapper">
       <PublicNavbar />
@@ -207,59 +246,27 @@ const LandingPage = () => {
 
       {/* 2.5 THE CHALLENGE (WHY NOW) */}
       <section className="landing-section challenge-section scroll-reveal" ref={challengeRef}>
-        <div className="section-header-centered">
-          <span className="section-label">THE CHALLENGE</span>
-          <h2 className="section-title text-center">Overcoming the Climate &amp; Productivity Barrier</h2>
+        <div className="section-header-split">
+          <div>
+            <span className="section-label">THE CHALLENGE</span>
+            <h2 className="section-title">Overcoming the Climate &amp; Productivity Barrier</h2>
+          </div>
           <p className="section-intro">
             Indonesian agriculture stands at a critical juncture where land degradation, missing carbon baselines, and emerging ESG mandates require verifiable digital infrastructure.
           </p>
         </div>
 
-        <div className="challenge-grid">
-          <div className="challenge-card">
-            <div className="challenge-icon-box">
-              <TrendingDown size={28} />
+        <div className="challenge-list">
+          {challenges.map((c) => (
+            <div key={c.title} className="challenge-item">
+              <div className="challenge-item-top">
+                {c.icon}
+                <span>{c.tag}</span>
+              </div>
+              <h3>{c.title}</h3>
+              <p>{c.desc}</p>
             </div>
-            <div className="challenge-badge">Economic &amp; Soil Risk</div>
-            <h3>Degraded Land &amp; Climate Risk</h3>
-            <p>
-              Indonesian farmers lose <strong>significant agricultural productivity</strong> every year from degraded farmland and inefficient input management.
-            </p>
-            <div className="challenge-stat-highlight">
-              <span className="highlight-number">Soil Degradation</span>
-              <span className="highlight-desc">Lost yield &amp; wasted inputs</span>
-            </div>
-          </div>
-
-          <div className="challenge-card">
-            <div className="challenge-icon-box">
-              <ShieldAlert size={28} />
-            </div>
-            <div className="challenge-badge">Compliance Barrier</div>
-            <h3>No Verifiable ESG Infrastructure</h3>
-            <p>
-              Agribusiness enterprises struggle to meet stringent ESG disclosure and export compliance standards (such as EUDR) due to a lack of verifiable data tools.
-            </p>
-            <div className="challenge-stat-highlight">
-              <span className="highlight-number">EUDR &amp; Scope 3</span>
-              <span className="highlight-desc">Export compliance gap</span>
-            </div>
-          </div>
-
-          <div className="challenge-card">
-            <div className="challenge-icon-box">
-              <Coins size={28} />
-            </div>
-            <div className="challenge-badge">Finance Bottleneck</div>
-            <h3>Missing Soil Carbon Baseline</h3>
-            <p>
-              A lack of scalable soil carbon measurement infrastructure prevents regenerative agriculture projects from unlocking international climate finance.
-            </p>
-            <div className="challenge-stat-highlight">
-              <span className="highlight-number">Carbon MRV</span>
-              <span className="highlight-desc">Monetizing soil regeneration</span>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
@@ -273,22 +280,22 @@ const LandingPage = () => {
           </p>
         </div>
 
-        <div className="mrv-lifecycle-grid">
+        <ol className="signal-rows">
           {signalPreviews.map((sig) => (
-            <div key={sig.step} className="lifecycle-card">
-              <div className="lifecycle-card-top">
-                <span className="lifecycle-step-num">{sig.step}</span>
-                <div className="lifecycle-icon-wrap">{sig.icon}</div>
+            <li key={sig.step} className="signal-row">
+              <span className="signal-row-num">{sig.step}</span>
+              <div className="signal-row-title">
+                <span className="signal-row-icon">{sig.icon}</span>
+                <h3>{sig.title}</h3>
               </div>
-              <h3>{sig.title}</h3>
-              <p>{sig.desc}</p>
-              <div className="lifecycle-output">
-                <span className="output-label">Key Metric:</span>
+              <p className="signal-row-desc">{sig.desc}</p>
+              <div className="signal-row-metric">
+                <span className="output-label">Key metric</span>
                 <span className="output-text">{sig.output}</span>
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
 
         <div className="section-center-action">
           <Link to="/signals" className="btn-inline-link">
@@ -299,38 +306,26 @@ const LandingPage = () => {
 
       {/* 4. END-TO-END MRV OVERVIEW */}
       <section className="landing-section mrv-overview-section scroll-reveal" ref={mrvOverviewRef}>
-        <div className="section-header-centered">
+        <div className="mrv-flow-panel">
           <span className="section-label">PLATFORM INFRASTRUCTURE</span>
-          <h2 className="section-title text-center">End-to-End MRV Operations</h2>
+          <h2 className="section-title">End-to-End MRV Operations</h2>
           <p className="section-intro">
             A unified digital framework covering measurement in the field, standard-aligned reporting, and independent verification.
           </p>
-        </div>
 
-        <div className="mrv-pillars-grid">
-          <div className="mrv-pillar-card">
-            <div className="mrv-pillar-badge pillar-measure">01</div>
-            <div className="mrv-pillar-icon"><Gauge size={28} strokeWidth={1.75} /></div>
-            <h3>Measurement</h3>
-            <p>Quantifying soil carbon, biomass, and crop condition via Sentinel-2 satellite and ground sampling.</p>
-          </div>
+          <ol className="mrv-flow">
+            {mrvSteps.map((step, i) => (
+              <li key={step.title} className="mrv-flow-step">
+                <div className="mrv-flow-marker">
+                  <span className="mrv-flow-num">0{i + 1}</span>
+                  <span className="mrv-flow-line" aria-hidden="true"></span>
+                </div>
+                <h3>{step.icon}{step.title}</h3>
+                <p>{step.desc}</p>
+              </li>
+            ))}
+          </ol>
 
-          <div className="mrv-pillar-card">
-            <div className="mrv-pillar-badge pillar-report">02</div>
-            <div className="mrv-pillar-icon"><FileSpreadsheet size={28} strokeWidth={1.75} /></div>
-            <h3>Reporting</h3>
-            <p>Standard-aligned disclosures and carbon calculations ready for compliance and ESG audit.</p>
-          </div>
-
-          <div className="mrv-pillar-card">
-            <div className="mrv-pillar-badge pillar-verify">03</div>
-            <div className="mrv-pillar-icon"><CheckCheck size={28} strokeWidth={1.75} /></div>
-            <h3>Verification</h3>
-            <p>Verifiable digital audit trail connecting farm plots to certification bodies and commodity buyers.</p>
-          </div>
-        </div>
-
-        <div className="section-center-action">
           <Link to="/mrv" className="btn-inline-link">
             See the 6-Stage Operational Workflow <ArrowRight size={16} />
           </Link>
