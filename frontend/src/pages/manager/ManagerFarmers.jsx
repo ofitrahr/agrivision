@@ -178,7 +178,11 @@ const ManagerFarmers = () => {
                         const isFairTrade = farmer.id % 2 !== 0; // Deterministic dummy logic
                         const joinYear = farmer.join_year || '2024';
                         return (
-                        <div key={farmer.id} className="stat-card" style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        <div key={farmer.id} style={{ 
+                            background: '#fff', borderRadius: '16px', border: '1px solid #eaeaea', 
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+                            padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' 
+                        }}>
                             {/* ID Banner / Header */}
                             <div style={{ height: '70px', background: 'linear-gradient(135deg, var(--color-main-green) 0%, #053b26 100%)', position: 'relative' }}>
                                 <svg width="100%" height="100%" style={{ position: 'absolute', opacity: 0.12 }}>
@@ -194,7 +198,7 @@ const ManagerFarmers = () => {
                                 {/* Avatar overlapping the banner */}
                                 <div style={{
                                     width: 80, height: 80, borderRadius: '50%', overflow: 'hidden',
-                                    background: '#eaefec', border: '4px solid #fff', marginTop: '-40px',
+                                    background: '#eaefec', border: '3px solid #10b981', marginTop: '-40px',
                                     boxShadow: '0 4px 12px rgba(0,0,0,0.08)', position: 'relative', zIndex: 1
                                 }}>
                                     {farmer.photo_url ? (
