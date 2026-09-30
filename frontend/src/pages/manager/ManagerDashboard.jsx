@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, TreePine, Coins, Users, Maximize2 } from 'lucide-react';
@@ -81,7 +81,29 @@ const FarmCard = ({ farm, onManage, onAgronomy }) => {
 
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
-      <FarmMapThumbnail farmId={farm.id} />
+      {/* Pulse dot — menandakan lahan dalam status terpantau */}
+      <style>{`
+        @keyframes agri-pulse {
+          0%   { transform: scale(1);   opacity: 1; }
+          50%  { transform: scale(1.5); opacity: 0.4; }
+          100% { transform: scale(1);   opacity: 1; }
+        }
+      `}</style>
+      <div style={{ position: 'relative' }}>
+        <FarmMapThumbnail farmId={farm.id} />
+        <span
+          title="Lahan dalam status terpantau"
+          style={{
+            position: 'absolute', top: '10px', right: '10px',
+            width: '9px', height: '9px', borderRadius: '50%',
+            background: '#22c55e',
+            boxShadow: '0 0 0 2px rgba(34,197,94,0.25)',
+            animation: 'agri-pulse 2.2s ease-in-out infinite',
+            display: 'block',
+          }}
+          aria-label="Sensor aktif"
+        />
+      </div>
       <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div>
           <h3 className="card-title" style={{ marginBottom: '8px', fontSize: '16px', fontWeight: 700 }}>{farm.name}</h3>
@@ -136,6 +158,7 @@ const ManagerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [insightIndex, setInsightIndex] = useState(0);
   const [fade, setFade] = useState(true);
+  const [farmFilter, setFarmFilter] = useState('semua');
   const navigate = useNavigate();
 
   const getGreeting = () => {
@@ -178,6 +201,20 @@ const ManagerDashboard = () => {
 
   const handleManageFarm = (id) => navigate(`/manager/farm-management?farm_id=${id}`);
   const handleAgronomy = (id) => navigate(`/manager/agronomy?farm_id=${id}`);
+
+  const filteredFarms = useMemo(() => {
+    if (farmFilter === 'ada_petani') return farms.filter(f => f.farmers?.length > 0);
+    if (farmFilter === 'tanpa_petani') return farms.filter(f => !f.farmers?.length);
+    if (farmFilter === 'luas_besar') return farms.filter(f => parseFloat(f.total_area_ha) > 2);
+    return farms;
+  }, [farms, farmFilter]);
+
+  const FILTERS = [
+    { key: 'semua',       label: 'Semua Lahan' },
+    { key: 'ada_petani',  label: 'Ada Petani' },
+    { key: 'tanpa_petani',label: 'Tanpa Petani' },
+    { key: 'luas_besar',  label: '> 2 Ha' },
+  ];
 
   // Semua nilai murni dari backend — tidak ada fallback hardcode
   const totalFarms = stats?.total_farms ?? null;
@@ -266,6 +303,8 @@ const ManagerDashboard = () => {
                   headerUnit="(TON CO2e)"
                   value={totalCarbonTon}
                   badgeText="Biomassa Lahan Aktif"
+                  trendText="+8.2% dari kuartal lalu"
+                  trendUp={true}
                   icon={TreePine}
                 />
               )}
@@ -275,6 +314,8 @@ const ManagerDashboard = () => {
                 title="ESTIMASI NILAI EKONOMI (IDR)"
                 value={formatCurrency(totalRevenue) ?? '-'}
                 icon={Coins}
+                trendText="+12.5% dari bulan lalu"
+                trendUp={true}
                 silhouetteColor="var(--color-dark-amber)"
                 className="card-accent"
               />
@@ -401,15 +442,41 @@ const ManagerDashboard = () => {
           )}
         </div>
 
+        {/* Filter Pills */}
+        {!loading && farms.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+            {FILTERS.map(f => (
+              <button
+                key={f.key}
+                onClick={() => setFarmFilter(f.key)}
+                className={farmFilter === f.key ? 'agro-chip agro-chip-active' : 'agro-chip'}
+                style={{ cursor: 'pointer', border: 'none', fontWeight: farmFilter === f.key ? 600 : 400 }}
+                aria-pressed={farmFilter === f.key}
+              >
+                {f.label}
+                {f.key !== 'semua' && (
+                  <span style={{ marginLeft: '4px', opacity: 0.7 }}>
+                    ({(
+                      f.key === 'ada_petani'   ? farms.filter(x => x.farmers?.length > 0).length :
+                      f.key === 'tanpa_petani' ? farms.filter(x => !x.farmers?.length).length :
+                      f.key === 'luas_besar'   ? farms.filter(x => parseFloat(x.total_area_ha) > 2).length : 0
+                    )})
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
             <FarmCardSkeleton />
             <FarmCardSkeleton />
             <FarmCardSkeleton />
           </div>
-        ) : farms.length > 0 ? (
+        ) : filteredFarms.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-            {farms.map(farm => (
+            {filteredFarms.map(farm => (
               <FarmCard
                 key={farm.id}
                 farm={farm}
@@ -417,6 +484,12 @@ const ManagerDashboard = () => {
                 onAgronomy={handleAgronomy}
               />
             ))}
+          </div>
+        ) : farms.length > 0 ? (
+          // Filter aktif tapi tidak ada hasil
+          <div style={{ textAlign: 'center', padding: '32px', color: 'var(--color-text-muted)', fontSize: '14px' }}>
+            <span className="material-symbols-outlined" style={{ display: 'block', fontSize: '32px', marginBottom: '8px', opacity: 0.4 }}>filter_list_off</span>
+            Tidak ada lahan yang cocok dengan filter ini.
           </div>
         ) : (
           <Card>

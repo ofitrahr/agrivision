@@ -59,6 +59,8 @@ const StatCard = ({
   subtext,
   badgeText,
   badgeType = 'success',
+  trendText,      // e.g. "+12.5% dari bulan lalu"
+  trendUp,        // true = hijau (↑), false = merah (↓), undefined = abu (→)
   variant = 'white', // 'white' | 'dark'
   icon: IconProp,
   silhouette: SilhouetteProp,
@@ -114,6 +116,19 @@ const StatCard = ({
               <div style={{ marginTop: '8px' }}>
                 <span className={`stat-badge ${badgeType === 'neutral' ? 'stat-badge-neutral' : isDark ? 'stat-badge-dark-pill' : 'stat-badge-success'}`}>
                   {badgeText}
+                </span>
+              </div>
+            )}
+
+            {trendText && (
+              <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <span style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: trendUp === true ? '#116a3a' : trendUp === false ? '#b91c1c' : '#666',
+                  letterSpacing: '0.01em',
+                }}>
+                  {trendUp === true ? '↑' : trendUp === false ? '↓' : '→'} {trendText}
                 </span>
               </div>
             )}
