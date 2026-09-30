@@ -164,7 +164,7 @@ const SignalsPage = () => {
           <div className="methodology-card">
             <Activity size={32} className="text-main-green mb-3" />
             <h3>Ground Truth Calibration</h3>
-            <p>Regular soil sampling and farmer ground checks ensure machine learning models maintain over 90% real-world accuracy.</p>
+            <p>Regular soil sampling and farmer ground checks keep machine learning models calibrated against real field conditions.</p>
           </div>
           <div className="methodology-card">
             <BarChart3 size={32} className="text-main-green mb-3" />

@@ -1842,6 +1842,12 @@ body {
     transform: none !important;
     transition: none !important;
   }
+  .partners-track {
+    animation: none;
+  }
+  .partners-wrapper {
+    overflow-x: auto;
+  }
 }
 
 /* ---------------------------------------------------------------
@@ -1998,7 +2004,7 @@ body {
    --------------------------------------------------------------- */
 .signals-grid-full {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 24px;
   max-width: 1200px;
   margin: 0 auto;
@@ -2321,7 +2327,7 @@ body {
    --------------------------------------------------------------- */
 .mrv-lifecycle-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 24px;
   max-width: 1200px;
   margin: 0 auto;
@@ -2658,7 +2664,7 @@ body {
    --------------------------------------------------------------- */
 .challenge-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 28px;
   max-width: 1200px;
   margin: 0 auto;
@@ -2746,7 +2752,7 @@ body {
    --------------------------------------------------------------- */
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 30px;
   max-width: 1200px;
   margin: 0 auto;

@@ -1,8 +1,8 @@
 import { useRef, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import api from '../../shared/api/axios';
 import PublicNavbar from './components/PublicNavbar';
 import PublicFooter from './components/PublicFooter';
+import PartnerMarquee from './components/PartnerMarquee';
 import useScrollReveal from '../../shared/utils/useScrollReveal';
 import '../../assets/css/landing.css';
 
@@ -199,23 +199,7 @@ const AboutPage = () => {
       {/* PARTNERS */}
       <section className="landing-section partners-section scroll-reveal" ref={partnersRef}>
         <h2 className="section-title text-center">Our Strategic Partners</h2>
-        <div className="partners-wrapper">
-          <div className="partners-track">
-            <img src="/assets/partner/pt lapi.jpg" alt="PT Lapi" />
-            <img src="/assets/partner/itb.jpg" alt="ITB" />
-            <img src="/assets/partner/labtech.jpg" alt="Labtech" />
-            <img src="/assets/partner/kadatuan.jpg" alt="Kadatuan" />
-            <img src="/assets/partner/biosphereplus.jpg" alt="Biosphere Plus" />
-            <img src="/assets/partner/btp.jpg" alt="BTP" />
-            {/* Duplicate for infinite scroll */}
-            <img src="/assets/partner/pt lapi.jpg" alt="PT Lapi" />
-            <img src="/assets/partner/itb.jpg" alt="ITB" />
-            <img src="/assets/partner/labtech.jpg" alt="Labtech" />
-            <img src="/assets/partner/kadatuan.jpg" alt="Kadatuan" />
-            <img src="/assets/partner/biosphereplus.jpg" alt="Biosphere Plus" />
-            <img src="/assets/partner/btp.jpg" alt="BTP" />
-          </div>
-        </div>
+        <PartnerMarquee />
       </section>
 
       <PublicFooter />

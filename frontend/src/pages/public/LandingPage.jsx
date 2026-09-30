@@ -11,6 +11,8 @@ import {
   FileSpreadsheet, 
   CheckCheck, 
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
   TrendingDown,
   ShieldAlert,
   Coins,
@@ -18,6 +20,7 @@ import {
 } from 'lucide-react';
 import PublicNavbar from './components/PublicNavbar';
 import PublicFooter from './components/PublicFooter';
+import PartnerMarquee from './components/PartnerMarquee';
 import useScrollReveal from '../../shared/utils/useScrollReveal';
 import '../../assets/css/landing.css';
 
@@ -32,6 +35,7 @@ const LandingPage = () => {
   const activitiesRef = useScrollReveal({}, [activities]);
   const partnersRef = useScrollReveal();
   const sliderRef = useRef(null);
+  const statsGridRef = useRef(null);
 
   useEffect(() => {
     const fetchActivities = async () => {
@@ -41,7 +45,7 @@ const LandingPage = () => {
           setActivities(res.data.data);
         }
       } catch (err) {
-        console.error('Failed to fetch activities', err);
+        if (import.meta.env.DEV) console.error('Failed to fetch activities', err);
       }
     };
     fetchActivities();
@@ -56,35 +60,40 @@ const LandingPage = () => {
   };
 
   useEffect(() => {
-    const counters = document.querySelectorAll('.stat-number');
+    const grid = statsGridRef.current;
+    if (!grid) return;
+    const counters = grid.querySelectorAll('.stat-number');
+    const showFinal = () => counters.forEach((c) => { c.textContent = c.dataset.target; });
+
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      showFinal();
+      return;
+    }
+
+    const DURATION = 1500;
+    let frameId;
     const animateCounters = () => {
-      counters.forEach(counter => {
-        const target = +counter.getAttribute('data-target');
-        const updateCount = () => {
-          const current = +counter.innerText;
-          const increment = target / 200;
-          if (current < target) {
-            counter.innerText = Math.ceil(current + increment);
-            setTimeout(updateCount, 10);
-          } else {
-            counter.innerText = target;
-          }
-        };
-        updateCount();
-      });
+      const start = performance.now();
+      const tick = (now) => {
+        const progress = Math.min((now - start) / DURATION, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        counters.forEach((c) => { c.textContent = Math.round(+c.dataset.target * eased); });
+        if (progress < 1) frameId = requestAnimationFrame(tick);
+      };
+      frameId = requestAnimationFrame(tick);
     };
 
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        observer.disconnect();
         animateCounters();
       }
     });
-
-    const statsSection = document.querySelector('.stats-section');
-    if (statsSection) observer.observe(statsSection);
+    observer.observe(grid);
 
     return () => {
-      if (statsSection) observer.unobserve(statsSection);
+      observer.disconnect();
+      cancelAnimationFrame(frameId);
     };
   }, []);
 
@@ -139,8 +148,8 @@ const LandingPage = () => {
               Sustainable Farm, Sustainable Business — helping large farms regenerate soil, lift yields, and become carbon and ESG ready.
             </p>
             <div className="hero-actions">
-              <Link to="/login" className="btn-demo">See Product Demo</Link>
-              <Link to="/contact" className="btn-demo-outline">Request a Consultation</Link>
+              <Link to="/contact" className="btn-demo">Request a Demo</Link>
+              <Link to="/signals" className="btn-demo-outline">Explore the Five Signals</Link>
             </div>
           </div>
           {/* Organic Vertical Seam Curve */}
@@ -151,7 +160,7 @@ const LandingPage = () => {
           </div>
         </div>
         <div className="hero-split-right">
-          <img src="/assets/images/hero_landing.png" alt="Aerial view of terraced farmland" />
+          <img src="/assets/images/hero_landing.webp" alt="Aerial view of terraced farmland" width="1600" height="916" fetchPriority="high" />
         </div>
         <div className="hero-wave">
           <svg viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
@@ -163,34 +172,34 @@ const LandingPage = () => {
       {/* 2. STATS COUNTER */}
       <section className="stats-section scroll-reveal" ref={statsRef}>
         <div className="stats-container-card">
-          <div className="landing-stats-grid">
-            <div className="stat-item">
-              <div className="stat-number-wrap">
-                <span className="stat-number" data-target="2500">0</span>
-                <span className="stat-suffix">Ha+</span>
-              </div>
-              <div className="stat-label">Land Monitored</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number-wrap">
-                <span className="stat-number" data-target="12">0</span>
-                <span className="stat-suffix">Ton C/Ha</span>
-              </div>
-              <div className="stat-label">Avg Carbon Sequestered</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number-wrap">
-                <span className="stat-number" data-target="90">0</span>
-                <span className="stat-suffix">%+</span>
-              </div>
-              <div className="stat-label">Model Accuracy</div>
-            </div>
+          <div className="landing-stats-grid" ref={statsGridRef}>
             <div className="stat-item">
               <div className="stat-number-wrap">
                 <span className="stat-number" data-target="5">0</span>
                 <span className="stat-suffix">Signals</span>
               </div>
               <div className="stat-label">Monitored per Farm</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number-wrap">
+                <span className="stat-number" data-target="4">0</span>
+                <span className="stat-suffix">x / Year</span>
+              </div>
+              <div className="stat-label">Satellite Updates</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number-wrap">
+                <span className="stat-number" data-target="3">0</span>
+                <span className="stat-suffix">Pillars</span>
+              </div>
+              <div className="stat-label">End-to-End MRV</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number-wrap">
+                <span className="stat-number" data-target="5">0</span>
+                <span className="stat-suffix">Ha</span>
+              </div>
+              <div className="stat-label">Minimum Pilot Area</div>
             </div>
           </div>
         </div>
@@ -214,11 +223,11 @@ const LandingPage = () => {
             <div className="challenge-badge">Economic &amp; Soil Risk</div>
             <h3>Degraded Land &amp; Climate Risk</h3>
             <p>
-              Indonesian farmers lose over <strong>$3 billion annually</strong> in agricultural productivity from degraded farmland and inefficient input management.
+              Indonesian farmers lose <strong>significant agricultural productivity</strong> every year from degraded farmland and inefficient input management.
             </p>
             <div className="challenge-stat-highlight">
-              <span className="highlight-number">&gt;$3 Billion / Year</span>
-              <span className="highlight-desc">National productivity loss</span>
+              <span className="highlight-number">Soil Degradation</span>
+              <span className="highlight-desc">Lost yield &amp; wasted inputs</span>
             </div>
           </div>
 
@@ -335,7 +344,7 @@ const LandingPage = () => {
             <span className="section-label">OUR PLATFORM</span>
             <h2 className="section-title">Intelligence Dashboard</h2>
             <p className="preview-desc">
-              Monitor your farmland in real-time. Track NDVI, SOC, Yield, Biomass, and NPK across all your plots, all in one centralized SaaS interface.
+              Monitor your farmland with quarterly satellite updates. Track NDVI, SOC, Yield, Biomass, and NPK across all your plots, all in one centralized SaaS interface.
             </p>
             <ul className="preview-features">
               <li>Interactive map with pixel-level detail</li>
@@ -344,7 +353,7 @@ const LandingPage = () => {
               <li>Automated carbon credit reports</li>
               <li>Per land-owner breakdown</li>
             </ul>
-            <Link to="/login" className="btn-preview-demo">Try the Demo →</Link>
+            <Link to="/contact" className="btn-preview-demo">Request a Demo →</Link>
           </div>
           <div className="preview-image">
             <div className="dashboard-mockup">
@@ -412,7 +421,7 @@ const LandingPage = () => {
               <div className="pricing-price-box">
                 <span className="price-currency">Rp</span>
                 <span className="price-amount">2.000.000</span>
-                <span className="price-period">/ Ha / Bulan</span>
+                <span className="price-period">/ Ha / Month</span>
               </div>
               <div className="pricing-meta">Min. 5 Hectares &bull; 3–6 Months</div>
             </div>
@@ -442,7 +451,7 @@ const LandingPage = () => {
               <div className="pricing-price-box">
                 <span className="price-currency">Rp</span>
                 <span className="price-amount">4.000.000</span>
-                <span className="price-period">/ Ha / Tahun</span>
+                <span className="price-period">/ Ha / Month</span>
               </div>
               <div className="pricing-meta">Min. 20 Hectares &bull; 12 Months Annual</div>
             </div>
@@ -504,8 +513,8 @@ const LandingPage = () => {
             </div>
             {activities.length > 1 && (
               <div className="activities-nav-btns">
-                <button className="slider-btn slider-prev" onClick={() => slideActivities(-1)} aria-label="Previous slide">&#10094;</button>
-                <button className="slider-btn slider-next" onClick={() => slideActivities(1)} aria-label="Next slide">&#10095;</button>
+                <button className="slider-btn slider-prev" onClick={() => slideActivities(-1)} aria-label="Previous slide"><ChevronLeft size={20} /></button>
+                <button className="slider-btn slider-next" onClick={() => slideActivities(1)} aria-label="Next slide"><ChevronRight size={20} /></button>
               </div>
             )}
           </div>
@@ -514,7 +523,7 @@ const LandingPage = () => {
               {activities.map((activity) => (
                 <div className="activity-card" key={activity.id}>
                   {activity.image_path && (
-                    <img src={activity.image_path} alt={activity.title} />
+                    <img src={activity.image_path} alt={activity.title} loading="lazy" />
                   )}
                   <div className="activity-content">
                     <h3>{activity.title}</h3>
@@ -530,23 +539,7 @@ const LandingPage = () => {
       {/* 6. PARTNERS */}
       <section className="landing-section partners-section scroll-reveal" ref={partnersRef}>
         <h2 className="section-title text-center">Our Strategic Partners</h2>
-        <div className="partners-wrapper">
-          <div className="partners-track">
-            <img src="/assets/partner/pt lapi.jpg" alt="PT Lapi" />
-            <img src="/assets/partner/itb.jpg" alt="ITB" />
-            <img src="/assets/partner/labtech.jpg" alt="Labtech" />
-            <img src="/assets/partner/kadatuan.jpg" alt="Kadatuan" />
-            <img src="/assets/partner/biosphereplus.jpg" alt="Biosphere Plus" />
-            <img src="/assets/partner/btp.jpg" alt="BTP" />
-            {/* Duplicate for infinite scroll */}
-            <img src="/assets/partner/pt lapi.jpg" alt="PT Lapi" />
-            <img src="/assets/partner/itb.jpg" alt="ITB" />
-            <img src="/assets/partner/labtech.jpg" alt="Labtech" />
-            <img src="/assets/partner/kadatuan.jpg" alt="Kadatuan" />
-            <img src="/assets/partner/biosphereplus.jpg" alt="Biosphere Plus" />
-            <img src="/assets/partner/btp.jpg" alt="BTP" />
-          </div>
-        </div>
+        <PartnerMarquee />
         <div className="section-center-action mt-4">
           <Link to="/about" className="btn-inline-link">
             Learn More About Our Team &amp; Mission <ArrowRight size={16} />

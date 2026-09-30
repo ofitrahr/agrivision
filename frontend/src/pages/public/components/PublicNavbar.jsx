@@ -15,7 +15,6 @@ const PublicNavbar = () => {
   }, []);
 
   useEffect(() => {
-    setIsMobileMenuOpen(false);
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
@@ -35,7 +34,7 @@ const PublicNavbar = () => {
             </div>
           </Link>
         </div>
-        <div className={`nav-menu ${isMobileMenuOpen ? 'active' : ''}`} id="navMenu">
+        <div className={`nav-menu ${isMobileMenuOpen ? 'active' : ''}`} id="navMenu" onClick={() => setIsMobileMenuOpen(false)}>
           <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Home</Link>
           <Link to="/signals" className={`nav-link ${location.pathname === '/signals' ? 'active' : ''}`}>Five Signals</Link>
           <Link to="/mrv" className={`nav-link ${location.pathname === '/mrv' ? 'active' : ''}`}>End-to-End MRV</Link>

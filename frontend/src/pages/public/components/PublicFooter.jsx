@@ -7,14 +7,14 @@ const PublicFooter = () => (
       {/* 1. Integrated Pre-Footer CTA Banner */}
       <div className="footer-cta-banner">
         <div className="footer-cta-content">
-          <h3 className="footer-cta-title">Siap Memantau Kesehatan Lahan &amp; Karbon Berbasis Satelit?</h3>
+          <h3 className="footer-cta-title">Ready to Monitor Your Land Health &amp; Carbon from Space?</h3>
           <p className="footer-cta-subtitle">
-            Jadwalkan konsultasi teknis atau demonstrasi langsung bersama tim spesialis agronomi Agrivision.
+            Schedule a technical consultation or a live demo with the Agrivision agronomy specialist team.
           </p>
         </div>
         <div className="footer-cta-actions">
           <Link to="/contact" className="btn-footer-cta-primary">
-            Jadwalkan Konsultasi <ArrowRight size={16} />
+            Schedule a Consultation <ArrowRight size={16} />
           </Link>
           <a 
             href="https://wa.me/6285117142929?text=Halo%20Agrivision,%20saya%20tertarik%20dengan%20solusi%20satelit%20lahan%20dan%20MRV" 
@@ -22,7 +22,7 @@ const PublicFooter = () => (
             rel="noopener noreferrer" 
             className="btn-footer-cta-secondary"
           >
-            <Phone size={15} /> WhatsApp Kami
+            <Phone size={15} /> Chat on WhatsApp
           </a>
         </div>
       </div>
@@ -106,7 +106,7 @@ const PublicFooter = () => (
 
       {/* 3. Bottom Bar */}
       <div className="footer-bottom-bar">
-        <p>&copy; 2025 PT. Visi Agrikultur Indonesia. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} PT. Visi Agrikultur Indonesia. All rights reserved.</p>
         <p>agrivisiontech.com</p>
       </div>
     </div>

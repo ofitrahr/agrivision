@@ -102,7 +102,7 @@ const MRVPage = () => {
             <div className="mrv-pillar-icon"><Gauge size={32} strokeWidth={1.75} /></div>
             <h3>Measurement</h3>
             <p>
-              We quantify what is in the field — soil organic carbon, biomass, and crop condition — from satellite, UAV, and ground sampling in near real-time.
+              We quantify what is in the field — soil organic carbon, biomass, and crop condition — from satellite, UAV, and ground sampling, updated every quarter.
             </p>
             <ul className="mrv-pillar-list">
               <li>Sentinel-2 multi-spectral remote sensing</li>
