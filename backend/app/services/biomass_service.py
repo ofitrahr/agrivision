@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class BiomassService:
-    DATASET_FILE = 'agb_kadatuan_10m.h5'
+    DATASET_FILE = 'agb_kadatuan_10m_v3.h5'
     UNIT = 'Ton/Ha'
     ANOMALY_THRESH_MG_HA = 10.0
 
