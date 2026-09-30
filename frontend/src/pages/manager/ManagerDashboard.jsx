@@ -288,7 +288,65 @@ const ManagerDashboard = () => {
         </button>
       </header>
 
+      {/* WEATHER & MICROCLIMATE WIDGET (MODERN UI - BRAND COLORS) */}
+      <section aria-label="Kondisi Cuaca Lahan Utama" style={{ marginBottom: 'var(--space-lg)' }}>
+        <div style={{ 
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px',
+          background: 'linear-gradient(135deg, #6ee7b7 0%, #fcd34d 100%)', // Brand Light Mint to Light Gold
+          color: '#012d1d',
+          boxShadow: '0 12px 24px -6px rgba(110, 231, 183, 0.5)', 
+          padding: '24px 32px', borderRadius: '16px',
+          position: 'relative', overflow: 'hidden'
+        }}>
+          {/* Decorative background light leaks */}
+          <div style={{ position: 'absolute', top: '-40px', right: '-20px', width: '200px', height: '200px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%)' }}></div>
+          <div style={{ position: 'absolute', bottom: '-60px', left: '10%', width: '150px', height: '150px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%)' }}></div>
 
+          {/* Main Weather Info */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', position: 'relative', zIndex: 1 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '64px', color: '#fff', textShadow: '0 0 24px rgba(255, 255, 255, 0.7)' }}>partly_cloudy_day</span>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '22px', fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '0.02em' }}>Cerah Berawan</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '13px', opacity: 0.8, fontWeight: 600 }}>Kondisi rata-rata lahan hari ini</p>
+            </div>
+          </div>
+          
+          {/* Metrics Glassmorphism Box */}
+          <div style={{ 
+            display: 'flex', gap: '32px', flexWrap: 'wrap', position: 'relative', zIndex: 1, 
+            background: 'rgba(255, 255, 255, 0.3)', padding: '16px 28px', borderRadius: '14px', 
+            backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.6)' 
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span className="material-symbols-outlined" style={{ color: '#047857', fontSize: '26px' }}>thermostat</span>
+              <div>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7, fontWeight: 700 }}>Suhu Udara</div>
+                <div style={{ fontSize: '18px', fontWeight: 800 }}>28°C</div>
+              </div>
+            </div>
+            
+            <div style={{ width: '1px', background: 'rgba(1, 45, 29, 0.15)' }}></div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span className="material-symbols-outlined" style={{ color: '#0284c7', fontSize: '26px' }}>water_drop</span>
+              <div>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7, fontWeight: 700 }}>Kelembapan</div>
+                <div style={{ fontSize: '18px', fontWeight: 800 }}>75%</div>
+              </div>
+            </div>
+            
+            <div style={{ width: '1px', background: 'rgba(1, 45, 29, 0.15)' }}></div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span className="material-symbols-outlined" style={{ color: '#4338ca', fontSize: '26px' }}>rainy</span>
+              <div>
+                <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7, fontWeight: 700 }}>Curah Hujan</div>
+                <div style={{ fontSize: '18px', fontWeight: 800 }}>12 mm</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
       {/* METRICS 2x2 GRID */}
       <section aria-label="Metrik Utama" style={{ marginBottom: 'var(--space-lg)' }}>
         <div className="stats-grid-2x2">

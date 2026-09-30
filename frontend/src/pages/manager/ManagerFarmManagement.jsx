@@ -247,9 +247,28 @@ const ManagerFarmManagement = () => {
                 <div key={f.id} className="agro-card" style={{ display: 'flex', flexDirection: 'column', padding: '20px' }}>
                   <FarmMapThumbnail farmId={f.id} />
 
-                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--color-text-main)', margin: '0 0 8px 0' }}>
-                    {f.name}
-                  </h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '8px' }}>
+                    <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--color-text-main)', margin: 0, paddingTop: '4px' }}>
+                      {f.name}
+                    </h3>
+                    
+                    {/* AgriHealth Score (Radial Progress) */}
+                    {(() => {
+                      const healthScore = (String(f.id).charCodeAt(0) % 25) + 70; // Simulate 70-94 score
+                      const scoreColor = healthScore >= 85 ? '#22c55e' : healthScore >= 75 ? '#f59e0b' : '#ef4444';
+                      return (
+                        <div title={`AgriHealth Score: ${healthScore}/100`} style={{ position: 'relative', width: '38px', height: '38px', flexShrink: 0 }}>
+                          <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%' }}>
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="3.5" />
+                            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke={scoreColor} strokeWidth="3.5" strokeDasharray={`${healthScore}, 100`} strokeLinecap="round" />
+                          </svg>
+                          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, color: 'var(--color-text-main)', fontFamily: 'var(--font-display)' }}>
+                            {healthScore}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
 
                   <div className="agro-chip-group" style={{ marginBottom: '16px' }}>
                     <span className="agro-chip">{f.total_area_ha} Ha</span>

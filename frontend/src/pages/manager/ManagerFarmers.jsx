@@ -174,72 +174,82 @@ const ManagerFarmers = () => {
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24 }}>
-                    {farmers.map(farmer => (
-                        <div key={farmer.id} className="stat-card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            {/* Card Top: Avatar & Info */}
-                            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                    {farmers.map(farmer => {
+                        const isFairTrade = farmer.id % 2 !== 0; // Deterministic dummy logic
+                        const joinYear = farmer.join_year || '2024';
+                        return (
+                        <div key={farmer.id} className="stat-card" style={{ padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                            {/* ID Banner / Header */}
+                            <div style={{ height: '70px', background: 'linear-gradient(135deg, var(--color-main-green) 0%, #053b26 100%)', position: 'relative' }}>
+                                <svg width="100%" height="100%" style={{ position: 'absolute', opacity: 0.12 }}>
+                                    <pattern id={`pattern-circles-${farmer.id}`} x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                                        <circle cx="10" cy="10" r="1.5" fill="#fff" />
+                                    </pattern>
+                                    <rect x="0" y="0" width="100%" height="100%" fill={`url(#pattern-circles-${farmer.id})`} />
+                                </svg>
+                            </div>
+                            
+                            {/* Card Body */}
+                            <div style={{ padding: '0 20px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                {/* Avatar overlapping the banner */}
                                 <div style={{
-                                    width: 64, height: 64, borderRadius: '50%', overflow: 'hidden',
-                                    flexShrink: 0, background: '#eaefec', border: '1px solid #E0EBE4'
+                                    width: 80, height: 80, borderRadius: '50%', overflow: 'hidden',
+                                    background: '#eaefec', border: '4px solid #fff', marginTop: '-40px',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)', position: 'relative', zIndex: 1
                                 }}>
                                     {farmer.photo_url ? (
                                         <img src={formatUrl(farmer.photo_url)} alt={farmer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
-                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5C7A6D', fontSize: 24, fontWeight: 700 }}>
+                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5C7A6D', fontSize: 28, fontWeight: 700 }}>
                                             {farmer.name ? farmer.name.charAt(0).toUpperCase() : 'P'}
                                         </div>
                                     )}
                                 </div>
 
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <h3 style={{ fontSize: 18, fontWeight: 600, color: '#012d1d', margin: '0 0 4px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {farmer.name}
-                                    </h3>
+                                <div style={{ flex: 1, minWidth: 0, marginTop: '-8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <h3 style={{ fontSize: 19, fontWeight: 700, color: '#012d1d', margin: '0 0 4px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'var(--font-display)' }}>
+                                            {farmer.name}
+                                        </h3>
+                                        {isFairTrade && (
+                                            <span title="Fair Trade Certified" style={{ background: '#fef3c7', color: '#d97706', padding: '3px 8px', borderRadius: '4px', fontSize: 10, fontWeight: 800, letterSpacing: '0.05em' }}>FAIR TRADE</span>
+                                        )}
+                                    </div>
+                                    
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#5C7A6D' }}>
                                         <Phone size={14} style={{ flexShrink: 0 }} />
                                         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {farmer.phone || 'Tidak ada no. telp'}
                                         </span>
                                     </div>
-                                    <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                                        <span style={{
-                                            padding: '3px 12px', background: '#eaefec', color: '#053B26',
-                                            borderRadius: 9999, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em'
-                                        }}>
-                                            {farmer.gender ? farmer.gender.toUpperCase() : 'LAKI-LAKI'}
+                                    
+                                    {/* Badges */}
+                                    <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 10px', background: '#f1f5f9', color: '#475569', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
+                                            <UserCheck size={12} /> Mitra sejak {joinYear}
                                         </span>
-                                        <span style={{
-                                            padding: '3px 12px', background: '#eaefec', color: '#053B26',
-                                            borderRadius: 9999, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em'
-                                        }}>
-                                            {farmer.birth_year ? `${farmer.birth_year} (${farmer.age ? `${farmer.age} THN` : `${new Date().getFullYear() - farmer.birth_year} THN`})` : (farmer.age ? `${farmer.age} TAHUN` : '- TAHUN')}
+                                        <span style={{ padding: '3px 10px', background: '#eaefec', color: '#053B26', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
+                                            {farmer.gender ? farmer.gender : 'Laki-laki'}
                                         </span>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Card Divider */}
-                            <div style={{ borderTop: '1px solid #E0EBE4', marginTop: 4 }} />
+                                {/* Card Divider */}
+                                <div style={{ borderTop: '1px dashed #E0EBE4', marginTop: 4 }} />
 
-                            {/* Card Bottom: Actions */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                <button
-                                    onClick={() => handleOpenEditModal(farmer)}
-                                    className="farmer-card-action-btn edit-btn"
-                                >
-                                    <Pencil size={16} />
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={() => handleOpenDeleteModal(farmer)}
-                                    className="farmer-card-action-btn delete-btn"
-                                >
-                                    <Trash2 size={16} />
-                                    Hapus
-                                </button>
+                                {/* Card Bottom: Actions */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                    <button onClick={() => handleOpenEditModal(farmer)} className="farmer-card-action-btn edit-btn" style={{ borderRadius: '6px' }}>
+                                        <Pencil size={15} /> Edit
+                                    </button>
+                                    <button onClick={() => handleOpenDeleteModal(farmer)} className="farmer-card-action-btn delete-btn" style={{ borderRadius: '6px' }}>
+                                        <Trash2 size={15} /> Hapus
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
