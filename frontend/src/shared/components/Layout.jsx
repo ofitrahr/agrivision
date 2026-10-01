@@ -8,7 +8,7 @@ import { getStoredSettings, syncSettingsFromServer } from '../utils/settingsHelp
 // ---------------------------------------------------------------
 // SIDEBAR
 // ---------------------------------------------------------------
-const Sidebar = ({ role, user, onToggleSidebar }) => {
+const Sidebar = ({ role, user, onToggleSidebar, onNavigate }) => {
   const navigate = useNavigate();
   const { logout } = useContext(AuthContext);
   const { t } = useTranslation();
@@ -121,6 +121,7 @@ const Sidebar = ({ role, user, onToggleSidebar }) => {
                 <NavLink
                   key={link.to}
                   to={link.to}
+                  onClick={onNavigate}
                   className={({isActive}) => isActive ? 'sidebar-nav-item active' : 'sidebar-nav-item'}
                 >
                   <span className="material-symbols-outlined">{link.icon}</span>
@@ -143,7 +144,7 @@ const Sidebar = ({ role, user, onToggleSidebar }) => {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="sidebar-footer-btn" onClick={() => navigate(profilePath)} title={t('common.profile')}>
+              <button className="sidebar-footer-btn" onClick={() => { onNavigate(); navigate(profilePath); }} title={t('common.profile')}>
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person</span>
                 {t('common.profile')}
               </button>
@@ -348,7 +349,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
           {/* Notification Dropdown */}
           { user?.role !== 'board' && notifInApp && showNotifications && (
             <div ref={notifDropdownRef} style={{
-              position: 'absolute', top: '48px', right: '0', width: '320px',
+              position: 'absolute', top: '48px', right: '0', width: '320px', maxWidth: 'calc(100vw - 28px)',
               background: 'var(--color-surface-white)', border: '1px solid var(--color-border-muted)',
               borderRadius: 'var(--radius-md)', boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
               zIndex: 100, overflow: 'hidden'
@@ -408,9 +409,33 @@ const Header = ({ onToggleSidebar, isSidebarOpen }) => {
 // ---------------------------------------------------------------
 // LAYOUT
 // ---------------------------------------------------------------
+const MOBILE_QUERY = '(max-width: 768px)';
+
+const isMobileViewport = () => typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches;
+
 const Layout = () => {
   const { user } = useContext(AuthContext);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(isMobileViewport);
+  const [sidebarOpen, setSidebarOpen] = useState(() => !isMobileViewport());
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MOBILE_QUERY);
+    const handleChange = (event) => {
+      setIsMobile(event.matches);
+      setSidebarOpen(!event.matches);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile || !sidebarOpen) return;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setSidebarOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isMobile, sidebarOpen]);
 
   useEffect(() => {
     if (user) syncSettingsFromServer();
@@ -420,9 +445,16 @@ const Layout = () => {
     setSidebarOpen(prev => !prev);
   };
 
+  const closeSidebarOnMobile = () => {
+    if (isMobile) setSidebarOpen(false);
+  };
+
   return (
     <div className={`app-layout ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
-      <Sidebar role={user?.role || 'guest'} user={user} onToggleSidebar={toggleSidebar} />
+      <Sidebar role={user?.role || 'guest'} user={user} onToggleSidebar={toggleSidebar} onNavigate={closeSidebarOnMobile} />
+      {isMobile && sidebarOpen && (
+        <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
+      )}
       <main className="main-content">
         <Header onToggleSidebar={toggleSidebar} isSidebarOpen={sidebarOpen} />
         <Outlet />

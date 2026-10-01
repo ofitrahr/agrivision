@@ -492,6 +492,69 @@ img { max-width: 100%; display: block; }
 }
 
 /* ---------------------------------------------------------------
+   MOBILE DRAWER
+   --------------------------------------------------------------- */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 36, 21, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 110;
+  animation: sidebar-backdrop-in 200ms ease;
+}
+@keyframes sidebar-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    z-index: 120;
+    max-width: 85vw;
+    box-shadow: 8px 0 24px rgba(0, 36, 21, 0.18);
+  }
+  .app-layout.sidebar-collapsed .sidebar {
+    box-shadow: none;
+  }
+  .main-content,
+  .app-layout.sidebar-collapsed .main-content {
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 0;
+    min-height: 100vh;
+  }
+  .topnav {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: #f4f6f5;
+    padding: 4px 0 10px;
+  }
+  .topnav-toggle-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+  .topnav-actions {
+    gap: 10px;
+  }
+  .app-layout.sidebar-collapsed .topnav-actions {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+  }
+  .modal-overlay {
+    z-index: 130;
+  }
+}
+
+/* ---------------------------------------------------------------
    FLOATING TOOLTIP
    --------------------------------------------------------------- */
 .tooltip-wrapper {
@@ -2617,4 +2680,145 @@ img { max-width: 100%; display: block; }
   font-weight: 600;
   letter-spacing: 0.03em;
   white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------
+   GLOBAL GIS
+   --------------------------------------------------------------- */
+.gis-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.gis-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.gis-period-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.gis-overview-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+.gis-project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #f8fafc;
+}
+.gis-project-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 220px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+.gis-farm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 18px;
+}
+.gis-card-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+.gis-card-map-btn {
+  flex: 1;
+}
+.gis-card-analyze-btn {
+  flex: 1.3;
+}
+.gis-map-frame {
+  height: 450px;
+}
+
+@media (max-width: 768px) {
+  .gis-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .gis-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .gis-period-field {
+    justify-content: space-between;
+  }
+  .gis-period-field input {
+    flex: 1;
+    min-width: 0;
+  }
+  .gis-toolbar-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 40px;
+  }
+  .gis-overview-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .gis-overview-spacer {
+    display: none;
+  }
+  .gis-project-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 14px;
+  }
+  .gis-project-toggle {
+    min-width: 0;
+  }
+  .gis-project-analyze-btn {
+    width: 100%;
+    min-height: 38px;
+  }
+  .gis-farm-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+    gap: 14px;
+    padding: 12px;
+  }
+  .gis-modal {
+    width: 95vw !important;
+    max-height: 90vh;
+    padding: 18px 16px !important;
+  }
+  .gis-map-frame {
+    height: 60vh;
+  }
+}
+
+@media (max-width: 380px) {
+  .gis-overview-cards {
+    grid-template-columns: 1fr;
+  }
+  .gis-card-actions {
+    flex-wrap: wrap;
+  }
+  .gis-card-analyze-btn {
+    order: 3;
+    flex: 1 1 100%;
+    min-height: 36px;
+  }
 }
