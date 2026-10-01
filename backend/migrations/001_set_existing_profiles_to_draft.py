@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
 
 DB_USER = os.getenv('DB_USER', 'postgres')
-DB_PASS = os.getenv('DB_PASS', 'password')
+DB_PASS = os.getenv('DB_PASS')
 DB_NAME = os.getenv('DB_NAME', 'agrivision')
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = os.getenv('DB_PORT', '5433')

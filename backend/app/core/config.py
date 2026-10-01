@@ -1,17 +1,34 @@
 import os
+import secrets
+import sys
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-    
+
+def _resolve_secret_key():
+    secret_key = os.getenv("SECRET_KEY", "").strip()
+    if secret_key:
+        return secret_key
+    print(
+        "\n[PERINGATAN KEAMANAN] SECRET_KEY belum diisi di .env.\n"
+        "Backend memakai kunci acak sementara: semua sesi login akan tidak valid setelah restart\n"
+        "dan tidak konsisten antar worker Gunicorn. Isi SECRET_KEY dengan string acak hex 64 karakter,\n"
+        "contoh: python -c \"import secrets; print(secrets.token_hex(32))\"\n",
+        file=sys.stderr,
+        flush=True,
+    )
+    return secrets.token_hex(32)
+
+
 class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
-        "postgresql://postgres:password@localhost:5432/agrivision"
+        "postgresql://postgres@localhost:5432/agrivision"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-jwt-key")
+    SECRET_KEY = _resolve_secret_key()
     AUTH_COOKIE_NAME = os.getenv("AUTH_COOKIE_NAME", "access_token")
     AUTH_COOKIE_SECURE = os.getenv("AUTH_COOKIE_SECURE", "false").lower() == "true"
     AUTH_COOKIE_SAMESITE = os.getenv("AUTH_COOKIE_SAMESITE", "Lax")

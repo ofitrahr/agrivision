@@ -4,7 +4,7 @@ services:
     container_name: agrivision_db
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASS:-password}
+      POSTGRES_PASSWORD: ${DB_PASS:?DB_PASS wajib diisi di .env}
       POSTGRES_DB: ${DB_NAME:-agrivision}
     ports:
       - "127.0.0.1:5432:5432"
@@ -17,8 +17,8 @@ services:
     container_name: agrivision_minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-admin_utama}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-password_sangat_kuat_32karakter}
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY wajib diisi di .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY wajib diisi di .env}
     ports:
       - "9000:9000"
       - "127.0.0.1:9001:9001"
@@ -32,17 +32,18 @@ services:
     environment:
       - FLASK_APP=run.py
       - FLASK_ENV=production
-      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASS:-password}@db:5432/${DB_NAME:-agrivision}
-      - SECRET_KEY=${SECRET_KEY:-${JWT_SECRET:-super-secret-jwt-key}}
-      - JWT_SECRET_KEY=${JWT_SECRET:-agrivision_jwt_secret_key_98765}
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASS:?DB_PASS wajib diisi di .env}@db:5432/${DB_NAME:-agrivision}
+      - SECRET_KEY=${SECRET_KEY:-${JWT_SECRET:-}}
+      - JWT_SECRET_KEY=${JWT_SECRET:-}
+      - SUPERADMIN_PASSWORD=${SUPERADMIN_PASSWORD:-}
       - AUTH_COOKIE_SECURE=${AUTH_COOKIE_SECURE:-false}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,http://localhost:5173}
       - TRUSTED_PROXY_COUNT=${TRUSTED_PROXY_COUNT:-1}
       - USE_MINIO=${USE_MINIO:-true}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT:-http://localhost:9000}
       - MINIO_INTERNAL_ENDPOINT=http://minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-admin_utama}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-password_sangat_kuat_32karakter}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY wajib diisi di .env}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:?MINIO_SECRET_KEY wajib diisi di .env}
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-agrivision-uploads}
       - GEE_SERVICE_ACCOUNT_B64=${GEE_SERVICE_ACCOUNT_B64}
     ports:

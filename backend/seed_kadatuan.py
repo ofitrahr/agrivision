@@ -3,6 +3,7 @@ import json
 from datetime import date, datetime, timedelta, timezone
 from app import create_app
 from app.core.harvest_data import monthly_harvest
+from app.core.superadmin import SUPERADMIN_USERNAME, resolve_superadmin_password
 from app.db.database import db
 from app.db.models import (
     User, Company, Project, ProjectPermission, Sdg, SdgMaster,
@@ -94,20 +95,25 @@ def seed_sdgs():
 
 
 def seed_super_admin():
-    if User.query.filter_by(username="superadmin").first():
+    if User.query.filter_by(username=SUPERADMIN_USERNAME).first():
         print("Superadmin already seeded.")
         return
 
+    password, generated = resolve_superadmin_password()
     admin = User(
         project_id=None,
-        username="superadmin",
-        password_hash=get_password_hash("password123"),
+        username=SUPERADMIN_USERNAME,
+        password_hash=get_password_hash(password),
         full_name="Super Administrator",
         role="super_admin"
     )
     db.session.add(admin)
     db.session.commit()
-    print("Superadmin seeded.")
+    if generated:
+        print(f"Superadmin seeded. SUPERADMIN_PASSWORD belum diset, password acak: {password}")
+        print("Simpan password ini sekarang dan isi SUPERADMIN_PASSWORD di .env.")
+    else:
+        print("Superadmin seeded dengan password dari SUPERADMIN_PASSWORD.")
 
 
 # ---------------------------------------------------------------
@@ -390,8 +396,11 @@ def upload_sdg_logos_to_minio():
 
     endpoint = os.getenv('MINIO_INTERNAL_ENDPOINT') or os.getenv('MINIO_ENDPOINT', 'http://localhost:9000')
     public_endpoint = os.getenv('MINIO_ENDPOINT', 'http://localhost:9000').rstrip('/')
-    access_key = os.getenv('MINIO_ACCESS_KEY', 'admin_utama')
-    secret_key = os.getenv('MINIO_SECRET_KEY', 'password_sangat_kuat_32karakter')
+    access_key = os.getenv('MINIO_ACCESS_KEY')
+    secret_key = os.getenv('MINIO_SECRET_KEY')
+    if not access_key or not secret_key:
+        print("[SDG Logos] MINIO_ACCESS_KEY / MINIO_SECRET_KEY belum diset. Logo tetap menggunakan path lokal.")
+        return
     bucket_name = os.getenv('MINIO_BUCKET_NAME', 'agrivision-uploads')
     subfolder = 'sdg-logos'
     logo_dir = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'sdg-logos')

@@ -108,6 +108,28 @@ def validate_upload(file, allowed_extensions=None):
     return ext
 
 
+def get_minio_client():
+    access_key = os.getenv('MINIO_ACCESS_KEY')
+    secret_key = os.getenv('MINIO_SECRET_KEY')
+    if not access_key or not secret_key:
+        raise RuntimeError("MINIO_ACCESS_KEY / MINIO_SECRET_KEY belum diset")
+
+    endpoint = os.getenv('MINIO_INTERNAL_ENDPOINT') or os.getenv('MINIO_ENDPOINT', 'http://localhost:9000')
+    return boto3.client(
+        's3',
+        endpoint_url=endpoint,
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        config=Config(
+            signature_version='s3v4',
+            connect_timeout=3,
+            read_timeout=5,
+            retries={'max_attempts': 1}
+        ),
+        region_name='us-east-1'
+    )
+
+
 def save_file_locally(file, subfolder="logos", allowed_extensions=None):
     if not file or not file.filename:
         return None

@@ -1,6 +1,7 @@
 import os
 import json
 from app import create_app
+from app.core.superadmin import SUPERADMIN_USERNAME, resolve_superadmin_password
 from app.db.database import db
 from app.db.models import User, Company, Project, ProjectPermission, Farm, Farmer
 from sqlalchemy import func, select
@@ -48,19 +49,24 @@ def to_boundary(geojson_geom):
 
 
 def seed_super_admin():
-    if User.query.filter_by(username="superadmin").first():
+    if User.query.filter_by(username=SUPERADMIN_USERNAME).first():
         print("Superadmin sudah ada, dilewati.")
         return
 
+    password, generated = resolve_superadmin_password()
     db.session.add(User(
         project_id=None,
-        username="superadmin",
-        password_hash=get_password_hash("password123"),
+        username=SUPERADMIN_USERNAME,
+        password_hash=get_password_hash(password),
         full_name="Super Administrator",
         role="super_admin",
     ))
     db.session.commit()
-    print("Superadmin berhasil ditanam (superadmin / password123).")
+    if generated:
+        print(f"Superadmin berhasil ditanam. SUPERADMIN_PASSWORD belum diset, password acak: {password}")
+        print("Simpan password ini sekarang dan isi SUPERADMIN_PASSWORD di .env.")
+    else:
+        print("Superadmin berhasil ditanam dengan password dari SUPERADMIN_PASSWORD.")
 
 
 def seed_purwakarta_data():
