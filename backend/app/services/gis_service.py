@@ -104,6 +104,23 @@ class GISService:
         return lambda v: f"{v:.0f}"
 
     # ---------------------------------------------------------------
+    # TILE SEAM & ATTRIBUTION CSS FIX
+    # ---------------------------------------------------------------
+    TILE_SEAM_FIX_CSS = """
+    <style>
+        .leaflet-control-attribution { display: none !important; }
+        .leaflet-container { background: #15291b !important; }
+        .leaflet-tile {
+            border: none !important;
+        }
+        .leaflet-tile-container img.leaflet-tile {
+            width: 257px !important;
+            height: 257px !important;
+        }
+    </style>
+    """
+
+    # ---------------------------------------------------------------
     # MANAGER MAP
     # ---------------------------------------------------------------
     @staticmethod
@@ -133,6 +150,8 @@ class GISService:
                     tooltip=block.get('name', 'Blok Lahan')
                 ).add_to(m)
 
+        m.get_root().html.add_child(folium.Element(GISService.TILE_SEAM_FIX_CSS))
+
         if not thumbnail:
             draw = Draw(
                 draw_options={
@@ -147,7 +166,6 @@ class GISService:
             )
             m.add_child(draw)
 
-            m.get_root().html.add_child(folium.Element("<style>.leaflet-control-attribution { display: none !important; }</style>"))
             js_code = """
             <script>
                 setTimeout(function() {
@@ -176,8 +194,6 @@ class GISService:
             </script>
             """
             m.get_root().html.add_child(folium.Element(js_code))
-        else:
-            m.get_root().html.add_child(folium.Element("<style>.leaflet-control-attribution { display: none !important; }</style>"))
 
         return m.get_root().render()
 
@@ -469,5 +485,6 @@ class GISService:
         </script>
         """
         m.get_root().html.add_child(folium.Element(js_code))
+        m.get_root().html.add_child(folium.Element(GISService.TILE_SEAM_FIX_CSS))
 
         return m.get_root().render()
