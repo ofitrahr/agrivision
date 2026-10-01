@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../shared/api/axios';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Map, Leaf, Maximize, Calendar, Sprout, Upload, FileCode, CheckCircle2, AlertCircle, ArrowLeft, UploadCloud, Loader2, Sparkles, X, CheckCircle, Satellite, Trash2 } from 'lucide-react';
+import { Plus, Map, Leaf, Maximize, Calendar, Sprout, Upload, FileCode, CheckCircle2, AlertCircle, ArrowLeft, Loader2, Sparkles, X, CheckCircle, Satellite, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import InputNumber from '../../shared/components/UI/InputNumber';
-import AdminGISUploader from './AdminGISUploader';
 import AlertModal from '../../shared/components/UI/AlertModal';
 
 const MONTH_NAMES_ID = [
@@ -80,7 +79,6 @@ const GIS = () => {
     const navigate = useNavigate();
 
     const [isCreatingFarm, setIsCreatingFarm] = useState(false);
-    const [isUploadingData, setIsUploadingData] = useState(false);
     const [companies, setCompanies] = useState([]);
     const [projects, setProjects] = useState([]);
     const [selectedCompanyId, setSelectedCompanyId] = useState('');
@@ -100,6 +98,7 @@ const GIS = () => {
     const [mapModalLoading, setMapModalLoading] = useState(false);
     const [batchProgress, setBatchProgress] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
+    const [collapsedProjects, setCollapsedProjects] = useState({});
 
     // ---------------------------------------------------------------
     // SATELLITE OBSERVATION (GEE & AI MODEL)
@@ -128,26 +127,30 @@ const GIS = () => {
         }
     };
 
-    const handleRunAllObservations = async () => {
-        if (farms.length === 0) {
+    const handleRunAllObservations = async (targetFarms = farms, title = 'Menganalisis Citra Satelit Seluruh Lahan') => {
+        if (targetFarms.length === 0) {
             showAlert('warning', 'Tidak ada lahan untuk dianalisis.');
             return;
         }
 
-        setBatchProgress({ current: 0, total: farms.length, currentFarmName: farms[0].name, status: 'running', errors: [] });
+        setBatchProgress({ title, current: 0, total: targetFarms.length, currentFarmName: targetFarms[0].name, status: 'running', errors: [] });
 
         const errors = [];
-        for (let i = 0; i < farms.length; i++) {
-            setBatchProgress(prev => ({ ...prev, current: i + 1, currentFarmName: farms[i].name }));
+        for (let i = 0; i < targetFarms.length; i++) {
+            setBatchProgress(prev => ({ ...prev, current: i + 1, currentFarmName: targetFarms[i].name }));
             try {
-                await api.post(`/admin/farms/${farms[i].id}/run-observation`, { period: observationPeriod }, { timeout: GEE_TIMEOUT_MS });
+                await api.post(`/admin/farms/${targetFarms[i].id}/run-observation`, { period: observationPeriod }, { timeout: GEE_TIMEOUT_MS });
             } catch (err) {
-                errors.push({ farmName: farms[i].name, message: getObservationErrorMessage(err) });
+                errors.push({ farmName: targetFarms[i].name, message: getObservationErrorMessage(err) });
             }
         }
 
         setBatchProgress(prev => ({ ...prev, status: 'done', errors }));
         fetchFarms();
+    };
+
+    const toggleProjectGroup = (key) => {
+        setCollapsedProjects(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
     // ---------------------------------------------------------------
@@ -389,6 +392,27 @@ const GIS = () => {
     const totalArea = farms.reduce((sum, f) => sum + (f.total_area_ha || 0), 0);
     const totalCrops = farms.reduce((sum, f) => sum + (f.total_crops || 0), 0);
 
+    const projectGroups = Object.values(farms.reduce((groups, farm) => {
+        const hasProject = farm.project_name && farm.project_name !== '-';
+        const key = farm.project_id || (hasProject ? farm.project_name : 'tanpa-project');
+        if (!groups[key]) {
+            groups[key] = {
+                key,
+                projectName: hasProject ? farm.project_name : 'Tanpa Project',
+                companyName: farm.company_name && farm.company_name !== '-' ? farm.company_name : null,
+                farms: [],
+                totalArea: 0,
+            };
+        }
+        groups[key].farms.push(farm);
+        groups[key].totalArea += farm.total_area_ha || 0;
+        return groups;
+    }, {})).sort((a, b) => {
+        if (a.key === 'tanpa-project') return 1;
+        if (b.key === 'tanpa-project') return -1;
+        return a.projectName.localeCompare(b.projectName);
+    });
+
     const alertModal = (
         <AlertModal
             isOpen={alertState.isOpen}
@@ -433,7 +457,7 @@ const GIS = () => {
                     </div>
                 )}
                 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(400px, 100%), 1fr))', gap: '24px' }}>
                     {/* Option 1: Upload File */}
                     <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
@@ -520,7 +544,7 @@ const GIS = () => {
 
                 {isModalOpen && (
                     <div className="modal-overlay">
-                        <div className="modal-content">
+                        <div className="modal-content gis-modal">
                             <div className="modal-header">
                                 <h2>Simpan Lahan Baru</h2>
                                 <button className="close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
@@ -576,35 +600,14 @@ const GIS = () => {
     }
 
     // ---------------------------------------------------------------
-    // ML DATA IMPORT VIEW
-    // ---------------------------------------------------------------
-    if (isUploadingData) {
-        return (
-            <div style={{ padding: '24px 30px', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                    <div>
-                        <h1 style={{ color: '#1B4332', fontSize: '24px', margin: '0 0 6px 0', fontWeight: '700' }}>Import Data ML</h1>
-                        <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>Unggah file hasil prediksi (Sentinel-2) untuk diintegrasikan ke Lahan.</p>
-                    </div>
-                    <button className="secondary-btn" onClick={() => setIsUploadingData(false)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <ArrowLeft size={16} />
-                        Kembali
-                    </button>
-                </div>
-                <AdminGISUploader />
-            </div>
-        );
-    }
-
-    // ---------------------------------------------------------------
     // FARM GRID VIEW (DEFAULT)
     // ---------------------------------------------------------------
     return (
         <div>
-            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div className="page-header gis-page-header">
                 <h1 className="page-title" style={{ fontSize: '24px', margin: 0 }}>Global GIS & Lahan</h1>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div className="gis-toolbar">
+                    <div className="gis-period-field">
                         <label htmlFor="observation-period" style={{ fontSize: '13px', color: '#4b5563', fontWeight: 500 }}>
                             Periode Observasi:
                         </label>
@@ -617,10 +620,11 @@ const GIS = () => {
                         />
                     </div>
                     <button
-                        onClick={handleRunAllObservations}
+                        className="gis-toolbar-btn"
+                        onClick={() => handleRunAllObservations()}
                         disabled={batchProgress?.status === 'running' || farms.length === 0}
                         style={{
-                            display: 'flex', alignItems: 'center', gap: '6px', background: '#059669', color: '#fff',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#059669', color: '#fff',
                             border: 'none', borderRadius: '8px', padding: '8px 14px', fontWeight: 600,
                             cursor: (batchProgress?.status === 'running' || farms.length === 0) ? 'not-allowed' : 'pointer',
                             opacity: (batchProgress?.status === 'running' || farms.length === 0) ? 0.6 : 1,
@@ -628,11 +632,7 @@ const GIS = () => {
                     >
                         <Satellite size={16} /> Analisis Semua Lahan ({farms.length})
                     </button>
-                    <button className="secondary-btn" onClick={() => setIsUploadingData(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #10b981', color: '#10b981', background: 'transparent' }}>
-                        <UploadCloud size={16} />
-                        Import Data ML
-                    </button>
-                    <button className="primary-btn" onClick={() => setIsCreatingFarm(true)}>
+                    <button className="primary-btn gis-toolbar-btn" onClick={() => setIsCreatingFarm(true)}>
                         <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
                         Add New Farm
                     </button>
@@ -640,8 +640,8 @@ const GIS = () => {
             </div>
             
             {/* Overview Cards */}
-            <div className="grid-cards" style={{ display: 'flex', gap: '20px', marginBottom: '30px' }}>
-                <div className="stat-card" style={{ flex: 1, padding: '20px', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+            <div className="grid-cards gis-overview-cards">
+                <div className="stat-card" style={{ padding: '20px', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
                     <h3 style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Leaf size={16} color="#10b981" /> Total Farms
                     </h3>
@@ -651,7 +651,7 @@ const GIS = () => {
                         <p className="stat-value" style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{totalFarms}</p>
                     )}
                 </div>
-                <div className="stat-card" style={{ flex: 1, padding: '20px', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                <div className="stat-card" style={{ padding: '20px', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
                     <h3 style={{ color: '#6b7280', fontSize: '14px', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Map size={16} color="#10b981" /> Total Area
                     </h3>
@@ -661,101 +661,151 @@ const GIS = () => {
                         <p className="stat-value" style={{ fontSize: '24px', fontWeight: 'bold', margin: 0 }}>{totalArea.toFixed(2)} ha</p>
                     )}
                 </div>
-                <div style={{ flex: 1 }}></div>
+                <div className="gis-overview-spacer"></div>
             </div>
 
             <h2 style={{ fontSize: '18px', margin: '0 0 20px 0' }}>Farm List</h2>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                {loading ? (
-                    <div style={{ padding: '20px' }}>Memuat data lahan...</div>
-                ) : farms.length === 0 ? (
-                    <div style={{ padding: '20px', color: '#6b7280', background: 'white', borderRadius: '8px' }}>Belum ada lahan terdaftar.</div>
-                ) : (
-                    farms.map((farm) => (
-                        <div key={farm.id} style={{ background: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                            <div style={{ height: '150px', background: '#374151', overflow: 'hidden', position: 'relative' }}>
-                                <FarmMapThumbnail farmId={farm.id} />
-                            </div>
-                            <div style={{ padding: '16px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#111827' }}>
-                                        {farm.name}
-                                    </h3>
-                                </div>
-                                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px 0' }}>Project: {farm.project_name}</p>
-                                
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#4b5563', marginBottom: '6px' }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                        <Maximize size={14} color="#10b981" /> {farm.total_area_ha} ha
-                                    </span>
-                                </div>
-                                <div style={{ fontSize: '13px', color: '#4b5563', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                    <Leaf size={14} color="#10b981" /> {farm.crop_variety || 'Belum di set'}
-                                </div>
-
-                                {/* Superadmin Action Buttons */}
-                                <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                                    <button 
+            {loading ? (
+                <div style={{ padding: '20px' }}>Memuat data lahan...</div>
+            ) : farms.length === 0 ? (
+                <div style={{ padding: '20px', color: '#6b7280', background: 'white', borderRadius: '8px' }}>Belum ada lahan terdaftar.</div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {projectGroups.map((group) => {
+                        const isCollapsed = !!collapsedProjects[group.key];
+                        const isBatchRunning = batchProgress?.status === 'running';
+                        return (
+                            <div key={group.key} style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                                <div className="gis-project-header" style={{ borderBottom: isCollapsed ? 'none' : '1px solid #e5e7eb' }}>
+                                    <button
                                         type="button"
-                                        className="secondary-btn"
-                                        onClick={(e) => handleOpenMapModal(e, farm)}
-                                        style={{ flex: 1, fontSize: '12px', padding: '7px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', borderRadius: '6px' }}
+                                        onClick={() => toggleProjectGroup(group.key)}
+                                        aria-expanded={!isCollapsed}
+                                        className="gis-project-toggle"
                                     >
-                                        <Map size={14} />
-                                        Lihat Peta
-                                    </button>
-                                    <button 
-                                        type="button"
-                                        className="primary-btn"
-                                        onClick={(e) => handleRunObservation(e, farm)}
-                                        disabled={analyzingFarm?.id === farm.id}
-                                        style={{ 
-                                            flex: 1.3, 
-                                            fontSize: '12px', 
-                                            padding: '7px 8px', 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'center', 
-                                            gap: '5px', 
-                                            borderRadius: '6px',
-                                            backgroundColor: analyzingFarm?.id === farm.id ? '#94a3b8' : '#116a3a',
-                                            cursor: analyzingFarm?.id === farm.id ? 'not-allowed' : 'pointer'
-                                        }}
-                                    >
-                                        {analyzingFarm?.id === farm.id ? (
-                                            <>
-                                                <Loader2 size={14} className="animate-spin" />
-                                                Memproses GEE...
-                                            </>
-                                        ) : (
-                                            <>
-                                                Analisis Satelit
-                                            </>
-                                        )}
+                                        {isCollapsed ? <ChevronRight size={18} color="#1B4332" /> : <ChevronDown size={18} color="#1B4332" />}
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <span style={{ fontSize: '16px', fontWeight: '700', color: '#1B4332' }}>{group.projectName}</span>
+                                                {group.companyName && (
+                                                    <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '10px', background: '#dcfce7', color: '#15803d' }}>
+                                                        {group.companyName}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', fontSize: '13px' }}>
+                                                <span style={{ color: '#1e293b', fontWeight: '600' }}>{group.farms.length} Lahan</span>
+                                                <span style={{ color: '#94a3b8' }}>•</span>
+                                                <span style={{ color: '#047857', fontWeight: '600' }}>{group.totalArea.toFixed(2)} ha</span>
+                                            </div>
+                                        </div>
                                     </button>
                                     <button
                                         type="button"
-                                        className="secondary-btn"
-                                        onClick={(e) => openDeleteFarm(e, farm)}
-                                        disabled={analyzingFarm?.id === farm.id}
-                                        title="Hapus lahan"
-                                        aria-label={`Hapus lahan ${farm.name}`}
-                                        style={{ fontSize: '12px', padding: '7px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', color: '#b91c1c', borderColor: '#fecaca' }}
+                                        className="gis-project-analyze-btn"
+                                        onClick={() => handleRunAllObservations(group.farms, `Menganalisis Citra Satelit Project ${group.projectName}`)}
+                                        disabled={isBatchRunning}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: '#059669', color: '#fff',
+                                            border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: 600,
+                                            cursor: isBatchRunning ? 'not-allowed' : 'pointer',
+                                            opacity: isBatchRunning ? 0.6 : 1,
+                                        }}
                                     >
-                                        <Trash2 size={14} />
+                                        <Satellite size={14} /> Analisis Satelit Semua di Project Ini
                                     </button>
                                 </div>
+                                {!isCollapsed && (
+                                    <div className="gis-farm-grid">
+                                        {group.farms.map((farm) => (
+                                            <div key={farm.id} style={{ background: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', minWidth: 0 }}>
+                                                <div style={{ height: '150px', background: '#374151', overflow: 'hidden', position: 'relative' }}>
+                                                    <FarmMapThumbnail farmId={farm.id} />
+                                                </div>
+                                                <div style={{ padding: '16px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#111827' }}>
+                                                            {farm.name}
+                                                        </h3>
+                                                    </div>
+                                                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 12px 0' }}>Project: {farm.project_name}</p>
+                                            
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#4b5563', marginBottom: '6px' }}>
+                                                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                            <Maximize size={14} color="#10b981" /> {farm.total_area_ha} ha
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ fontSize: '13px', color: '#4b5563', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                        <Leaf size={14} color="#10b981" /> {farm.crop_variety || 'Belum di set'}
+                                                    </div>
+
+                                                    {/* Superadmin Action Buttons */}
+                                                    <div className="gis-card-actions">
+                                                        <button 
+                                                            type="button"
+                                                            className="secondary-btn gis-card-map-btn"
+                                                            onClick={(e) => handleOpenMapModal(e, farm)}
+                                                            style={{ fontSize: '12px', padding: '7px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', borderRadius: '6px' }}
+                                                        >
+                                                            <Map size={14} />
+                                                            Lihat Peta
+                                                        </button>
+                                                        <button 
+                                                            type="button"
+                                                            className="primary-btn gis-card-analyze-btn"
+                                                            onClick={(e) => handleRunObservation(e, farm)}
+                                                            disabled={analyzingFarm?.id === farm.id}
+                                                            style={{ 
+                                                                fontSize: '12px', 
+                                                                padding: '7px 8px', 
+                                                                display: 'flex', 
+                                                                alignItems: 'center', 
+                                                                justifyContent: 'center', 
+                                                                gap: '5px', 
+                                                                borderRadius: '6px',
+                                                                backgroundColor: analyzingFarm?.id === farm.id ? '#94a3b8' : '#116a3a',
+                                                                cursor: analyzingFarm?.id === farm.id ? 'not-allowed' : 'pointer'
+                                                            }}
+                                                        >
+                                                            {analyzingFarm?.id === farm.id ? (
+                                                                <>
+                                                                    <Loader2 size={14} className="animate-spin" />
+                                                                    Memproses GEE...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    Analisis Satelit
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="secondary-btn gis-card-delete-btn"
+                                                            onClick={(e) => openDeleteFarm(e, farm)}
+                                                            disabled={analyzingFarm?.id === farm.id}
+                                                            title="Hapus lahan"
+                                                            aria-label={`Hapus lahan ${farm.name}`}
+                                                            style={{ fontSize: '12px', padding: '7px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', color: '#b91c1c', borderColor: '#fecaca' }}
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))
-                )}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Progressive Loading Modal While Waiting for GEE & AI Model */}
             {analyzingFarm && (
                 <div className="modal-overlay" style={{ zIndex: 10000 }}>
-                    <div className="modal-content" style={{ maxWidth: '480px', borderRadius: '14px', padding: '28px', textAlign: 'center' }}>
+                    <div className="modal-content gis-modal" style={{ maxWidth: '480px', borderRadius: '14px', padding: '28px', textAlign: 'center' }}>
                         <div style={{ 
                             width: '56px', 
                             height: '56px', 
@@ -858,7 +908,7 @@ const GIS = () => {
             {/* GEE & AI Satellite Analysis Result Modal */}
             {analysisResult && (
                 <div className="modal-overlay" style={{ zIndex: 9999 }}>
-                    <div className="modal-content" style={{ maxWidth: '640px', borderRadius: '14px', padding: '24px' }}>
+                    <div className="modal-content gis-modal" style={{ maxWidth: '640px', borderRadius: '14px', padding: '24px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <div style={{ padding: '6px', background: '#dcfce7', borderRadius: '8px', color: '#15803d' }}>
@@ -876,7 +926,18 @@ const GIS = () => {
                         <div style={{ marginBottom: '16px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                 <span style={{ fontSize: '12px', fontWeight: '700', color: '#374151' }}>Hasil 5 Parameter Observasi:</span>
-                                <span style={{ fontSize: '11px', color: '#64748b' }}>4 Selesai • 1 Menunggu Model R&D</span>
+                                <span style={{ fontSize: '11px', color: '#64748b' }}>
+                                    {(() => {
+                                        const done = [
+                                            analysisResult.soc_prediction,
+                                            analysisResult.ndvi_prediction,
+                                            analysisResult.biomass_prediction,
+                                            analysisResult.npk_prediction,
+                                            analysisResult.yield_prediction,
+                                        ].filter(v => v != null).length;
+                                        return done === 5 ? '5 Selesai' : `${done} Selesai • ${5 - done} Tidak Tersedia`;
+                                    })()}
+                                </span>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
                                 {/* 1. SOC (Active - Real AI Result) */}
@@ -917,17 +978,32 @@ const GIS = () => {
                                     <div style={{ fontSize: '10px', color: '#166534' }}>Sentinel-2 Index (B8/B4)</div>
                                 </div>
 
-                                {/* 3. Carbon Biomass (separate dataset, not from the satellite pipeline) */}
-                                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                                        <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Biomassa Karbon</span>
-                                        <span style={{ fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '10px', background: '#e2e8f0', color: '#64748b' }}>
-                                            Dataset Terpisah
-                                        </span>
+                                {/* 3. Carbon Biomass (field-survey dataset, only for farms inside the survey) */}
+                                {analysisResult.biomass_prediction != null ? (
+                                    <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#166534' }}>Biomassa Karbon</span>
+                                            <span style={{ fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '10px', background: '#dcfce7', color: '#15803d' }}>
+                                                Survei Lapangan
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#15803d', margin: '2px 0' }}>
+                                            {analysisResult.biomass_prediction} {analysisResult.biomass_unit}
+                                        </div>
+                                        <div style={{ fontSize: '10px', color: '#166534' }} title={analysisResult.biomass_source}>Rerata AGB (above-ground biomass)</div>
                                     </div>
-                                    <div style={{ fontSize: '20px', fontWeight: '700', color: '#94a3b8', margin: '2px 0' }}>-</div>
-                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>Survei AGB, lihat layer Biomassa di Agronomi</div>
-                                </div>
+                                ) : (
+                                    <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>Biomassa Karbon</span>
+                                            <span style={{ fontSize: '10px', fontWeight: '500', padding: '2px 6px', borderRadius: '10px', background: '#e2e8f0', color: '#64748b' }}>
+                                                Tidak Tersedia
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '20px', fontWeight: '700', color: '#94a3b8', margin: '2px 0' }}>-</div>
+                                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>Lahan ini belum termasuk plot survei biomassa</div>
+                                    </div>
+                                )}
 
                                 {/* 4. NPK Nutrients */}
                                 <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '10px', padding: '12px' }}>
@@ -1035,7 +1111,7 @@ const GIS = () => {
             {/* Farm Map Detail Modal */}
             {selectedMapFarm && (
                 <div className="modal-overlay" style={{ zIndex: 9999 }}>
-                    <div className="modal-content" style={{ maxWidth: '800px', width: '90%', borderRadius: '12px', padding: '20px' }}>
+                    <div className="modal-content gis-modal" style={{ maxWidth: '800px', borderRadius: '12px', padding: '20px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Peta Batas: {selectedMapFarm.name}</h3>
@@ -1043,7 +1119,7 @@ const GIS = () => {
                             </div>
                             <button className="close-btn" onClick={() => { setSelectedMapFarm(null); setMapModalHtml(null); }}>&times;</button>
                         </div>
-                        <div style={{ height: '450px', background: '#1e293b', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="gis-map-frame" style={{ background: '#1e293b', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {mapModalLoading ? (
                                 <div style={{ color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <Loader2 size={20} className="animate-spin" /> Memuat peta interaktif...
@@ -1064,12 +1140,12 @@ const GIS = () => {
 
             {batchProgress && (
                 <div className="modal-overlay" style={{ zIndex: 10000 }}>
-                    <div className="modal-content" style={{ maxWidth: '480px', borderRadius: '14px', padding: '28px', textAlign: 'center' }}>
+                    <div className="modal-content gis-modal" style={{ maxWidth: '480px', borderRadius: '14px', padding: '28px', textAlign: 'center' }}>
                         <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#dcfce7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
                             <Satellite size={28} className={batchProgress.status === 'running' ? 'animate-bounce' : ''} />
                         </div>
                         <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                            Menganalisis Citra Satelit Seluruh Lahan
+                            {batchProgress.title}
                         </h3>
                         <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#64748b' }}>
                             Lahan {batchProgress.current} dari {batchProgress.total}: {batchProgress.currentFarmName}
@@ -1108,7 +1184,7 @@ const GIS = () => {
 
             {deleteTarget && (
                 <div className="modal-overlay" style={{ zIndex: 10000 }}>
-                    <div className="modal-content" style={{ maxWidth: '460px', borderRadius: '14px', padding: '28px' }}>
+                    <div className="modal-content gis-modal" style={{ maxWidth: '460px', borderRadius: '14px', padding: '28px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                             <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: '#fee2e2', color: '#b91c1c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                 <Trash2 size={22} />
