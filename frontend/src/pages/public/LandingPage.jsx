@@ -232,7 +232,7 @@ const LandingPage = () => {
                 <span className="stat-suffix">Pillars</span>
               </div>
               <div className="stat-label">End-to-End MRV</div>
-            </div>o
+            </div>
             <div className="stat-item">
               <div className="stat-number-wrap">
                 <span className="stat-number" data-target="5">0</span>
