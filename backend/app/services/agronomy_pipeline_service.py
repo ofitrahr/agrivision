@@ -7,6 +7,7 @@ from app.core.period_utils import current_period_id, period_date_range
 from app.core.spectral_indices import compute_ndvi
 from app.db.database import db
 from app.db.models import Farm, GisLayer
+from app.services.biomass_service import BiomassService
 from app.services.gee_service import GEEService
 from app.services.npk_service import NPKService
 from app.services.soc_service import SOCService
@@ -17,6 +18,21 @@ from sqlalchemy import insert
 logger = logging.getLogger(__name__)
 
 class AgronomyPipelineService:
+    @staticmethod
+    def _biomass_rows(farm, period, geojson):
+        try:
+            service = BiomassService()
+        except (OSError, KeyError, ValueError) as e:
+            logger.warning(f"Dataset biomassa tidak bisa dimuat, layer biomassa dilewati: {e}")
+            return []
+
+        plot_ids = service.plots_for_farm(farm, geojson)
+        if not plot_ids:
+            logger.info(f"Lahan '{farm.name}' tidak mencakup plot survei biomassa, layer biomassa dilewati.")
+            return []
+        logger.info(f"Lahan '{farm.name}' mencakup plot survei biomassa: {', '.join(plot_ids)}")
+        return service.layer_rows(farm.id, plot_ids, period)
+
     @staticmethod
     def run_pipeline_for_farm(farm_id, period=None):
         period = period or current_period_id()
@@ -70,12 +86,15 @@ class AgronomyPipelineService:
         yield_service = YieldService()
         yield_predictions = yield_service.estimate_yield_batch(farm.id, period, ndvi_arr)
 
+        biomass_rows = AgronomyPipelineService._biomass_rows(farm, period, geojson_data)
+
+        replaced_types = ['soc', 'ndvi', 'nitrogen', 'phosphorus', 'potassium', 'soilnpk', 'yield']
+        if biomass_rows:
+            replaced_types.append('biomass')
         GisLayer.query.filter(
             GisLayer.farm_id == farm.id,
             GisLayer.period == period,
-            GisLayer.parameter_type.in_([
-                'soc', 'ndvi', 'nitrogen', 'phosphorus', 'potassium', 'soilnpk', 'yield'
-            ])
+            GisLayer.parameter_type.in_(replaced_types)
         ).delete(synchronize_session=False)
 
         soc_source = (
@@ -117,6 +136,7 @@ class AgronomyPipelineService:
                                'is_anomaly': bool(composite_npk < NPKService.COMPOSITE_ANOMALY_THRESH),
                                'source': "GEE Sentinel-2 + Regresi Linear NPK Kadatuan (komposit)"})
 
+        layer_rows.extend(biomass_rows)
         db.session.execute(insert(GisLayer), layer_rows)
         db.session.commit()
 
@@ -127,6 +147,11 @@ class AgronomyPipelineService:
         ndvi_mean = float(np.mean(ndvi_arr))
         yield_mean = float(np.mean(yield_predictions)) if yield_predictions else None
         yield_log = f"{yield_mean:.3f} Ton/Ha" if yield_mean is not None else "tidak dihitung (belum ada Total Produksi)"
+
+        biomass_mean = (
+            float(np.mean([row['numerical_value'] for row in biomass_rows])) if biomass_rows else None
+        )
+        biomass_log = f"{biomass_mean:.2f} Ton/Ha" if biomass_mean is not None else "tidak ada data survei"
 
         mean_val = float(np.mean(predictions))
         min_val = float(np.min(predictions))
@@ -148,7 +173,7 @@ class AgronomyPipelineService:
         logger.info(
             f"Analisis spasial lahan '{farm.name}' selesai! "
             f"Piksel: {len(predictions)}, Mean SOC: {mean_val:.2f}, Min: {min_val:.2f}, Max: {max_val:.2f}, Std: {std_val:.2f}, "
-            f"Mean NDVI: {ndvi_mean:.2f}, Mean Yield: {yield_log}, "
+            f"Mean NDVI: {ndvi_mean:.2f}, Mean Yield: {yield_log}, Mean AGB: {biomass_log}, "
             f"Mean N: {n_mean:.2f}%, Mean P: {p_mean:.2f} mg/kg, Mean K: {k_mean:.2f} mg/kg"
         )
 
@@ -170,7 +195,9 @@ class AgronomyPipelineService:
             "soc_bulk_density": SOCService.BULK_DENSITY_G_CM3,
             "soc_depth_cm": SOCService.SAMPLING_DEPTH_CM,
             "ndvi_prediction": round(ndvi_mean, 2),
-            "biomass_prediction": None,
+            "biomass_prediction": round(biomass_mean, 2) if biomass_mean is not None else None,
+            "biomass_unit": BiomassService.UNIT,
+            "biomass_source": biomass_rows[0]['source'] if biomass_rows else None,
             "yield_prediction": round(yield_mean, 3) if yield_mean is not None else None,
             "yield_unit": "Ton/Ha",
             "yield_baseline_source": yield_service.last_source,

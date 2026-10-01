@@ -1,15 +1,15 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../shared/api/axios';
-import { 
-  Sprout, 
-  Activity, 
-  Leaf, 
-  BarChart3, 
-  TreePine, 
-  Gauge, 
-  FileSpreadsheet, 
-  CheckCheck, 
+import {
+  Sprout,
+  Activity,
+  Leaf,
+  BarChart3,
+  TreePine,
+  Gauge,
+  FileSpreadsheet,
+  CheckCheck,
   ArrowRight,
   ChevronLeft,
   ChevronRight,
@@ -221,7 +221,7 @@ const LandingPage = () => {
             </div>
             <div className="stat-item">
               <div className="stat-number-wrap">
-                <span className="stat-number" data-target="4">0</span>
+                <span className="stat-number" data-target="12">0</span>
                 <span className="stat-suffix">x / Year</span>
               </div>
               <div className="stat-label">Satellite Updates</div>
@@ -232,7 +232,7 @@ const LandingPage = () => {
                 <span className="stat-suffix">Pillars</span>
               </div>
               <div className="stat-label">End-to-End MRV</div>
-            </div>
+            </div>o
             <div className="stat-item">
               <div className="stat-number-wrap">
                 <span className="stat-number" data-target="5">0</span>
