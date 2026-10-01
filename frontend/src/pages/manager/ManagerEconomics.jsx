@@ -31,6 +31,18 @@ const formatYearMonthToIndonesian = (yyyyMm) => {
 
 const hasValue = (v) => v !== null && v !== undefined && v !== '' && v !== '-';
 
+const IMPORT_ACCEPTED_EXTENSIONS = ['xlsx', 'csv'];
+
+const IMPORT_MODES = [
+  { id: 'replace', title: 'Ganti periode yang ada', desc: 'Data lama pada periode yang ada di file akan dihapus lalu diganti data baru.' },
+  { id: 'append', title: 'Tambahkan', desc: 'Data baru ditambahkan tanpa menghapus catatan lama pada periode yang sama.' },
+];
+
+const formatImportValue = (v) => {
+  if (v === null || v === undefined || v === '') return '-';
+  return typeof v === 'number' ? v.toLocaleString('id-ID') : v;
+};
+
 const NoDataLabel = () => (
   <span style={{ fontSize: '12px', fontWeight: 500, fontStyle: 'italic', color: 'var(--color-text-muted)' }}>
     Data belum tersedia
@@ -203,6 +215,17 @@ const ManagerEconomics = () => {
   const [analyticsNotes, setAnalyticsNotes] = useState('');
   const [savingHarvest, setSavingHarvest] = useState(false);
 
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importStep, setImportStep] = useState(1);
+  const [importFile, setImportFile] = useState(null);
+  const [importPreview, setImportPreview] = useState(null);
+  const [importMode, setImportMode] = useState('replace');
+  const [importDragActive, setImportDragActive] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const importInputRef = React.useRef(null);
+
   // ---------------------------------------------------------------
   // REPORT STATE
   // ---------------------------------------------------------------
@@ -351,6 +374,139 @@ const ManagerEconomics = () => {
       showAlert('error', 'Gagal menyimpan data panen.');
     } finally {
       setSavingHarvest(false);
+    }
+  };
+
+  // ---------------------------------------------------------------
+  // BULK IMPORT (EXCEL / CSV)
+  // ---------------------------------------------------------------
+  const resetImport = () => {
+    setImportStep(1);
+    setImportFile(null);
+    setImportPreview(null);
+    setImportMode('replace');
+    setImportDragActive(false);
+    setImportError('');
+  };
+
+  const openImportModal = () => {
+    if (!selectedFarm) return showAlert('warning', 'Pilih lahan terlebih dahulu.');
+    resetImport();
+    setShowImportModal(true);
+  };
+
+  const closeImportModal = () => {
+    if (importLoading) return;
+    setShowImportModal(false);
+    resetImport();
+  };
+
+  const handleDownloadTemplate = async () => {
+    setDownloadingTemplate(true);
+    try {
+      const response = await api.get('/manager/records/import/template', {
+        params: { format: 'xlsx' },
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(response.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'template_impor_produksi.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Gagal mengunduh template', error);
+      showAlert('error', 'Gagal mengunduh template Excel.');
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
+
+  const handleImportFile = async (file) => {
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!IMPORT_ACCEPTED_EXTENSIONS.includes(ext)) {
+      setImportError('Format file harus .xlsx atau .csv');
+      return;
+    }
+
+    setImportFile(file);
+    setImportError('');
+    setImportLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const response = await api.post(`/manager/farms/${selectedFarm}/records/import/preview`, formData, {
+        headers: { 'Content-Type': undefined },
+      });
+      if (response.data.success) {
+        setImportPreview(response.data.data);
+        setImportStep(2);
+      }
+    } catch (error) {
+      setImportError(error.response?.data?.message || 'Gagal membaca file.');
+    } finally {
+      setImportLoading(false);
+      if (importInputRef.current) importInputRef.current.value = '';
+    }
+  };
+
+  const handleImportDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setImportDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setImportDragActive(false);
+    }
+  };
+
+  const handleImportDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setImportDragActive(false);
+    if (importLoading) return;
+    handleImportFile(e.dataTransfer.files?.[0]);
+  };
+
+  const handleImportCommit = async () => {
+    if (!importPreview || importPreview.valid_count === 0) return;
+
+    setImportLoading(true);
+    setImportError('');
+    try {
+      const rows = importPreview.rows
+        .filter((r) => r.status === 'valid')
+        .map((r) => ({ row_number: r.row_number, ...r.data }));
+      const response = await api.post(`/manager/farms/${selectedFarm}/records/import`, {
+        rows,
+        mode: importMode,
+        filename: importPreview.filename || importFile?.name,
+      });
+      if (response.data.success) {
+        const { imported, periods } = response.data.data;
+        const periodLabel = periods.map(formatYearMonthToIndonesian).join(', ');
+        setShowImportModal(false);
+        resetImport();
+        fetchFinanceRecords(selectedFarm);
+        fetchAnalyticsData(selectedFarm);
+        fetchObservationSummary(selectedFarm);
+        showAlert(
+          'success',
+          `${imported} catatan produksi & panen berhasil diimpor untuk periode ${periodLabel}. ` +
+          'Observasi satelit (yield) dapat dijalankan ulang untuk periode tersebut agar prediksi mengikuti data terbaru.'
+        );
+      }
+    } catch (error) {
+      const errors = error.response?.data?.data?.errors;
+      const detail = errors?.length
+        ? ` ${errors.map((err) => `Baris ${err.row_number}: ${err.messages.join(', ')}`).join('; ')}`
+        : '';
+      setImportError(`${error.response?.data?.message || 'Gagal menyimpan data impor.'}${detail}`);
+    } finally {
+      setImportLoading(false);
     }
   };
 
@@ -1145,6 +1301,35 @@ const ManagerEconomics = () => {
 
       {/* --- TAB 2: OPERATIONAL RECORDS --- */}
       {activeTab === 'records' && (
+        <>
+        <div className="agro-card" style={{ padding: '16px 24px', marginBottom: 'var(--gutter)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-main)' }}>Impor Massal Produksi & Hasil Panen</div>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+              Unggah file Excel (.xlsx) atau CSV untuk mencatat banyak periode sekaligus.
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={handleDownloadTemplate}
+              disabled={downloadingTemplate}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>download</span>
+              {downloadingTemplate ? 'Mengunduh...' : 'Unduh Template Excel'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={openImportModal}
+              disabled={!selectedFarm}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>upload_file</span>
+              Impor Excel / CSV
+            </button>
+          </div>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '5fr 7fr', gap: 'var(--gutter)', alignItems: 'start' }}>
           <div className="agro-card" style={{ padding: '24px' }}>
             <h2 className="agro-card-title" style={{ fontSize: '18px', marginBottom: '16px' }}>
@@ -1340,6 +1525,229 @@ const ManagerEconomics = () => {
                 </table>
               </div>
             </div>
+          </div>
+        </div>
+        </>
+      )}
+
+      {showImportModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: importStep === 2 ? '900px' : '560px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '24px', color: 'var(--color-primary-container)' }}>
+                  upload_file
+                </span>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: 'var(--color-text-main)' }}>
+                    Impor Produksi & Hasil Panen
+                  </h2>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                    Tahap {importStep} dari 2 • Lahan: {farms.find((f) => String(f.id) === String(selectedFarm))?.name || '-'}
+                  </div>
+                </div>
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={closeImportModal}
+                disabled={importLoading}
+                style={{ padding: '4px' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>close</span>
+              </button>
+            </div>
+
+            {importError && (
+              <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-sm)', marginBottom: '16px', fontSize: '13px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>error</span>
+                <span>{importError}</span>
+              </div>
+            )}
+
+            {importStep === 1 ? (
+              <>
+                <div
+                  onDragEnter={handleImportDrag}
+                  onDragLeave={handleImportDrag}
+                  onDragOver={handleImportDrag}
+                  onDrop={handleImportDrop}
+                  onClick={() => !importLoading && importInputRef.current?.click()}
+                  style={{
+                    border: `2px dashed ${importDragActive ? 'var(--color-primary-container)' : 'var(--color-border-muted)'}`,
+                    background: importDragActive ? 'var(--color-surface-container-low)' : 'var(--color-surface-white)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '40px 20px',
+                    textAlign: 'center',
+                    cursor: importLoading ? 'wait' : 'pointer',
+                    transition: 'all var(--transition)',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '40px', color: 'var(--color-main-green)' }}>
+                    {importLoading ? 'hourglass_top' : 'cloud_upload'}
+                  </span>
+                  <p style={{ margin: '8px 0 4px', fontSize: '14px', fontWeight: 600, color: 'var(--color-text-main)' }}>
+                    {importLoading ? `Membaca ${importFile?.name || 'file'}...` : 'Klik untuk memilih file atau drag & drop di sini'}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                    Format .xlsx atau .csv • Kolom wajib: periode, total_produksi_kg
+                  </p>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".xlsx,.csv"
+                    onChange={(e) => handleImportFile(e.target.files?.[0])}
+                    style={{ display: 'none' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--color-border-muted)' }}>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={handleDownloadTemplate} disabled={downloadingTemplate}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>download</span>
+                    {downloadingTemplate ? 'Mengunduh...' : 'Unduh Template Excel'}
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={closeImportModal} disabled={importLoading}>
+                    Batal
+                  </button>
+                </div>
+              </>
+            ) : importPreview && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+                  <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                    <div style={{ fontSize: '11px', color: '#166534', fontWeight: 600 }}>Baris Valid</div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: '#15803d' }}>{importPreview.valid_count}</div>
+                  </div>
+                  <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: importPreview.error_count ? '#fef2f2' : 'var(--color-surface-container-low)', border: `1px solid ${importPreview.error_count ? '#fecaca' : 'var(--color-border-muted)'}` }}>
+                    <div style={{ fontSize: '11px', color: importPreview.error_count ? '#991b1b' : 'var(--color-text-muted)', fontWeight: 600 }}>Baris Error</div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: importPreview.error_count ? '#b91c1c' : 'var(--color-text-main)' }}>{importPreview.error_count}</div>
+                  </div>
+                  <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--color-surface-container-low)', border: '1px solid var(--color-border-muted)' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Total Produksi Terbaca</div>
+                    <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-text-main)' }}>
+                      {Number(importPreview.total_production_kg).toLocaleString('id-ID')} Kg
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+                  File: <strong>{importPreview.filename}</strong>
+                  {importPreview.skipped_blank > 0 && ` • ${importPreview.skipped_blank} baris kosong dilewati`}
+                  {importPreview.error_count > 0 && ' • Baris error tidak akan disimpan'}
+                </div>
+
+                <div className="table-container" style={{ maxHeight: '320px', overflowY: 'auto', marginBottom: '16px' }}>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Baris</th>
+                        <th>Periode</th>
+                        <th>Produksi (Kg)</th>
+                        <th>Panen (Kg)</th>
+                        <th>Biaya</th>
+                        <th>Pendapatan</th>
+                        <th>Catatan</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importPreview.rows.map((r) => {
+                        const isValid = r.status === 'valid';
+                        return (
+                          <tr key={r.row_number} style={{ background: isValid ? '#f0fdf4' : '#fef2f2' }}>
+                            <td style={{ fontWeight: 600 }}>{r.row_number}</td>
+                            <td>{isValid ? formatYearMonthToIndonesian(r.data.periode) : formatImportValue(r.data.periode)}</td>
+                            <td>{formatImportValue(r.data.total_produksi_kg)}</td>
+                            <td>{formatImportValue(r.data.hasil_panen_kg)}</td>
+                            <td>{formatImportValue(r.data.biaya_operasional)}</td>
+                            <td>{formatImportValue(r.data.pendapatan)}</td>
+                            <td style={{ maxWidth: '180px', fontSize: '12px', color: 'var(--color-text-muted)' }}>{formatImportValue(r.data.catatan)}</td>
+                            <td style={{ minWidth: '180px' }}>
+                              {isValid ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 600, color: '#15803d' }}>
+                                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span>
+                                  Valid
+                                </span>
+                              ) : (
+                                <div style={{ fontSize: '12px', color: '#b91c1c' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span>
+                                    Error
+                                  </div>
+                                  {r.errors.map((msg) => (
+                                    <div key={msg}>• {msg}</div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label className="form-label" style={{ marginBottom: '8px', display: 'block' }}>Mode Impor</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
+                    {IMPORT_MODES.map((opt) => {
+                      const isSelected = importMode === opt.id;
+                      return (
+                        <div
+                          key={opt.id}
+                          role="radio"
+                          aria-checked={isSelected}
+                          tabIndex={0}
+                          onClick={() => setImportMode(opt.id)}
+                          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setImportMode(opt.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '10px',
+                            padding: '10px 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: `1px solid ${isSelected ? 'var(--color-primary-container)' : 'var(--color-border-muted)'}`,
+                            background: isSelected ? 'var(--color-surface-container-low)' : 'var(--color-surface-white)',
+                            cursor: 'pointer',
+                            transition: 'all var(--transition)',
+                          }}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ color: isSelected ? 'var(--color-main-green)' : 'var(--color-border-muted)', fontSize: '22px', fontVariationSettings: isSelected ? '"FILL" 1' : undefined }}
+                          >
+                            {isSelected ? 'check_circle' : 'radio_button_unchecked'}
+                          </span>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-main)' }}>{opt.title}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{opt.desc}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', paddingTop: '16px', borderTop: '1px solid var(--color-border-muted)' }}>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={resetImport} disabled={importLoading}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>arrow_back</span>
+                    Ganti File
+                  </button>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button type="button" className="btn btn-ghost" onClick={closeImportModal} disabled={importLoading}>
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleImportCommit}
+                      disabled={importLoading || importPreview.valid_count === 0}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span>
+                      {importLoading ? 'Menyimpan...' : `Simpan Data (${importPreview.valid_count})`}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

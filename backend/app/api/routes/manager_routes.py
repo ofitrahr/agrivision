@@ -679,6 +679,93 @@ def manager_farm_financials(current_user, farm_id):
 
 
 # ---------------------------------------------------------------
+# PRODUCTION & HARVEST BULK IMPORT
+# ---------------------------------------------------------------
+def _get_manager_farm(current_user, farm_id):
+    import uuid as uuid_pkg
+    try:
+        uuid_pkg.UUID(str(farm_id))
+    except ValueError:
+        return None
+    if not current_user.project_id:
+        return None
+    return Farm.query.filter_by(id=farm_id, project_id=current_user.project_id).first()
+
+
+@manager_bp.route('/records/import/template', methods=['GET'])
+@token_required
+@role_required('manager')
+def download_import_template(current_user):
+    from app.services.excel_import_service import build_template
+    fmt = request.args.get('format', 'xlsx').lower()
+    if fmt not in ('xlsx', 'csv'):
+        return jsonify({'success': False, 'message': "Format template harus 'xlsx' atau 'csv'"}), 400
+
+    buffer, mimetype, filename = build_template(fmt)
+    return send_file(buffer, mimetype=mimetype, as_attachment=True, download_name=filename)
+
+
+@manager_bp.route('/farms/<farm_id>/records/import/preview', methods=['POST'])
+@token_required
+@role_required('manager')
+def preview_records_import(current_user, farm_id):
+    from app.services.excel_import_service import ImportFileError, preview_file
+    farm = _get_manager_farm(current_user, farm_id)
+    if not farm:
+        return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
+
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({'success': False, 'message': 'Pilih file .xlsx atau .csv terlebih dahulu'}), 400
+
+    try:
+        summary = preview_file(file)
+    except ImportFileError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+    return jsonify({'success': True, 'data': {**summary, 'filename': file.filename}}), 200
+
+
+@manager_bp.route('/farms/<farm_id>/records/import', methods=['POST'])
+@token_required
+@role_required('manager')
+def commit_records_import(current_user, farm_id):
+    from app.services.excel_import_service import ImportFileError, commit_import
+    farm = _get_manager_farm(current_user, farm_id)
+    if not farm:
+        return jsonify({'success': False, 'message': 'Lahan tidak ditemukan'}), 404
+
+    payload = request.get_json(silent=True) or {}
+    try:
+        ok, result = commit_import(
+            farm,
+            current_user,
+            payload.get('rows'),
+            mode=payload.get('mode') or 'replace',
+            filename=payload.get('filename'),
+            ip_address=request.remote_addr,
+        )
+    except ImportFileError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        current_app.logger.exception('Gagal menyimpan impor data produksi')
+        return jsonify({'success': False, 'message': f'Gagal menyimpan data: {e}'}), 500
+
+    if not ok:
+        return jsonify({
+            'success': False,
+            'message': f"{result['error_count']} baris tidak valid. Periksa kembali file Anda.",
+            'data': result,
+        }), 400
+
+    return jsonify({
+        'success': True,
+        'message': f"{result['imported']} catatan produksi & panen berhasil diimpor",
+        'data': result,
+    }), 201
+
+
+# ---------------------------------------------------------------
 # AGRONOMY MAP & STATISTICS
 # ---------------------------------------------------------------
 @manager_bp.route('/farms/<farm_id>/agronomy-map', methods=['GET'])
@@ -1054,6 +1141,8 @@ def get_manager_activities(current_user):
                 icon = 'map'
             elif 'FARMER' in act or 'USER' in act:
                 icon = 'group_add'
+            elif act == 'IMPORT_PRODUCTION_EXCEL':
+                icon = 'upload_file'
             elif 'HARVEST' in act or 'CROP' in act:
                 icon = 'description'
             elif 'LOGIN' in act:
